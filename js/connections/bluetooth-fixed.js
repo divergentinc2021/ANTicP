@@ -1,6 +1,6 @@
 /**
- * Bluetooth Connection Module - FIXED VERSION
- * Addresses Bluetooth permissions, device selection, and connection issues
+ * Bluetooth Connection Module - ULTRA FIXED VERSION  
+ * Fixed service UUIDs and enhanced connection handling
  */
 import { EventEmitter } from '../utils/event-emitter.js';
 import { logger } from '../core/logger.js';
@@ -28,20 +28,20 @@ export class BluetoothConnection extends EventEmitter {
             
             let device;
             try {
-                // Use more comprehensive filters for ANT+ devices
+                // Use proper UUIDs for Bluetooth services
                 device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: [
-                        'heart_rate',                    // 0x180D - Heart Rate
-                        'cycling_power',                 // 0x1818 - Cycling Power  
-                        'cycling_speed_and_cadence',     // 0x1816 - CSC
-                        'fitness_equipment',             // 0x1826 - FTMS
-                        'device_information',            // 0x180A - Device Info
-                        'battery_service',               // 0x180F - Battery
-                        'generic_access',                // 0x1800 - Generic Access
-                        'generic_attribute',             // 0x1801 - Generic Attribute
+                        0x180D,                          // Heart Rate
+                        0x1818,                          // Cycling Power  
+                        0x1816,                          // Cycling Speed and Cadence
+                        0x1826,                          // Fitness Machine
+                        0x180A,                          // Device Information
+                        0x180F,                          // Battery Service
+                        0x1800,                          // Generic Access
+                        0x1801,                          // Generic Attribute
                         '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e', // Wahoo custom
-                        '00001812-0000-1000-8000-00805f9b34fb', // HID Service
+                        0x1812,                          // HID Service
                         '0000fff0-0000-1000-8000-00805f9b34fb', // Nordic UART
                         '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART Service
                         '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // Issc proprietary service
@@ -51,16 +51,28 @@ export class BluetoothConnection extends EventEmitter {
                 if (selectionError.name === 'NotFoundError') {
                     logger.info('ℹ️ No Bluetooth device selected or found');
                     logger.info('💡 Make sure your ANT+ device is:');
-                    logger.info('  • In pairing mode');
+                    logger.info('  • In pairing mode (check device manual)');
                     logger.info('  • Close to your computer (within 3 feet)');
                     logger.info('  • Not connected to another device');
+                    logger.info('  • Powered on and discoverable');
                 } else if (selectionError.name === 'SecurityError') {
                     logger.info('ℹ️ Bluetooth access denied or not available');
                     await this.showPermissionHelp();
                 } else if (selectionError.name === 'NotSupportedError') {
                     logger.info('ℹ️ Bluetooth not supported on this device/browser');
+                } else if (selectionError.message.includes('Invalid Service name')) {
+                    logger.error('❌ Bluetooth service configuration error');
+                    logger.info('💡 This is a browser compatibility issue - trying fallback method...');
+                    // Try with minimal services as fallback
+                    device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [0x180D, 0x1818, 0x1816, 0x1826, 0x180A, 0x180F]
+                    });
                 }
-                throw selectionError;
+                
+                if (!device) {
+                    throw selectionError;
+                }
             }
 
             logger.info(`📱 Found device: ${device.name || 'Unknown Device'} (${device.id})`);
@@ -116,6 +128,7 @@ export class BluetoothConnection extends EventEmitter {
                 logger.info('  • Make sure Bluetooth is enabled on your device');
                 logger.info('  • Put your ANT+ device in pairing mode');
                 logger.info('  • Look for devices like "KICKR", "TICKR", "Zwift Click"');
+                logger.info('  • Try turning the device off and on again');
             } else if (error.name === 'SecurityError') {
                 await this.showPermissionHelp();
             } else if (error.name === 'NetworkError') {
@@ -123,6 +136,12 @@ export class BluetoothConnection extends EventEmitter {
                 logger.info('  • Move closer to the Bluetooth device');
                 logger.info('  • Make sure the device isn\'t connected elsewhere');
                 logger.info('  • Try restarting Bluetooth on your computer');
+                logger.info('  • Check if the device is in pairing mode');
+            } else if (error.message.includes('Invalid Service name')) {
+                logger.info('💡 Browser Compatibility Issue:');
+                logger.info('  • Try updating your browser to the latest version');
+                logger.info('  • Some Bluetooth service names may not be recognized');
+                logger.info('  • This is a known issue with some browser versions');
             }
             
             throw error;
@@ -307,37 +326,54 @@ export class BluetoothConnection extends EventEmitter {
         if (!this.server) return;
         
         try {
-            // Heart Rate Service
-            if (this.services.has('heart_rate')) {
+            // Convert UUIDs to standard format for checking
+            const serviceUUIDs = Array.from(this.services.keys());
+            
+            // Heart Rate Service (0x180D)
+            const hrServiceUUID = serviceUUIDs.find(uuid => 
+                uuid.includes('180d') || uuid.includes('heart_rate'));
+            if (hrServiceUUID) {
                 logger.info('❤️ Setting up Heart Rate monitoring...');
-                const hrService = this.services.get('heart_rate');
-                const hrChar = await hrService.getCharacteristic('heart_rate_measurement');
-                await hrChar.startNotifications();
-                hrChar.addEventListener('characteristicvaluechanged', (event) => {
-                    this.handleHeartRateData(event);
-                });
-                logger.info('✅ Heart Rate monitoring active');
+                const hrService = this.services.get(hrServiceUUID);
+                try {
+                    const hrChar = await hrService.getCharacteristic(0x2A37);
+                    await hrChar.startNotifications();
+                    hrChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleHeartRateData(event);
+                    });
+                    logger.info('✅ Heart Rate monitoring active');
+                } catch (e) {
+                    logger.info('ℹ️ Heart Rate characteristic not available');
+                }
             }
             
-            // Cycling Power Service  
-            if (this.services.has('cycling_power')) {
+            // Cycling Power Service (0x1818)
+            const powerServiceUUID = serviceUUIDs.find(uuid => 
+                uuid.includes('1818') || uuid.includes('cycling_power'));
+            if (powerServiceUUID) {
                 logger.info('⚡ Setting up Power monitoring...');
-                const powerService = this.services.get('cycling_power');
-                const powerChar = await powerService.getCharacteristic('cycling_power_measurement');
-                await powerChar.startNotifications();
-                powerChar.addEventListener('characteristicvaluechanged', (event) => {
-                    this.handlePowerData(event);
-                });
-                logger.info('✅ Power monitoring active');
+                const powerService = this.services.get(powerServiceUUID);
+                try {
+                    const powerChar = await powerService.getCharacteristic(0x2A63);
+                    await powerChar.startNotifications();
+                    powerChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handlePowerData(event);
+                    });
+                    logger.info('✅ Power monitoring active');
+                } catch (e) {
+                    logger.info('ℹ️ Power measurement characteristic not available');
+                }
             }
             
-            // Fitness Equipment (FTMS)
-            if (this.services.has('fitness_equipment')) {
+            // Fitness Equipment (0x1826)
+            const ftmsServiceUUID = serviceUUIDs.find(uuid => 
+                uuid.includes('1826') || uuid.includes('fitness'));
+            if (ftmsServiceUUID) {
                 logger.info('🚴 Setting up Fitness Equipment monitoring...');
-                const ftmsService = this.services.get('fitness_equipment');
+                const ftmsService = this.services.get(ftmsServiceUUID);
                 
                 try {
-                    const indoorBikeChar = await ftmsService.getCharacteristic('indoor_bike_data');
+                    const indoorBikeChar = await ftmsService.getCharacteristic(0x2AD2);
                     await indoorBikeChar.startNotifications();
                     indoorBikeChar.addEventListener('characteristicvaluechanged', (event) => {
                         this.handleTrainerData(event);
@@ -348,7 +384,7 @@ export class BluetoothConnection extends EventEmitter {
                 }
                 
                 try {
-                    const controlChar = await ftmsService.getCharacteristic('fitness_machine_control_point');
+                    const controlChar = await ftmsService.getCharacteristic(0x2AD9);
                     this.controlCharacteristic = controlChar;
                     logger.info('✅ Fitness Machine Control available');
                 } catch (e) {
@@ -356,16 +392,22 @@ export class BluetoothConnection extends EventEmitter {
                 }
             }
             
-            // Speed and Cadence
-            if (this.services.has('cycling_speed_and_cadence')) {
+            // Speed and Cadence (0x1816)
+            const cscServiceUUID = serviceUUIDs.find(uuid => 
+                uuid.includes('1816') || uuid.includes('speed'));
+            if (cscServiceUUID) {
                 logger.info('🚴 Setting up Speed/Cadence monitoring...');
-                const cscService = this.services.get('cycling_speed_and_cadence');
-                const cscChar = await cscService.getCharacteristic('csc_measurement');
-                await cscChar.startNotifications(); 
-                cscChar.addEventListener('characteristicvaluechanged', (event) => {
-                    this.handleSpeedCadenceData(event);
-                });
-                logger.info('✅ Speed/Cadence monitoring active');
+                const cscService = this.services.get(cscServiceUUID);
+                try {
+                    const cscChar = await cscService.getCharacteristic(0x2A5B);
+                    await cscChar.startNotifications(); 
+                    cscChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleSpeedCadenceData(event);
+                    });
+                    logger.info('✅ Speed/Cadence monitoring active');
+                } catch (e) {
+                    logger.info('ℹ️ Speed/Cadence measurement not available');
+                }
             }
             
         } catch (error) {
@@ -537,23 +579,23 @@ export class BluetoothConnection extends EventEmitter {
         };
     }
 
-    // Device-specific connection methods
+    // Device-specific connection methods with fixed UUIDs
     static getKickrFilters() {
         return {
             filters: [
                 { namePrefix: 'KICKR CORE' },
                 { namePrefix: 'KICKR' },
                 { namePrefix: 'Wahoo' },
-                { services: ['fitness_equipment'] },
-                { services: ['cycling_power'] }
+                { services: [0x1826] },  // Fitness Machine
+                { services: [0x1818] }   // Cycling Power
             ],
             optionalServices: [
-                'fitness_equipment',
-                'cycling_power', 
-                'cycling_speed_and_cadence',
-                'device_information',
-                'battery_service',
-                '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e'
+                0x1826,    // Fitness Machine
+                0x1818,    // Cycling Power
+                0x1816,    // Cycling Speed and Cadence
+                0x180A,    // Device Information
+                0x180F,    // Battery Service
+                '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e'  // Wahoo custom
             ]
         };
     }
@@ -566,11 +608,11 @@ export class BluetoothConnection extends EventEmitter {
                 { namePrefix: 'Click' }
             ],
             optionalServices: [
-                '00001812-0000-1000-8000-00805f9b34fb', // HID Service
-                'cycling_speed_and_cadence',
-                'device_information', 
-                'battery_service',
-                '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e'
+                0x1812,    // HID Service
+                0x1816,    // Cycling Speed and Cadence
+                0x180A,    // Device Information
+                0x180F,    // Battery Service
+                '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e'  // Wahoo custom
             ]
         };
     }
@@ -578,13 +620,13 @@ export class BluetoothConnection extends EventEmitter {
     static getHRMFilters() {
         return {
             filters: [
-                { services: ['heart_rate'] },
+                { services: [0x180D] },  // Heart Rate
                 { namePrefix: 'Polar' },
                 { namePrefix: 'Garmin' },
                 { namePrefix: 'Wahoo' },
                 { namePrefix: 'TICKR' }
             ],
-            optionalServices: ['device_information', 'battery_service']
+            optionalServices: [0x180A, 0x180F]  // Device Information, Battery
         };
     }
 }

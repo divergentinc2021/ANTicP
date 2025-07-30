@@ -1,6 +1,6 @@
 /**
- * USB ANT+ Connection Module - FIXED VERSION
- * Addresses USB serial port connection and device selection issues
+ * USB ANT+ Connection Module - ULTRA FIXED VERSION
+ * Enhanced device detection and better user guidance
  */
 import { EventEmitter } from '../utils/event-emitter.js';
 import { logger } from '../core/logger.js';
@@ -24,6 +24,11 @@ export class USBANTConnection extends EventEmitter {
 
         try {
             logger.info('🔍 Requesting USB ANT+ device...');
+            logger.info('📋 Available devices in your list should include:');
+            logger.info('   • Look for "USB Serial Device" entries');
+            logger.info('   • Garmin/Dynastream ANT+ USB sticks');
+            logger.info('   • Silicon Labs CP210x devices');
+            logger.info('   • AVOID Bluetooth devices (they end with COM numbers)');
             this.emit('connecting');
             
             // Check Web Serial API availability first
@@ -33,18 +38,29 @@ export class USBANTConnection extends EventEmitter {
             
             let port;
             try {
+                // Show user guidance before opening selector
+                logger.info('💡 Device Selection Guide:');
+                logger.info('   ✅ SELECT: USB Serial Device, CP210x, ANT USB');
+                logger.info('   ❌ AVOID: Bluetooth devices, Wacom, JBL, EDIFIER');
+                logger.info('   ❌ AVOID: Devices with (COM3), (COM4), (COM5), (COM6)');
+                
                 // Try without filters first to show all serial devices
-                // This allows users to see and select their ANT+ device even if it has an unknown VID
                 port = await navigator.serial.requestPort();
                 logger.info('📱 Serial device selected, opening connection...');
             } catch (selectionError) {
                 if (selectionError.name === 'NotFoundError') {
-                    logger.info('ℹ️ No serial device selected. Common ANT+ devices:');
-                    logger.info('  • Garmin/Dynastream ANT+ USB Stick (VID: 0FCF)');
-                    logger.info('  • Silicon Labs CP210x USB to UART Bridge (VID: 10C4)');
-                    logger.info('  • Suunto ANT+ USB Stick');
-                    logger.info('  • Generic ANT+ USB2 Stick');
-                    logger.info('  • FTDI USB-Serial devices (VID: 0403)');
+                    logger.info('ℹ️ No serial device selected.');
+                    logger.info('🔍 ANT+ USB Stick Detection:');
+                    logger.info('   1. Make sure your ANT+ USB stick is plugged in');
+                    logger.info('   2. Try a different USB port');
+                    logger.info('   3. Look for "USB Serial Device" or "CP210x"');
+                    logger.info('   4. IGNORE Bluetooth devices in the list');
+                    logger.info('   5. If no ANT+ device appears, the stick may need drivers');
+                    logger.info('');
+                    logger.info('🛠️ Driver Help:');
+                    logger.info('   • Garmin ANT+ sticks: Download from Garmin website');
+                    logger.info('   • Generic CP210x: Download Silicon Labs drivers');
+                    logger.info('   • Check Windows Device Manager for unrecognized devices');
                 } else if (selectionError.name === 'SecurityError') {
                     logger.info('ℹ️ Security error - make sure you\'re using HTTPS or localhost');
                 } else if (selectionError.name === 'NotSupportedError') {
@@ -66,10 +82,10 @@ export class USBANTConnection extends EventEmitter {
             } catch (openError) {
                 if (openError.name === 'InvalidStateError') {
                     logger.error('❌ Port already open or in use by another application');
-                    throw new Error('Serial port is already in use. Close other applications using the ANT+ stick.');
+                    throw new Error('Serial port is already in use. Close Zwift, TrainerRoad, or other apps using the ANT+ stick.');
                 } else if (openError.name === 'NetworkError') {
                     logger.error('❌ Failed to open serial port - device may be disconnected');
-                    throw new Error('Failed to open ANT+ device. Try unplugging and reconnecting the USB stick.');
+                    throw new Error('Failed to open ANT+ device. The selected device may not be an ANT+ stick.');
                 }
                 throw openError;
             }
@@ -79,30 +95,44 @@ export class USBANTConnection extends EventEmitter {
             
             // Get port info if available
             const portInfo = port.getInfo();
-            let deviceName = 'USB ANT+ Device';
+            let deviceName = 'USB Serial Device';
+            let isLikelyANT = false;
+            
             if (portInfo.usbVendorId) {
                 const vid = portInfo.usbVendorId.toString(16).toUpperCase().padStart(4, '0');
                 const pid = portInfo.usbProductId?.toString(16).toUpperCase().padStart(4, '0') || 'Unknown';
-                deviceName = `USB Serial Device (VID:${vid} PID:${pid})`;
+                deviceName = `USB Device (VID:${vid} PID:${pid})`;
                 
                 // Identify known ANT+ devices
                 switch (portInfo.usbVendorId) {
                     case 0x0FCF:
                         deviceName = 'Garmin/Dynastream ANT+ USB Stick';
+                        isLikelyANT = true;
                         break;
                     case 0x10C4:
                         deviceName = 'Silicon Labs CP210x ANT+ Device';
+                        isLikelyANT = true;
                         break;
                     case 0x0403:
-                        deviceName = 'FTDI ANT+ Device';
+                        deviceName = 'FTDI USB Device (possible ANT+)';
+                        isLikelyANT = true;
                         break;
                     case 0x1FC9:
                         deviceName = 'NXP ANT+ Device';
+                        isLikelyANT = true;
                         break;
+                    default:
+                        logger.warn(`⚠️ Unknown device VID:${vid} - may not be an ANT+ stick`);
+                        logger.info('💡 If this device doesn\'t work, try selecting a different one');
                 }
             }
             
-            logger.info(`🔌 USB ANT+ stick connected: ${deviceName}`);
+            logger.info(`🔌 Connected to: ${deviceName}`);
+            if (!isLikelyANT) {
+                logger.warn('⚠️ This device may not be an ANT+ USB stick');
+                logger.info('💡 If connection fails, try selecting a different device from the list');
+            }
+            
             this.emit('connected', { type: 'usb', deviceName });
             
             // Initialize ANT+ stick with proper network key and setup
@@ -115,29 +145,30 @@ export class USBANTConnection extends EventEmitter {
             logger.error(`❌ USB connection failed: ${error.message}`);
             this.emit('error', error);
             
-            // Provide helpful error messages based on error type
+            // Provide device-specific troubleshooting based on the error
             if (error.name === 'NotFoundError') {
-                logger.info('💡 USB Device Selection:');
-                logger.info('  1. Make sure your ANT+ USB stick is plugged in');
-                logger.info('  2. Try a different USB port');
-                logger.info('  3. Look for "USB Serial Device" or "CP210x" in the list');
-                logger.info('  4. On Windows, check Device Manager for "Ports (COM & LPT)"');
+                logger.info('💡 No ANT+ Device Found:');
+                logger.info('  1. Check if ANT+ USB stick is properly plugged in');
+                logger.info('  2. Try different USB ports (avoid USB hubs if possible)');
+                logger.info('  3. In device list, look for "USB Serial Device" or "CP210x"');
+                logger.info('  4. Avoid selecting Bluetooth devices (BT, COM3-6, etc.)');
+                logger.info('  5. Install ANT+ USB drivers if needed');
             } else if (error.name === 'SecurityError') {
                 logger.info('💡 Security Issue:');
                 logger.info('  • Make sure you\'re using HTTPS or localhost');
                 logger.info('  • Some browsers block serial access on HTTP sites');
-                logger.info('  • Enable "Experimental Web Platform features" in Chrome flags');
+                logger.info('  • Enable chrome://flags/#enable-experimental-web-platform-features');
             } else if (error.message.includes('in use')) {
                 logger.info('💡 Device In Use:');
                 logger.info('  • Close Zwift, TrainerRoad, or other training apps');
+                logger.info('  • Close Garmin Express or ANT+ configuration tools');
                 logger.info('  • Unplug and replug the ANT+ USB stick');
-                logger.info('  • Check Windows Device Manager for conflicts');
                 logger.info('  • Restart your browser');
             } else if (error.name === 'NotSupportedError') {
                 logger.info('💡 Browser Compatibility:');
                 logger.info('  • Use Chrome 89+ or Edge 89+');
-                logger.info('  • Enable chrome://flags/#enable-experimental-web-platform-features');
                 logger.info('  • Firefox and Safari do not support Web Serial API');
+                logger.info('  • Enable experimental web platform features if needed');
             }
             throw error;
         }
@@ -198,6 +229,8 @@ export class USBANTConnection extends EventEmitter {
             
         } catch (error) {
             logger.error(`❌ ANT+ initialization failed: ${error.message}`);
+            logger.info('💡 Initialization failed - this may not be an ANT+ device');
+            logger.info('   Try selecting a different device from the list');
             this.emit('error', error);
             throw error;
         }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANT+ Connection Test - Fixed Version</title>
+    <title>ANT+ Connection Test - Ultra Fixed Version</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -31,6 +31,31 @@
         .header h1 {
             color: #2c3e50;
             margin-bottom: 10px;
+        }
+
+        .device-guide {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .device-guide h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .good-devices, .bad-devices {
+            margin-bottom: 15px;
+        }
+
+        .good-devices h4 {
+            color: #28a745;
+        }
+
+        .bad-devices h4 {
+            color: #dc3545;
         }
 
         .status-panel {
@@ -156,13 +181,62 @@
         .help-section li {
             margin-bottom: 5px;
         }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .error-box {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔧 ANT+ Connection Test - Fixed Version</h1>
-            <p>Test and diagnose USB ANT+ and Bluetooth connectivity issues</p>
+            <h1>🔧 ANT+ Connection Test - Ultra Fixed Version</h1>
+            <p>Enhanced device detection and troubleshooting</p>
+        </div>
+
+        <div class="device-guide">
+            <h3>📋 USB Device Selection Guide</h3>
+            <div class="good-devices">
+                <h4>✅ SELECT These Devices (ANT+ USB Sticks):</h4>
+                <ul>
+                    <li><strong>USB Serial Device</strong> - Generic name for most ANT+ sticks</li>
+                    <li><strong>Silicon Labs CP210x USB to UART Bridge</strong> - Common ANT+ chip</li>
+                    <li><strong>Garmin ANT Agent USB Device</strong> - Official Garmin device</li>
+                    <li><strong>ANT USB Stick</strong> - Any device with "ANT" in the name</li>
+                </ul>
+            </div>
+            <div class="bad-devices">
+                <h4>❌ AVOID These Devices (Not ANT+ Sticks):</h4>
+                <ul>
+                    <li><strong>Bluetooth Peripheral Device (COM3, COM4, etc.)</strong> - These are Bluetooth, not ANT+</li>
+                    <li><strong>JBL TUNE710BT, EDIFIER WH950NB</strong> - Audio devices</li>
+                    <li><strong>Wacom Paper Data</strong> - Graphics tablet</li>
+                    <li><strong>BT IntuosPro M</strong> - Bluetooth graphics device</li>
+                </ul>
+            </div>
+            <div class="warning-box">
+                <strong>⚠️ Important:</strong> If you only see Bluetooth devices in the list, your ANT+ USB stick may not be properly recognized or needs drivers installed.
+            </div>
         </div>
 
         <div class="status-panel">
@@ -185,40 +259,64 @@
         </div>
 
         <div class="log-section" id="log-content">
-ANT+ Connection Tester - Fixed Version
-======================================
-Click "Run Diagnostics" to check your system compatibility
-Click "Test USB ANT+" to test serial port connection
-Click "Test Bluetooth" to test Bluetooth device pairing
+ANT+ Connection Tester - Ultra Fixed Version
+============================================
+Enhanced device detection and error handling
+
+💡 Before testing:
+1. For USB: Look for "USB Serial Device" or "CP210x" in device list
+2. For Bluetooth: Make sure device is in pairing mode
+3. Close other apps that might use ANT+ devices
 
 Waiting for user input...
         </div>
 
         <div class="help-section">
-            <h3>💡 Troubleshooting Guide</h3>
+            <h3>💡 Enhanced Troubleshooting Guide</h3>
             
             <h4>🔌 USB ANT+ Issues:</h4>
             <ul>
-                <li><strong>No device selector appears:</strong> Make sure you're using Chrome or Edge browser</li>
-                <li><strong>Device not in list:</strong> Unplug and replug the ANT+ USB stick</li>
-                <li><strong>"Port already in use":</strong> Close other apps like Zwift, TrainerRoad</li>
-                <li><strong>Permission denied:</strong> Make sure you're using HTTPS or localhost</li>
+                <li><strong>Only Bluetooth devices appear:</strong> ANT+ USB stick not recognized - install drivers</li>
+                <li><strong>No device selector appears:</strong> Use Chrome/Edge browser, enable Web Serial API</li>
+                <li><strong>"Port already in use":</strong> Close Zwift, TrainerRoad, Garmin Express</li>
+                <li><strong>Connection fails after selection:</strong> Wrong device selected - look for "USB Serial Device"</li>
             </ul>
 
             <h4>📱 Bluetooth Issues:</h4>
             <ul>
-                <li><strong>No device selector:</strong> Enable Bluetooth in system settings</li>
-                <li><strong>Permission denied:</strong> Grant location permission (required on Android)</li>
-                <li><strong>Connection fails:</strong> Make sure device is in pairing mode and close to computer</li>
-                <li><strong>Not supported:</strong> Use Chrome, Edge, or Opera browser</li>
+                <li><strong>"Invalid Service name" error:</strong> Browser compatibility issue - try latest Chrome</li>
+                <li><strong>No devices found:</strong> Put ANT+ device in pairing mode first</li>
+                <li><strong>Permission denied:</strong> Grant location permission (Android) and Bluetooth access</li>
+                <li><strong>Connection timeout:</strong> Move closer to device, ensure it's not connected elsewhere</li>
             </ul>
 
-            <h4>🌐 Browser Requirements:</h4>
+            <h4>🌐 Browser & System Requirements:</h4>
             <ul>
-                <li><strong>USB ANT+:</strong> Chrome 89+, Edge 89+ (desktop only)</li>
+                <li><strong>USB ANT+:</strong> Chrome 89+, Edge 89+ (desktop only, no mobile support)</li>
                 <li><strong>Bluetooth:</strong> Chrome, Edge, Opera (desktop and mobile)</li>
                 <li><strong>Security:</strong> HTTPS required (except localhost)</li>
+                <li><strong>Permissions:</strong> Allow serial access and Bluetooth when prompted</li>
             </ul>
+
+            <div class="error-box">
+                <strong>❌ Your Device List Issue:</strong><br>
+                The devices shown in your screenshot (JBL, EDIFIER, Bluetooth COM ports) are NOT ANT+ USB sticks. 
+                They are Bluetooth audio devices and virtual COM ports. Your actual ANT+ USB stick is either:
+                <ul>
+                    <li>Not plugged in properly</li>
+                    <li>Not recognized by Windows (needs drivers)</li>
+                    <li>Hidden in the device list</li>
+                </ul>
+            </div>
+
+            <div class="success-box">
+                <strong>✅ To Find Your ANT+ Stick:</strong><br>
+                1. Unplug and replug your ANT+ USB stick<br>
+                2. Try a different USB port (avoid hubs)<br>
+                3. Install ANT+ drivers from Garmin or Silicon Labs<br>
+                4. Check Windows Device Manager for unrecognized devices<br>
+                5. Look for "USB Serial Device" in the connection list
+            </div>
         </div>
     </div>
 
@@ -266,7 +364,7 @@ Waiting for user input...
             }
 
             async runDiagnostics() {
-                this.log('\n🔍 Running ANT+ Connection Diagnostics...');
+                this.log('\n🔍 Running Enhanced ANT+ Connection Diagnostics...');
                 this.updateStatus('Running diagnostics...', 'info');
                 
                 try {
@@ -327,6 +425,12 @@ Waiting for user input...
                 const status = this.testResults.usb.issues.length === 0 ? '✅ READY' : '❌ ISSUES';
                 this.log(`🔌 USB ANT+: ${status}`);
                 this.testResults.usb.issues.forEach(issue => this.log(`   • ${issue}`));
+
+                // Additional guidance for USB device selection
+                this.log('\n💡 USB Device Selection Tips:');
+                this.log('   ✅ Look for: "USB Serial Device", "CP210x", "ANT USB"');
+                this.log('   ❌ Avoid: Bluetooth devices, audio devices, graphics tablets');
+                this.log('   ⚠️ If no ANT+ device appears: Install drivers or try different USB port');
             }
 
             async testBluetoothCapabilities() {
@@ -409,6 +513,7 @@ Waiting for user input...
 
             async testUSBConnection() {
                 this.log('\n🔌 Testing USB Connection...');
+                this.log('📋 Remember: Select "USB Serial Device" or "CP210x", NOT Bluetooth devices');
                 this.updateStatus('Testing USB connection...', 'info');
                 
                 try {
@@ -427,11 +532,21 @@ Waiting for user input...
                 } catch (error) {
                     this.log(`❌ USB connection test failed: ${error.message}`);
                     this.updateStatus('USB connection failed', 'error');
+                    
+                    // Provide specific guidance based on error
+                    if (error.message.includes('No port selected')) {
+                        this.log('💡 Device Selection Help:');
+                        this.log('   • Your ANT+ USB stick may not be in the list');
+                        this.log('   • Install ANT+ drivers from Garmin or Silicon Labs');
+                        this.log('   • Try different USB port or restart computer');
+                        this.log('   • Check Windows Device Manager for unrecognized devices');
+                    }
                 }
             }
 
             async testBluetoothConnection() {
                 this.log('\n📱 Testing Bluetooth Connection...');
+                this.log('💡 Make sure your ANT+ device is in pairing mode');
                 this.updateStatus('Testing Bluetooth connection...', 'info');
                 
                 try {
@@ -455,7 +570,7 @@ Waiting for user input...
 
             clearLog() {
                 if (this.logElement) {
-                    this.logElement.textContent = 'Log cleared.\n';
+                    this.logElement.textContent = 'Log cleared.\n\n💡 Enhanced device guidance:\n- USB: Look for "USB Serial Device" or "CP210x"\n- Bluetooth: Put device in pairing mode first\n';
                 }
                 this.updateStatus('Log cleared', 'info');
             }
@@ -474,9 +589,13 @@ Waiting for user input...
 
         // Auto-run diagnostics on load
         setTimeout(() => {
-            tester.log('\n💡 Ready for testing!');
-            tester.log('Click "Run Diagnostics" to check system compatibility');
-            tester.log('Use "Test USB ANT+" and "Test Bluetooth" to verify connections');
+            tester.log('\n💡 Ready for enhanced testing!');
+            tester.log('📋 Key improvements in this version:');
+            tester.log('   • Better USB device identification');
+            tester.log('   • Fixed Bluetooth service UUID errors');
+            tester.log('   • Enhanced error messages and guidance');
+            tester.log('   • Specific help for your device list issue');
+            tester.log('\nClick "Run Diagnostics" to check system compatibility');
         }, 500);
     </script>
 </body>
