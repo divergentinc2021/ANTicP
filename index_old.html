@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Platform ANT+ Receiver</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📡 Cross-Platform ANT+ Receiver</h1>
+            <p>Android, Windows, Mac & iOS Compatible</p>
+        </div>
+
+        <div class="platform-info">
+            <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
+            <div id="platform-capabilities">Checking connection capabilities...</div>
+        </div>
+
+        <!-- Android-specific instructions -->
+        <div id="android-instructions" class="android-instructions" style="display: none;">
+            <h4>📱 Android Setup Instructions</h4>
+            <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
+            <ul>
+                <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
+                <li>Enable "Experimental Web Platform features" in chrome://flags</li>
+                <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
+                <li>Make sure Bluetooth is enabled in Android settings</li>
+                <li>Keep your ANT+ devices in pairing mode</li>
+            </ul>
+        </div>
+
+        <!-- Permission Status Panel -->
+        <div class="permission-panel">
+            <h3>🔐 Permissions & Requirements</h3>
+            
+            <div class="permission-item" id="https-status">
+                <div>
+                    <strong>🔒 HTTPS Connection</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
+                </div>
+                <span id="https-indicator">❓</span>
+            </div>
+
+            <div class="permission-item" id="bluetooth-api-status">
+                <div>
+                    <strong>📶 Web Bluetooth API</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
+                </div>
+                <span id="bluetooth-api-indicator">❓</span>
+            </div>
+
+            <div class="permission-item" id="location-status" style="display: none;">
+                <div>
+                    <strong>📍 Location Permission</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
+                </div>
+                <div>
+                    <span id="location-indicator">❓</span>
+                    <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
+                </div>
+            </div>
+
+            <div class="permission-item" id="bluetooth-status">
+                <div>
+                    <strong>🔵 Bluetooth Device Access</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
+                </div>
+                <span id="bluetooth-indicator">❓</span>
+            </div>
+        </div>
+
+        <div class="connection-panel">
+            <h3>🔗 Connection Methods</h3>
+            
+            <!-- Warning for USB on Android -->
+            <div id="usb-android-warning" class="warning-message" style="display: none;">
+                <strong>⚠️ USB ANT+ Not Available on Android</strong><br>
+                Android devices cannot access USB ANT+ sticks through web browsers. Use Bluetooth ANT+ devices instead.
+            </div>
+
+            <div class="connection-options">
+                <!-- USB ANT+ Method -->
+                <div class="connection-method" id="usb-method">
+                    <div class="method-icon">🔌</div>
+                    <div class="method-title">USB ANT+ Stick</div>
+                    <div class="method-description">Direct USB connection (Windows/Mac/Linux only)</div>
+                    <button class="btn" id="usb-connect-btn" disabled>Connect USB</button>
+                </div>
+
+                <!-- Bluetooth ANT+ Method -->
+                <div class="connection-method" id="bluetooth-method">
+                    <div class="method-icon">📱</div>
+                    <div class="method-title">Bluetooth ANT+</div>
+                    <div class="method-description">Bluetooth Low Energy (All platforms)</div>
+                    <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
+                </div>
+            </div>
+
+            <!-- Specific device scanning buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-scan" id="scan-kickr-btn" disabled>Pair Kickr Core</button>
+                <button class="btn btn-scan" id="scan-zwift-btn" disabled>Pair Zwift Click</button>
+                <button class="btn btn-scan" id="scan-hrm-btn" disabled>Pair Heart Rate</button>
+            </div>
+
+            <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
+                <strong>Status:</strong> <span id="status-text">Disconnected</span>
+            </div>
+        </div>
+
+        <div class="devices-grid">
+            <!-- Wahoo Kickr Core Card -->
+            <div class="device-card trainer" id="kickr-card">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e);">🚴</div>
+                    <div>
+                        <div class="device-title">Wahoo Kickr Core</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="kickr-status"></span>
+                            <span id="kickr-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: FE-C (0x11) | Channel: 5 | Device ID: <span id="kickr-device-id">12345</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="kickr-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric" id="kickr-power-metric">
+                        <div class="metric-value" id="kickr-power-value">---</div>
+                        <div class="metric-label">Power (W)</div>
+                    </div>
+                    <div class="metric" id="kickr-resistance-metric">
+                        <div class="metric-value" id="kickr-resistance-value">---</div>
+                        <div class="metric-label">Resistance (%)</div>
+                    </div>
+                    <div class="metric" id="kickr-cadence-metric">
+                        <div class="metric-value" id="kickr-cadence-value">---</div>
+                        <div class="metric-label">Cadence (RPM)</div>
+                    </div>
+                    <div class="metric" id="kickr-speed-metric">
+                        <div class="metric-value" id="kickr-speed-value">---</div>
+                        <div class="metric-label">Speed (KM/H)</div>
+                    </div>
+                    <div class="metric" id="kickr-distance-metric">
+                        <div class="metric-value" id="kickr-distance-value">---</div>
+                        <div class="metric-label">Distance (KM)</div>
+                    </div>
+                    <div class="metric" id="kickr-time-metric">
+                        <div class="metric-value" id="kickr-time-value">---</div>
+                        <div class="metric-label">Time</div>
+                    </div>
+                </div>
+
+                <!-- Kickr Controls -->
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 600;">Target Power (W)</span>
+                        <span id="kickr-target-power" style="font-weight: bold; color: #2c3e50;">150</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Resistance (%)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">-10%</span>
+                            <input type="range" id="kickr-resistance-slider" min="-10" max="10" value="0" style="flex: 1;" title="Resistance Control">
+                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">+10%</span>
+                        </div>
+                        <div style="text-align: center; margin-top: 5px; font-size: 1.2rem; font-weight: bold;" id="kickr-resistance-display">0</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop Trainer</button>
+                </div>
+
+                <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+
+            <!-- Zwift Click Card -->
+            <div class="device-card" id="zwift-click-card" style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #28a745, #20c997);">⚡</div>
+                    <div>
+                        <div class="device-title">Zwift Click</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="zwift-status"></span>
+                            <span id="zwift-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: Shifting (0x22) | Channel: 5 | Device ID: <span id="zwift-device-id">23456</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="zwift-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zwift Click Controls -->
+                <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">-</button>
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; font-weight: bold; color: #2c3e50;" id="zwift-gear">4</div>
+                        <div style="font-size: 0.8rem; color: #666;">Current Gear</div>
+                    </div>
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">+</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <div class="metric">
+                        <div class="metric-value" id="zwift-front-gear">50</div>
+                        <div class="metric-label">Front (?)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="zwift-rear-gear">14</div>
+                        <div class="metric-label">Rear (?)</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop Shifter</button>
+                </div>
+
+                <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+
+            <!-- Heart Rate Monitor Card -->
+            <div class="device-card hrm" id="hrm-card">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">❤️</div>
+                    <div>
+                        <div class="device-title">Heart Rate Monitor</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="hrm-status"></span>
+                            <span id="hrm-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: Heart Rate (0x78) | Channel: 5 | Device ID: <span id="hrm-device-id">34567</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="hrm-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="metric" id="hr-current-metric">
+                        <div class="metric-value" id="hr-current-value">---</div>
+                        <div class="metric-label">BPM</div>
+                    </div>
+                    <div class="metric" id="hr-avg-metric">
+                        <div class="metric-value" id="hr-avg-value">---</div>
+                        <div class="metric-label">Avg BPM</div>
+                    </div>
+                </div>
+
+                <div class="hr-zone" id="hr-zone">Zone Unknown</div>
+
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-size: 0.8rem;">Base Heart Rate (BPM)</span>
+                        <span style="font-size: 0.8rem;" id="base-hr">65</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-size: 0.8rem;">Max Heart Rate (BPM)</span>
+                        <span style="font-size: 0.8rem;" id="max-hr">185</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop HRM</button>
+                </div>
+
+                <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Section -->
+        <div class="log-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>📋 Connection Log</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button style="background: #3498db; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">📊 Capture Device Specs</button>
+                    <button style="background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Clear</button>
+                </div>
+            </div>
+            <div class="log-content" id="log-content"></div>
+        </div>
+    </div>
+
+    <!-- Load the modular JavaScript -->
+    <script type="module" src="js/core/app.js"></script>
+</body>
+</html>

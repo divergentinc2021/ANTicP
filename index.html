@@ -3,306 +3,481 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cross-Platform ANT+ Receiver</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>ANT+ Connection Test - Fixed Version</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .connection-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #2980b9, #1f639a);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-usb {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .btn-usb:hover {
+            background: linear-gradient(45deg, #c0392b, #a93226);
+        }
+
+        .btn-bluetooth {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .btn-test {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+        }
+
+        .btn-test:hover {
+            background: linear-gradient(45deg, #27ae60, #229954);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-success { background-color: #2ecc71; }
+        .status-error { background-color: #e74c3c; }
+        .status-warning { background-color: #f39c12; }
+        .status-info { background-color: #3498db; }
+
+        .log-section {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+
+        .diagnostic-results {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .diagnostic-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .diagnostic-item.success { border-left-color: #2ecc71; }
+        .diagnostic-item.error { border-left-color: #e74c3c; }
+        .diagnostic-item.warning { border-left-color: #f39c12; }
+
+        .help-section {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .help-section h3 {
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+
+        .help-section ul {
+            margin-bottom: 15px;
+        }
+
+        .help-section li {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📡 Cross-Platform ANT+ Receiver</h1>
-            <p>Android, Windows, Mac & iOS Compatible</p>
+            <h1>🔧 ANT+ Connection Test - Fixed Version</h1>
+            <p>Test and diagnose USB ANT+ and Bluetooth connectivity issues</p>
         </div>
 
-        <div class="platform-info">
-            <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
-            <div id="platform-capabilities">Checking connection capabilities...</div>
+        <div class="status-panel">
+            <h3>📊 Connection Status</h3>
+            <div id="status-display">
+                <div><span class="status-indicator status-info"></span>Ready to test connections</div>
+            </div>
         </div>
 
-        <!-- Android-specific instructions -->
-        <div id="android-instructions" class="android-instructions" style="display: none;">
-            <h4>📱 Android Setup Instructions</h4>
-            <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
+        <div class="connection-buttons">
+            <button class="btn btn-test" onclick="runDiagnostics()">🔍 Run Diagnostics</button>
+            <button class="btn btn-usb" onclick="testUSB()">🔌 Test USB ANT+</button>
+            <button class="btn btn-bluetooth" onclick="testBluetooth()">📱 Test Bluetooth</button>
+            <button class="btn" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+
+        <div class="diagnostic-results" id="diagnostic-results" style="display: none;">
+            <h3>🔍 Diagnostic Results</h3>
+            <div id="diagnostic-content"></div>
+        </div>
+
+        <div class="log-section" id="log-content">
+ANT+ Connection Tester - Fixed Version
+======================================
+Click "Run Diagnostics" to check your system compatibility
+Click "Test USB ANT+" to test serial port connection
+Click "Test Bluetooth" to test Bluetooth device pairing
+
+Waiting for user input...
+        </div>
+
+        <div class="help-section">
+            <h3>💡 Troubleshooting Guide</h3>
+            
+            <h4>🔌 USB ANT+ Issues:</h4>
             <ul>
-                <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
-                <li>Enable "Experimental Web Platform features" in chrome://flags</li>
-                <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
-                <li>Make sure Bluetooth is enabled in Android settings</li>
-                <li>Keep your ANT+ devices in pairing mode</li>
+                <li><strong>No device selector appears:</strong> Make sure you're using Chrome or Edge browser</li>
+                <li><strong>Device not in list:</strong> Unplug and replug the ANT+ USB stick</li>
+                <li><strong>"Port already in use":</strong> Close other apps like Zwift, TrainerRoad</li>
+                <li><strong>Permission denied:</strong> Make sure you're using HTTPS or localhost</li>
             </ul>
-        </div>
 
-        <!-- Permission Status Panel -->
-        <div class="permission-panel">
-            <h3>🔐 Permissions & Requirements</h3>
-            
-            <div class="permission-item" id="https-status">
-                <div>
-                    <strong>🔒 HTTPS Connection</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
-                </div>
-                <span id="https-indicator">❓</span>
-            </div>
+            <h4>📱 Bluetooth Issues:</h4>
+            <ul>
+                <li><strong>No device selector:</strong> Enable Bluetooth in system settings</li>
+                <li><strong>Permission denied:</strong> Grant location permission (required on Android)</li>
+                <li><strong>Connection fails:</strong> Make sure device is in pairing mode and close to computer</li>
+                <li><strong>Not supported:</strong> Use Chrome, Edge, or Opera browser</li>
+            </ul>
 
-            <div class="permission-item" id="bluetooth-api-status">
-                <div>
-                    <strong>📶 Web Bluetooth API</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
-                </div>
-                <span id="bluetooth-api-indicator">❓</span>
-            </div>
-
-            <div class="permission-item" id="location-status" style="display: none;">
-                <div>
-                    <strong>📍 Location Permission</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
-                </div>
-                <div>
-                    <span id="location-indicator">❓</span>
-                    <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
-                </div>
-            </div>
-
-            <div class="permission-item" id="bluetooth-status">
-                <div>
-                    <strong>🔵 Bluetooth Device Access</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
-                </div>
-                <span id="bluetooth-indicator">❓</span>
-            </div>
-        </div>
-
-        <div class="connection-panel">
-            <h3>🔗 Connection Methods</h3>
-            
-            <!-- Warning for USB on Android -->
-            <div id="usb-android-warning" class="warning-message" style="display: none;">
-                <strong>⚠️ USB ANT+ Not Available on Android</strong><br>
-                Android devices cannot access USB ANT+ sticks through web browsers. Use Bluetooth ANT+ devices instead.
-            </div>
-
-            <div class="connection-options">
-                <!-- USB ANT+ Method -->
-                <div class="connection-method" id="usb-method">
-                    <div class="method-icon">🔌</div>
-                    <div class="method-title">USB ANT+ Stick</div>
-                    <div class="method-description">Direct USB connection (Windows/Mac/Linux only)</div>
-                    <button class="btn" id="usb-connect-btn" disabled>Connect USB</button>
-                </div>
-
-                <!-- Bluetooth ANT+ Method -->
-                <div class="connection-method" id="bluetooth-method">
-                    <div class="method-icon">📱</div>
-                    <div class="method-title">Bluetooth ANT+</div>
-                    <div class="method-description">Bluetooth Low Energy (All platforms)</div>
-                    <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
-                </div>
-            </div>
-
-            <!-- Specific device scanning buttons -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-scan" id="scan-kickr-btn" disabled>Pair Kickr Core</button>
-                <button class="btn btn-scan" id="scan-zwift-btn" disabled>Pair Zwift Click</button>
-                <button class="btn btn-scan" id="scan-hrm-btn" disabled>Pair Heart Rate</button>
-            </div>
-
-            <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
-                <strong>Status:</strong> <span id="status-text">Disconnected</span>
-            </div>
-        </div>
-
-        <div class="devices-grid">
-            <!-- Wahoo Kickr Core Card -->
-            <div class="device-card trainer" id="kickr-card">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e);">🚴</div>
-                    <div>
-                        <div class="device-title">Wahoo Kickr Core</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="kickr-status"></span>
-                            <span id="kickr-status-text">No Signal</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: FE-C (0x11) | Channel: 5 | Device ID: <span id="kickr-device-id">12345</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            RF Frequency: <span id="kickr-frequency">2457 MHz</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="metrics">
-                    <div class="metric" id="kickr-power-metric">
-                        <div class="metric-value" id="kickr-power-value">---</div>
-                        <div class="metric-label">Power (W)</div>
-                    </div>
-                    <div class="metric" id="kickr-resistance-metric">
-                        <div class="metric-value" id="kickr-resistance-value">---</div>
-                        <div class="metric-label">Resistance (%)</div>
-                    </div>
-                    <div class="metric" id="kickr-cadence-metric">
-                        <div class="metric-value" id="kickr-cadence-value">---</div>
-                        <div class="metric-label">Cadence (RPM)</div>
-                    </div>
-                    <div class="metric" id="kickr-speed-metric">
-                        <div class="metric-value" id="kickr-speed-value">---</div>
-                        <div class="metric-label">Speed (KM/H)</div>
-                    </div>
-                    <div class="metric" id="kickr-distance-metric">
-                        <div class="metric-value" id="kickr-distance-value">---</div>
-                        <div class="metric-label">Distance (KM)</div>
-                    </div>
-                    <div class="metric" id="kickr-time-metric">
-                        <div class="metric-value" id="kickr-time-value">---</div>
-                        <div class="metric-label">Time</div>
-                    </div>
-                </div>
-
-                <!-- Kickr Controls -->
-                <div style="margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-weight: 600;">Target Power (W)</span>
-                        <span id="kickr-target-power" style="font-weight: bold; color: #2c3e50;">150</span>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Resistance (%)</label>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">-10%</span>
-                            <input type="range" id="kickr-resistance-slider" min="-10" max="10" value="0" style="flex: 1;" title="Resistance Control">
-                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">+10%</span>
-                        </div>
-                        <div style="text-align: center; margin-top: 5px; font-size: 1.2rem; font-weight: bold;" id="kickr-resistance-display">0</div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop Trainer</button>
-                </div>
-
-                <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
-                </div>
-            </div>
-
-            <!-- Zwift Click Card -->
-            <div class="device-card" id="zwift-click-card" style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #28a745, #20c997);">⚡</div>
-                    <div>
-                        <div class="device-title">Zwift Click</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="zwift-status"></span>
-                            <span id="zwift-status-text">No Signal</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: Shifting (0x22) | Channel: 5 | Device ID: <span id="zwift-device-id">23456</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            RF Frequency: <span id="zwift-frequency">2457 MHz</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Zwift Click Controls -->
-                <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">-</button>
-                    <div style="text-align: center;">
-                        <div style="font-size: 3rem; font-weight: bold; color: #2c3e50;" id="zwift-gear">4</div>
-                        <div style="font-size: 0.8rem; color: #666;">Current Gear</div>
-                    </div>
-                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">+</button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
-                    <div class="metric">
-                        <div class="metric-value" id="zwift-front-gear">50</div>
-                        <div class="metric-label">Front (?)</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-value" id="zwift-rear-gear">14</div>
-                        <div class="metric-label">Rear (?)</div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop Shifter</button>
-                </div>
-
-                <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
-                </div>
-            </div>
-
-            <!-- Heart Rate Monitor Card -->
-            <div class="device-card hrm" id="hrm-card">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">❤️</div>
-                    <div>
-                        <div class="device-title">Heart Rate Monitor</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="hrm-status"></span>
-                            <span id="hrm-status-text">No Signal</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: Heart Rate (0x78) | Channel: 5 | Device ID: <span id="hrm-device-id">34567</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #999;">
-                            RF Frequency: <span id="hrm-frequency">2457 MHz</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <div class="metric" id="hr-current-metric">
-                        <div class="metric-value" id="hr-current-value">---</div>
-                        <div class="metric-label">BPM</div>
-                    </div>
-                    <div class="metric" id="hr-avg-metric">
-                        <div class="metric-value" id="hr-avg-value">---</div>
-                        <div class="metric-label">Avg BPM</div>
-                    </div>
-                </div>
-
-                <div class="hr-zone" id="hr-zone">Zone Unknown</div>
-
-                <div style="margin: 15px 0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 0.8rem;">Base Heart Rate (BPM)</span>
-                        <span style="font-size: 0.8rem;" id="base-hr">65</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <span style="font-size: 0.8rem;">Max Heart Rate (BPM)</span>
-                        <span style="font-size: 0.8rem;" id="max-hr">185</span>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop HRM</button>
-                </div>
-
-                <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
-                </div>
-            </div>
-        </div>
-
-        <!-- Log Section -->
-        <div class="log-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3>📋 Connection Log</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button style="background: #3498db; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">📊 Capture Device Specs</button>
-                    <button style="background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Clear</button>
-                </div>
-            </div>
-            <div class="log-content" id="log-content"></div>
+            <h4>🌐 Browser Requirements:</h4>
+            <ul>
+                <li><strong>USB ANT+:</strong> Chrome 89+, Edge 89+ (desktop only)</li>
+                <li><strong>Bluetooth:</strong> Chrome, Edge, Opera (desktop and mobile)</li>
+                <li><strong>Security:</strong> HTTPS required (except localhost)</li>
+            </ul>
         </div>
     </div>
 
-    <!-- Load the modular JavaScript -->
-    <script type="module" src="js/core/app.js"></script>
+    <script type="module">
+        import { logger } from './js/core/logger.js';
+        import { platform } from './js/core/platform.js';
+        import { ConnectionManager } from './js/connections/connection-manager-fixed.js';
+
+        class ConnectionTester {
+            constructor() {
+                this.connectionManager = new ConnectionManager();
+                this.testResults = {};
+                this.logElement = document.getElementById('log-content');
+                this.diagnosticElement = document.getElementById('diagnostic-content');
+                this.statusElement = document.getElementById('status-display');
+            }
+
+            async init() {
+                // Initialize logger with DOM element
+                logger.init(this.logElement);
+                
+                // Detect platform
+                await platform.detect();
+                this.log(`📱 Platform: ${platform.info.name}`);
+                this.log(`🌐 Browser: ${navigator.userAgent.split(' ').pop()}`);
+                this.log('✅ Connection tester initialized');
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logMessage = `[${timestamp}] ${message}`;
+                
+                if (this.logElement) {
+                    this.logElement.textContent += logMessage + '\n';
+                    this.logElement.scrollTop = this.logElement.scrollHeight;
+                }
+                console.log(logMessage);
+            }
+
+            updateStatus(message, type = 'info') {
+                if (this.statusElement) {
+                    const statusClass = `status-${type}`;
+                    this.statusElement.innerHTML = `<div><span class="status-indicator ${statusClass}"></span>${message}</div>`;
+                }
+            }
+
+            async runDiagnostics() {
+                this.log('\n🔍 Running ANT+ Connection Diagnostics...');
+                this.updateStatus('Running diagnostics...', 'info');
+                
+                try {
+                    // Check available connection methods
+                    const methods = await this.connectionManager.checkAvailableConnectionMethods();
+                    this.log('📋 Available Connection Methods:');
+                    this.log(`   USB: ${methods.usb ? '✅' : '❌'}`);
+                    this.log(`   Bluetooth: ${methods.bluetooth ? '✅' : '❌'}`);
+                    
+                    if (methods.issues.length > 0) {
+                        this.log('⚠️ Issues found:');
+                        methods.issues.forEach(issue => this.log(`   • ${issue}`));
+                    }
+                    
+                    // Test USB capabilities
+                    await this.testUSBCapabilities();
+                    
+                    // Test Bluetooth capabilities
+                    await this.testBluetoothCapabilities();
+                    
+                    // Display results
+                    this.displayDiagnosticResults();
+                    this.updateStatus('Diagnostics complete', 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ Diagnostic error: ${error.message}`);
+                    this.updateStatus('Diagnostic failed', 'error');
+                }
+            }
+
+            async testUSBCapabilities() {
+                this.log('\n🔌 Testing USB Capabilities...');
+                
+                this.testResults.usb = {
+                    apiSupported: 'serial' in navigator,
+                    browserSupported: navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edge'),
+                    platform: platform.info.name,
+                    httpsSupported: location.protocol === 'https:' || location.hostname === 'localhost',
+                    issues: []
+                };
+
+                if (!this.testResults.usb.apiSupported) {
+                    this.testResults.usb.issues.push('Web Serial API not supported');
+                }
+
+                if (!this.testResults.usb.browserSupported) {
+                    this.testResults.usb.issues.push('Browser not supported (use Chrome or Edge)');
+                }
+
+                if (!this.testResults.usb.httpsSupported) {
+                    this.testResults.usb.issues.push('HTTPS required for Web Serial API');
+                }
+
+                if (platform.info.isMobile) {
+                    this.testResults.usb.issues.push('USB not available on mobile devices');
+                }
+
+                const status = this.testResults.usb.issues.length === 0 ? '✅ READY' : '❌ ISSUES';
+                this.log(`🔌 USB ANT+: ${status}`);
+                this.testResults.usb.issues.forEach(issue => this.log(`   • ${issue}`));
+            }
+
+            async testBluetoothCapabilities() {
+                this.log('\n📱 Testing Bluetooth Capabilities...');
+                
+                this.testResults.bluetooth = {
+                    apiSupported: 'bluetooth' in navigator,
+                    httpsSupported: location.protocol === 'https:' || location.hostname === 'localhost',
+                    bluetoothAvailable: false,
+                    locationPermission: 'unknown',
+                    issues: []
+                };
+
+                if (!this.testResults.bluetooth.apiSupported) {
+                    this.testResults.bluetooth.issues.push('Web Bluetooth API not supported');
+                }
+
+                if (!this.testResults.bluetooth.httpsSupported) {
+                    this.testResults.bluetooth.issues.push('HTTPS required for Bluetooth');
+                }
+
+                if (this.testResults.bluetooth.apiSupported) {
+                    try {
+                        this.testResults.bluetooth.bluetoothAvailable = await navigator.bluetooth.getAvailability();
+                        if (!this.testResults.bluetooth.bluetoothAvailable) {
+                            this.testResults.bluetooth.issues.push('Bluetooth not available on device');
+                        }
+                    } catch (error) {
+                        this.testResults.bluetooth.issues.push(`Bluetooth check failed: ${error.message}`);
+                    }
+                }
+
+                // Check location permission on Android
+                if (platform.info.isAndroid && 'permissions' in navigator) {
+                    try {
+                        const result = await navigator.permissions.query({name: 'geolocation'});
+                        this.testResults.bluetooth.locationPermission = result.state;
+                        if (result.state !== 'granted') {
+                            this.testResults.bluetooth.issues.push('Location permission required on Android');
+                        }
+                    } catch (error) {
+                        this.testResults.bluetooth.issues.push('Could not check location permission');
+                    }
+                }
+
+                const status = this.testResults.bluetooth.issues.length === 0 ? '✅ READY' : '❌ ISSUES';
+                this.log(`📱 Bluetooth: ${status}`);
+                this.testResults.bluetooth.issues.forEach(issue => this.log(`   • ${issue}`));
+            }
+
+            displayDiagnosticResults() {
+                const resultsDiv = document.getElementById('diagnostic-results');
+                const contentDiv = this.diagnosticElement;
+                
+                if (!resultsDiv || !contentDiv) return;
+                
+                let html = '';
+                
+                // USB Results
+                const usbStatus = this.testResults.usb.issues.length === 0 ? 'success' : 'error';
+                html += `<div class="diagnostic-item ${usbStatus}">`;
+                html += `<strong>🔌 USB ANT+:</strong> ${this.testResults.usb.issues.length === 0 ? 'Ready' : 'Issues Found'}<br>`;
+                if (this.testResults.usb.issues.length > 0) {
+                    html += `<ul>${this.testResults.usb.issues.map(issue => `<li>${issue}</li>`).join('')}</ul>`;
+                }
+                html += '</div>';
+                
+                // Bluetooth Results
+                const bluetoothStatus = this.testResults.bluetooth.issues.length === 0 ? 'success' : 'error';
+                html += `<div class="diagnostic-item ${bluetoothStatus}">`;
+                html += `<strong>📱 Bluetooth:</strong> ${this.testResults.bluetooth.issues.length === 0 ? 'Ready' : 'Issues Found'}<br>`;
+                if (this.testResults.bluetooth.issues.length > 0) {
+                    html += `<ul>${this.testResults.bluetooth.issues.map(issue => `<li>${issue}</li>`).join('')}</ul>`;
+                }
+                html += '</div>';
+                
+                contentDiv.innerHTML = html;
+                resultsDiv.style.display = 'block';
+            }
+
+            async testUSBConnection() {
+                this.log('\n🔌 Testing USB Connection...');
+                this.updateStatus('Testing USB connection...', 'info');
+                
+                try {
+                    const connection = await this.connectionManager.connectUSB();
+                    this.log('✅ USB connection successful!');
+                    this.log(`📊 Device: ${connection.getStatus().type}`);
+                    this.updateStatus('USB connection successful!', 'success');
+                    
+                    // Disconnect after 3 seconds
+                    setTimeout(async () => {
+                        await this.connectionManager.disconnectUSB();
+                        this.log('🔌 Test USB connection closed');
+                        this.updateStatus('USB test completed', 'info');
+                    }, 3000);
+                    
+                } catch (error) {
+                    this.log(`❌ USB connection test failed: ${error.message}`);
+                    this.updateStatus('USB connection failed', 'error');
+                }
+            }
+
+            async testBluetoothConnection() {
+                this.log('\n📱 Testing Bluetooth Connection...');
+                this.updateStatus('Testing Bluetooth connection...', 'info');
+                
+                try {
+                    const connection = await this.connectionManager.connectBluetooth();
+                    this.log('✅ Bluetooth connection successful!');
+                    this.log(`📊 Device: ${connection.getStatus().deviceName || 'Unknown'}`);
+                    this.updateStatus('Bluetooth connection successful!', 'success');
+                    
+                    // Disconnect after 3 seconds
+                    setTimeout(async () => {
+                        await this.connectionManager.disconnectBluetooth();
+                        this.log('📱 Test Bluetooth connection closed');
+                        this.updateStatus('Bluetooth test completed', 'info');
+                    }, 3000);
+                    
+                } catch (error) {
+                    this.log(`❌ Bluetooth connection test failed: ${error.message}`);
+                    this.updateStatus('Bluetooth connection failed', 'error');
+                }
+            }
+
+            clearLog() {
+                if (this.logElement) {
+                    this.logElement.textContent = 'Log cleared.\n';
+                }
+                this.updateStatus('Log cleared', 'info');
+            }
+        }
+
+        // Initialize tester
+        const tester = new ConnectionTester();
+        await tester.init();
+
+        // Make functions available globally
+        window.runDiagnostics = () => tester.runDiagnostics();
+        window.testUSB = () => tester.testUSBConnection();
+        window.testBluetooth = () => tester.testBluetoothConnection();
+        window.clearLog = () => tester.clearLog();
+        window.connectionTester = tester;
+
+        // Auto-run diagnostics on load
+        setTimeout(() => {
+            tester.log('\n💡 Ready for testing!');
+            tester.log('Click "Run Diagnostics" to check system compatibility');
+            tester.log('Use "Test USB ANT+" and "Test Bluetooth" to verify connections');
+        }, 500);
+    </script>
 </body>
 </html>
