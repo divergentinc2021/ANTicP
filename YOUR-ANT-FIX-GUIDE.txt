@@ -1,0 +1,81 @@
+📋 ANT+ Driver Fix Instructions - Your Specific Device
+=======================================================
+
+🔍 DIAGNOSTIC RESULTS FOR YOUR SYSTEM:
+=====================================
+✅ Device Found: ANT USB Stick 2 (Garmin/Dynastream)
+✅ Device Status: OK
+❌ Current Driver: libusb0 (libusb-win32) 
+❌ Problem: No COM port created
+✅ Available COM Ports: COM3, COM4, COM5, COM6 (all Bluetooth)
+
+🎯 TARGET: Change driver from libusb0 → ANT+ serial driver
+========================================================
+
+METHOD 1: Official Garmin ANT+ Drivers (RECOMMENDED)
+===================================================
+1. 📥 Download: https://www.garmin.com/en-US/software/ant/
+2. 🔧 Install as Administrator
+3. 🔄 Restart computer
+4. ✅ Check: Device Manager → Ports (COM & LPT) → should see ANT+ device
+
+METHOD 2: Manual Driver Update (if Method 1 fails)
+=================================================
+1. Open Device Manager (Win+X → Device Manager)
+2. Find: libusb-win32 devices → ANT USB Stick 2
+3. Right-click → Update driver
+4. Choose: "Browse my computer for drivers"
+5. Select: "Let me pick from a list of available drivers"
+6. Look for: "ANT USB-m Stick" or "USB Serial Device"
+
+METHOD 3: Force Driver Change with Device Manager
+===============================================
+1. Device Manager → libusb-win32 devices → ANT USB Stick 2
+2. Right-click → Uninstall device (check "Delete driver software")
+3. Unplug ANT+ stick for 10 seconds
+4. Plug back in
+5. Windows should auto-install proper driver
+6. If not, point to Garmin ANT+ driver location
+
+EXPECTED RESULT AFTER DRIVER FIX:
+================================
+BEFORE (Current):
+- Device Manager → libusb-win32 devices → ANT USB Stick 2
+- Service: libusb0
+- COM Ports: Only Bluetooth (COM3-6)
+- Web Serial API: No ANT+ device visible
+
+AFTER (Target):
+- Device Manager → Ports (COM & LPT) → ANT USB-m Stick (COM7 or similar)
+- Service: Serial driver
+- COM Ports: Bluetooth (COM3-6) + ANT+ (COM7)
+- Web Serial API: Shows "USB Serial Device" option
+
+🧪 TESTING AFTER DRIVER INSTALLATION:
+====================================
+1. Open your test-connections.html
+2. Click "Test USB ANT+"
+3. Should see "USB Serial Device" in device selector
+4. Connection should succeed with ANT+ initialization
+
+⚠️ TROUBLESHOOTING TIPS:
+=======================
+- Close Garmin Express before installing drivers
+- Some ANT+ software installs libusb drivers by default
+- You may need to manually point to the correct driver
+- Try different USB ports if driver installation fails
+- Reboot after driver installation is essential
+
+📞 VERIFICATION COMMANDS (run in PowerShell after fix):
+=====================================================
+# Check if ANT+ device now appears as COM port:
+wmic path Win32_SerialPort get DeviceID,Description
+
+# Should show something like:
+# COM7    ANT USB-m Stick
+
+# Check driver service:
+wmic path Win32_PnPEntity where "Name like '%ANT%'" get Name,Service
+
+# Should show:
+# ANT USB-m Stick    usbser (or similar, NOT libusb0)
