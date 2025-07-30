@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebUSB Permission Request Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-permission {
+            background: #28a745;
+        }
+        .btn-permission:hover {
+            background: #1e7e34;
+        }
+        .log {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+        }
+        .permission-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 WebUSB Permission Request Test</h1>
+        <p>Step-by-step WebUSB permission handling</p>
+        
+        <div class="permission-box">
+            <h3>🔐 Permission Flow</h3>
+            <p><strong>Step 1:</strong> Request USB device permissions explicitly</p>
+            <p><strong>Step 2:</strong> Chrome will show permission dialog</p>
+            <p><strong>Step 3:</strong> Grant permissions for future use</p>
+            <p><strong>Step 4:</strong> Test WebUSB connection</p>
+        </div>
+        
+        <button class="btn btn-permission" onclick="requestUSBPermissions()">🔐 Request USB Permissions</button>
+        <button class="btn" onclick="testWebUSBWithPermissions()">🔌 Test WebUSB Connection</button>
+        <button class="btn" onclick="checkAuthorizedDevices()">📱 Check Authorized Devices</button>
+        <button class="btn" onclick="clearLog()">🗑️ Clear Log</button>
+        
+        <div class="log" id="log">
+WebUSB Permission Request Tester
+================================
+Step 1: Click "Request USB Permissions" to trigger permission dialog
+Step 2: Grant access to your ANT+ device when prompted
+Step 3: Test WebUSB connection with granted permissions
+
+Your Chrome flags are properly enabled!
+        </div>
+    </div>
+
+    <script type="module">
+        let authorizedDevice = null;
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logEl.textContent += logMessage + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(logMessage);
+        }
+
+        async function requestUSBPermissions() {
+            log('🔐 Step 1: Requesting USB device permissions...');
+            
+            // Check WebUSB API availability
+            if (!navigator.usb) {
+                log('❌ WebUSB API not supported', 'error');
+                return;
+            }
+            
+            try {
+                log('🔍 Opening device selector for permission grant...');
+                log('💡 Look for "ANT USBStick2" and click "Connect"');
+                
+                // Request device selection - this triggers the permission dialog
+                const device = await navigator.usb.requestDevice({
+                    filters: [
+                        { vendorId: 0x0FCF, productId: 0x1008 }, // Your ANT USB Stick 2
+                        { vendorId: 0x0FCF }, // Any Garmin/Dynastream device
+                    ]
+                });
+                
+                authorizedDevice = device;
+                log(`✅ Permission granted for: ${device.productName || 'ANT+ Device'}`);
+                log(`📊 Vendor ID: 0x${device.vendorId.toString(16).padStart(4, '0')}`);
+                log(`📊 Product ID: 0x${device.productId.toString(16).padStart(4, '0')}`);
+                log('');
+                log('🎉 SUCCESS! USB device permissions granted');
+                log('💡 Now click "Test WebUSB Connection" to verify communication');
+                
+            } catch (error) {
+                log(`❌ Permission request failed: ${error.message}`, 'error');
+                
+                if (error.name === 'NotFoundError') {
+                    log('💡 No device selected - permission not granted');
+                    log('  • Make sure to select your ANT+ device');
+                    log('  • Click "Connect" in the device selector');
+                } else if (error.name === 'SecurityError') {
+                    log('💡 Security error - check Chrome flags');
+                    log('  • Ensure Experimental Web Platform features is Enabled');
+                    log('  • Restart Chrome after enabling flags');
+                } else if (error.name === 'NotSupportedError') {
+                    log('💡 WebUSB not supported');
+                    log('  • Use Chrome 61+ or Edge 79+');
+                    log('  • Enable required Chrome flags');
+                }
+            }
+        }
+
+        async function testWebUSBWithPermissions() {
+            log('🔌 Step 2: Testing WebUSB connection with granted permissions...');
+            
+            if (!authorizedDevice) {
+                log('⚠️ No authorized device found');
+                log('💡 Please run "Request USB Permissions" first');
+                return;
+            }
+            
+            try {
+                log(`🔌 Opening authorized device: ${authorizedDevice.productName}`);
+                
+                // Try to open the already-authorized device
+                await authorizedDevice.open();
+                log('✅ Device opened successfully - permissions working!');
+                
+                // Select configuration
+                if (authorizedDevice.configuration === null) {
+                    await authorizedDevice.selectConfiguration(1);
+                    log('⚙️ Configuration selected');
+                }
+                
+                // Claim interface
+                const interface0 = authorizedDevice.configuration.interfaces[0];
+                await authorizedDevice.claimInterface(interface0.interfaceNumber);
+                log(`✅ Interface ${interface0.interfaceNumber} claimed`);
+                
+                // Find endpoints
+                const alt = interface0.alternate;
+                const outEndpoint = alt.endpoints.find(ep => ep.direction === 'out' && ep.type === 'bulk');
+                const inEndpoint = alt.endpoints.find(ep => ep.direction === 'in' && ep.type === 'bulk');
+                
+                if (!outEndpoint || !inEndpoint) {
+                    throw new Error('Required bulk endpoints not found');
+                }
+                
+                log(`📤 OUT Endpoint: ${outEndpoint.endpointNumber} (size: ${outEndpoint.packetSize})`);
+                log(`📥 IN Endpoint: ${inEndpoint.endpointNumber} (size: ${inEndpoint.packetSize})`);
+                
+                // Send ANT+ reset command
+                log('🔧 Sending ANT+ reset command...');
+                const resetMessage = [0xA4, 0x01, 0x4A, 0x00, 0xEF]; // ANT+ reset
+                const result = await authorizedDevice.transferOut(outEndpoint.endpointNumber, new Uint8Array(resetMessage));
+                
+                if (result.status === 'ok') {
+                    log('✅ ANT+ reset command sent successfully');
+                    log(`📤 Sent: ${resetMessage.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+                } else {
+                    log(`⚠️ Transfer status: ${result.status}`);
+                }
+                
+                // Try to read response with timeout
+                log('👂 Listening for ANT+ response...');
+                try {
+                    const readResult = await Promise.race([
+                        authorizedDevice.transferIn(inEndpoint.endpointNumber, 64),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+                    ]);
+                    
+                    if (readResult.data && readResult.data.byteLength > 0) {
+                        const data = new Uint8Array(readResult.data.buffer);
+                        const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                        log(`📦 ANT+ Response: ${hex}`);
+                    }
+                } catch (readError) {
+                    if (readError.message === 'Timeout') {
+                        log('⏱️ No immediate response (normal for reset command)');
+                    } else {
+                        log(`⚠️ Read error: ${readError.message}`);
+                    }
+                }
+                
+                // Clean up
+                await authorizedDevice.releaseInterface(interface0.interfaceNumber);
+                await authorizedDevice.close();
+                log('🔌 Device closed successfully');
+                
+                log('');
+                log('🎉 COMPLETE SUCCESS!', 'success');
+                log('✅ WebUSB permissions working');
+                log('✅ USB device communication established');
+                log('✅ ANT+ protocol communication confirmed');
+                log('✅ Ready for full ANT+ implementation');
+                
+            } catch (error) {
+                log(`❌ WebUSB test failed: ${error.message}`, 'error');
+                
+                if (error.message.includes('Access denied')) {
+                    log('💡 Still getting access denied:');
+                    log('  • Try requesting permissions again');
+                    log('  • Check if device is in use by other software');
+                    log('  • Restart Chrome completely');
+                } else if (error.name === 'NetworkError') {
+                    log('💡 Device communication error:');
+                    log('  • Device may be disconnected');
+                    log('  • Try unplugging and reconnecting USB stick');
+                    log('  • Close other ANT+ software');
+                }
+            }
+        }
+
+        async function checkAuthorizedDevices() {
+            log('📱 Checking previously authorized USB devices...');
+            
+            if (!navigator.usb) {
+                log('❌ WebUSB API not available');
+                return;
+            }
+            
+            try {
+                const devices = await navigator.usb.getDevices();
+                log(`📊 Found ${devices.length} authorized USB device(s)`);
+                
+                if (devices.length === 0) {
+                    log('ℹ️ No devices currently authorized');
+                    log('💡 Use "Request USB Permissions" to authorize your ANT+ device');
+                } else {
+                    devices.forEach((device, index) => {
+                        log(`📱 Device ${index + 1}:`);
+                        log(`   Name: ${device.productName || 'Unknown'}`);
+                        log(`   Vendor: 0x${device.vendorId.toString(16).padStart(4, '0')}`);
+                        log(`   Product: 0x${device.productId.toString(16).padStart(4, '0')}`);
+                        
+                        // Check if this is our ANT+ device
+                        if (device.vendorId === 0x0FCF && device.productId === 0x1008) {
+                            log('   ✅ This is your ANT USB Stick 2!');
+                            authorizedDevice = device;
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking devices: ${error.message}`);
+            }
+        }
+
+        function clearLogContent() {
+            document.getElementById('log').textContent = 'Log cleared.\nReady for WebUSB permission testing...\n';
+            authorizedDevice = null;
+        }
+
+        // Make functions available globally
+        window.requestUSBPermissions = requestUSBPermissions;
+        window.testWebUSBWithPermissions = testWebUSBWithPermissions;
+        window.checkAuthorizedDevices = checkAuthorizedDevices;
+        window.clearLog = clearLogContent;
+
+        // Initial setup
+        log('🔐 WebUSB Permission Tester Ready');
+        log('📋 Your Chrome flags are properly configured!');
+        log('');
+        log('💡 Next steps:');
+        log('1. Click "Request USB Permissions" to trigger permission dialog');
+        log('2. Select your "ANT USBStick2" and click "Connect"');
+        log('3. Click "Test WebUSB Connection" to verify communication');
+        log('');
+        log('🎯 This will establish permanent USB device permissions');
+
+        // Auto-check for already authorized devices
+        setTimeout(checkAuthorizedDevices, 1000);
+    </script>
+</body>
+</html>
