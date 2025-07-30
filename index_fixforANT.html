@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANT+ Driver Fix Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .problem-box {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .problem-box h3 {
+            color: #721c24;
+            margin-bottom: 15px;
+        }
+
+        .solution-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .solution-box h3 {
+            color: #155724;
+            margin-bottom: 15px;
+        }
+
+        .step-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .step-box h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .warning-box {
+            background: #fcf4dd;
+            border: 2px solid #f39c12;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .warning-box h3 {
+            color: #b7950b;
+            margin-bottom: 15px;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            transform: translateY(-2px);
+        }
+
+        .test-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .test-btn:hover {
+            background: linear-gradient(45deg, #2980b9, #1f639a);
+            transform: translateY(-2px);
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .step-list li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #3498db;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .device-info {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .device-info h4 {
+            color: #2980b9;
+            margin-bottom: 10px;
+        }
+
+        .log-section {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 ANT+ Driver Fix Guide</h1>
+            <p>Your ANT USB Stick 2 needs proper serial drivers</p>
+        </div>
+
+        <div class="problem-box">
+            <h3>❌ Problem Identified</h3>
+            <p><strong>Your ANT+ stick is using the wrong driver!</strong></p>
+            <div class="device-info">
+                <h4>Current Status:</h4>
+                <ul>
+                    <li><strong>Device:</strong> ANT USB Stick 2</li>
+                    <li><strong>Current Driver:</strong> libusb-win32 (Generic USB)</li>
+                    <li><strong>Location:</strong> Device Manager → libusb-win32 devices</li>
+                    <li><strong>Problem:</strong> Not accessible to Web Serial API</li>
+                </ul>
+            </div>
+            <p><strong>Why this happens:</strong> The libusb-win32 driver makes the device appear as a generic USB device instead of a serial port (COM port). The Web Serial API can only access COM ports.</p>
+        </div>
+
+        <div class="solution-box">
+            <h3>✅ Solution</h3>
+            <p><strong>Install proper ANT+ drivers to create a COM port interface</strong></p>
+            <div class="device-info">
+                <h4>Target Status:</h4>
+                <ul>
+                    <li><strong>Device:</strong> ANT USB Stick 2</li>
+                    <li><strong>Target Driver:</strong> ANT USB-m Stick (or CP210x)</li>
+                    <li><strong>Target Location:</strong> Device Manager → Ports (COM & LPT)</li>
+                    <li><strong>Result:</strong> Appears as COM3, COM4, etc.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <h3>📋 Step-by-Step Driver Installation</h3>
+            
+            <h4>Method 1: Official Garmin ANT+ Drivers (Recommended)</h4>
+            <ol class="step-list">
+                <li>
+                    <strong>Download Official ANT+ Drivers</strong><br>
+                    <a href="https://www.garmin.com/en-US/software/ant/" class="download-btn" target="_blank">
+                        📥 Download from Garmin
+                    </a><br>
+                    <small>This installs the official ANT+ USB drivers and software</small>
+                </li>
+                <li>
+                    <strong>Run the installer as Administrator</strong><br>
+                    Right-click the downloaded file → "Run as administrator"
+                </li>
+                <li>
+                    <strong>Follow installation wizard</strong><br>
+                    Accept defaults and complete installation
+                </li>
+                <li>
+                    <strong>Restart your computer</strong><br>
+                    This ensures the new drivers are properly loaded
+                </li>
+                <li>
+                    <strong>Verify in Device Manager</strong><br>
+                    Your ANT+ stick should now appear under "Ports (COM & LPT)"
+                </li>
+            </ol>
+
+            <h4>Method 2: Manual Driver Update (If Method 1 doesn't work)</h4>
+            <ol class="step-list">
+                <li>
+                    <strong>Open Device Manager</strong><br>
+                    Press Win+X → Device Manager
+                </li>
+                <li>
+                    <strong>Find your ANT+ device</strong><br>
+                    Navigate to "libusb-win32 devices" → "ANT USB Stick 2"
+                </li>
+                <li>
+                    <strong>Update driver</strong><br>
+                    Right-click → "Update driver" → "Search automatically for drivers"
+                </li>
+                <li>
+                    <strong>Alternative: Manual driver selection</strong><br>
+                    If automatic doesn't work: "Browse my computer for drivers" → "Let me pick from a list"<br>
+                    Look for "Silicon Labs CP210x" or "ANT USB-m Stick"
+                </li>
+            </ol>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ Important Notes</h3>
+            <ul>
+                <li><strong>Close other ANT+ software first:</strong> Zwift, TrainerRoad, Garmin Express</li>
+                <li><strong>Some sticks need USB 2.0 ports:</strong> Try different USB ports if needed</li>
+                <li><strong>Driver conflicts:</strong> You may need to uninstall libusb-win32 driver first</li>
+                <li><strong>Reboot required:</strong> Always restart after driver installation</li>
+            </ul>
+        </div>
+
+        <div class="step-box">
+            <h3>🔧 Advanced Troubleshooting (If drivers don't work)</h3>
+            
+            <h4>Option 1: Force Driver Replacement</h4>
+            <ol class="step-list">
+                <li>
+                    <strong>Download Zadig USB Driver Tool</strong><br>
+                    <a href="https://zadig.akeo.ie/" class="download-btn" target="_blank">
+                        📥 Download Zadig
+                    </a><br>
+                    <small>Tool to replace USB drivers</small>
+                </li>
+                <li>
+                    <strong>Run Zadig as Administrator</strong><br>
+                    Right-click → "Run as administrator"
+                </li>
+                <li>
+                    <strong>Select your ANT+ device</strong><br>
+                    It should show as "ANT USB Stick 2" or similar
+                </li>
+                <li>
+                    <strong>Change driver to "USB Serial (CDC)"</strong><br>
+                    Use the dropdown to select "USB Serial (CDC)" driver
+                </li>
+                <li>
+                    <strong>Install driver</strong><br>
+                    Click "Install Driver" or "Replace Driver"
+                </li>
+                <li>
+                    <strong>Restart computer</strong><br>
+                    Check Device Manager → Ports (COM & LPT)
+                </li>
+            </ol>
+
+            <h4>Option 2: Silicon Labs CP210x Drivers</h4>
+            <ol class="step-list">
+                <li>
+                    <strong>Download CP210x Drivers</strong><br>
+                    <a href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers" class="download-btn" target="_blank">
+                        📥 Download CP210x Drivers
+                    </a><br>
+                    <small>Many ANT+ sticks use CP210x chips</small>
+                </li>
+                <li>
+                    <strong>Install and restart</strong><br>
+                    Run installer as administrator, then restart
+                </li>
+                <li>
+                    <strong>Check Device Manager</strong><br>
+                    Look for "Silicon Labs CP210x USB to UART Bridge" under Ports
+                </li>
+            </ol>
+        </div>
+
+        <div class="solution-box">
+            <h3>🧪 Test After Driver Installation</h3>
+            <p>Once you've installed proper drivers, test the connection:</p>
+            <button class="test-btn" onclick="testConnection()">🔌 Test USB ANT+ Connection</button>
+            <div class="log-section" id="test-log">
+Click the test button above after installing drivers...
+            </div>
+        </div>
+
+        <div class="device-info">
+            <h4>📋 What to Look For After Driver Installation</h4>
+            <p><strong>Success indicators:</strong></p>
+            <ul>
+                <li>✅ Device appears under "Ports (COM & LPT)" in Device Manager</li>
+                <li>✅ Shows as "ANT USB-m Stick (COM3)" or "CP210x (COM4)" etc.</li>
+                <li>✅ Web Serial API device selector shows "USB Serial Device"</li>
+                <li>✅ Connection test succeeds with ANT+ initialization</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { logger } from './js/core/logger.js';
+        import { ConnectionManager } from './js/connections/connection-manager-fixed.js';
+
+        class DriverTester {
+            constructor() {
+                this.connectionManager = new ConnectionManager();
+                this.logElement = document.getElementById('test-log');
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logMessage = `[${timestamp}] ${message}`;
+                
+                if (this.logElement) {
+                    this.logElement.textContent += logMessage + '\n';
+                    this.logElement.scrollTop = this.logElement.scrollHeight;
+                }
+                console.log(logMessage);
+            }
+
+            async testConnection() {
+                this.log('🔌 Testing USB ANT+ connection after driver installation...');
+                this.log('📋 Looking for proper COM port devices...');
+                
+                try {
+                    const connection = await this.connectionManager.connectUSB();
+                    this.log('✅ SUCCESS! ANT+ USB connection established!');
+                    this.log(`📊 Device: ${connection.getStatus().type}`);
+                    this.log('🎉 Your ANT+ drivers are working correctly!');
+                    
+                    // Test initialization
+                    if (connection.getStatus().initialized) {
+                        this.log('✅ ANT+ stick initialized successfully');
+                        this.log('📡 Ready to receive ANT+ device data');
+                    }
+                    
+                    // Disconnect after test
+                    setTimeout(async () => {
+                        await this.connectionManager.disconnectUSB();
+                        this.log('🔌 Test connection closed');
+                        this.log('');
+                        this.log('🎯 Next steps:');
+                        this.log('   • Your ANT+ USB stick is now working');
+                        this.log('   • You can use it in your main application');
+                        this.log('   • It should appear as "USB Serial Device" in device lists');
+                    }, 3000);
+                    
+                } catch (error) {
+                    this.log(`❌ Connection test failed: ${error.message}`);
+                    
+                    if (error.message.includes('No port selected')) {
+                        this.log('');
+                        this.log('💡 Driver installation may not be complete:');
+                        this.log('   • Check Device Manager for COM ports');
+                        this.log('   • Try restarting computer');
+                        this.log('   • Ensure libusb-win32 driver was replaced');
+                        this.log('   • Try different USB port');
+                    } else if (error.message.includes('in use')) {
+                        this.log('');
+                        this.log('💡 Device may be in use:');
+                        this.log('   • Close Garmin Express');
+                        this.log('   • Close any ANT+ configuration software');
+                        this.log('   • Try again in a few seconds');
+                    }
+                }
+            }
+        }
+
+        // Initialize tester
+        const tester = new DriverTester();
+        
+        // Make test function available globally
+        window.testConnection = () => tester.testConnection();
+
+        // Initial log message
+        tester.log('Driver installation tester ready');
+        tester.log('Install ANT+ drivers first, then click test button');
+    </script>
+</body>
+</html>
