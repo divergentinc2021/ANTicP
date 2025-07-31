@@ -474,5 +474,20 @@
 
     <!-- Load the modular JavaScript -->
     <script type="module" src="js/core/app.js"></script>
+    
+    <!-- Enhanced device control functions -->
+    <script src="js/device-control.js"></script>
+    
+    <!-- Add onclick handlers to gear buttons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find gear buttons and add onclick handlers
+            const gearButtons = document.querySelectorAll('#zwift-click-card .btn');
+            if (gearButtons.length >= 2) {
+                gearButtons[0].onclick = () => changeGear('down');
+                gearButtons[1].onclick = () => changeGear('up');
+            }
+        });
+    </script>
 </body>
 </html>
