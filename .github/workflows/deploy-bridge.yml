@@ -1,4 +1,4 @@
-name: Deploy ANT+ Bridge
+name: ANT+ Bridge Build and Release
 
 on:
   push:
@@ -12,70 +12,7 @@ env:
   PYTHON_VERSION: '3.9'
 
 jobs:
-  # Deploy to Heroku
-  deploy-heroku:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm install
-    
-    - name: Deploy to Heroku
-      uses: akhileshns/heroku-deploy@v3.12.12
-      with:
-        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-        heroku_app_name: "ant-bridge-${{ github.repository_owner }}"
-        heroku_email: ${{ secrets.HEROKU_EMAIL }}
-        buildpack: |
-          heroku/nodejs
-          heroku/python
-    
-    - name: Update deployment status
-      run: |
-        echo "Heroku deployment completed"
-        echo "Bridge URL: https://ant-bridge-${{ github.repository_owner }}.herokuapp.com"
-
-  # Deploy to Railway
-  deploy-railway:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-    
-    - name: Install Railway CLI
-      run: npm install -g @railway/cli
-    
-    - name: Deploy to Railway
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      run: |
-        railway login --token $RAILWAY_TOKEN
-        railway up
-    
-    - name: Get deployment URL
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      run: |
-        URL=$(railway status --json | jq -r '.deployments[0].url')
-        echo "Railway deployment completed"
-        echo "Bridge URL: $URL"
-
-  # Build downloadable packages
+  # Build downloadable packages only (no deployment conflicts)
   build-packages:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -145,7 +82,121 @@ jobs:
         name: ant-bridge-${{ matrix.os }}
         path: dist/ant-bridge-${{ matrix.os }}.*
 
-  # Create GitHub release with packages
+  # Update deployment info for your existing Railway deployment
+  update-deployment-info:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Create deployment info for GitHub Pages
+      run: |
+        mkdir -p _data
+        cat > _data/deployment.json << EOF
+        {
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "version": "v${{ github.run_number }}",
+          "railway_deployment": {
+            "url": "https://web-production-f8ebc.up.railway.app",
+            "websocket": "wss://web-production-f8ebc.up.railway.app",
+            "status": "deployed",
+            "platform": "railway"
+          },
+          "local_bridge": {
+            "websocket": "ws://localhost:8888",
+            "platforms": ["windows", "linux", "macos"]
+          },
+          "test_pages": {
+            "railway_bridge": "your-railway-bridge.html",
+            "local_bridge": "ant-bridge-client.html",
+            "config_checker": "railway-config-checker.html"
+          }
+        }
+        EOF
+    
+    - name: Create deployment status page
+      run: |
+        cat > deployment-status.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>ANT+ Bridge Deployment Status</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+                .status-good { color: #28a745; }
+                .status-warning { color: #ffc107; }
+                .deployment-card { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+                .btn { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>🚂 ANT+ Bridge Deployment Status</h1>
+            
+            <div class="deployment-card">
+                <h2>🌐 Railway Cloud Deployment</h2>
+                <p><strong>Status:</strong> <span class="status-good">✅ Live</span></p>
+                <p><strong>URL:</strong> <a href="https://web-production-f8ebc.up.railway.app">web-production-f8ebc.up.railway.app</a></p>
+                <p><strong>WebSocket:</strong> wss://web-production-f8ebc.up.railway.app</p>
+                <p><strong>Features:</strong> Global access, demo data, interface testing</p>
+                <a href="your-railway-bridge.html" class="btn">🚂 Test Railway Bridge</a>
+            </div>
+            
+            <div class="deployment-card">
+                <h2>🏠 Local Bridge Setup</h2>
+                <p><strong>Status:</strong> <span class="status-warning">⚙️ Manual Setup Required</span></p>
+                <p><strong>WebSocket:</strong> ws://localhost:8888</p>
+                <p><strong>Features:</strong> Real ANT+ device access, all transfer rates</p>
+                <a href="#downloads" class="btn">📦 Download Local Bridge</a>
+                <a href="ant-bridge-client.html" class="btn">🏠 Test Local Bridge</a>
+            </div>
+            
+            <div class="deployment-card">
+                <h2>🔧 Configuration Tools</h2>
+                <a href="railway-config-checker.html" class="btn">🔍 Railway Config Checker</a>
+                <a href="ant-bridge-automator.html" class="btn">🤖 Bridge Automator</a>
+            </div>
+            
+            <div id="downloads">
+                <h2>📦 Download Local Bridge</h2>
+                <p>Download the bridge server to run on your computer with ANT+ USB device:</p>
+                <div id="download-links">
+                    <p>Latest release downloads will be available after GitHub Actions completes.</p>
+                </div>
+            </div>
+            
+            <script>
+                // Auto-update download links from GitHub releases
+                fetch('https://api.github.com/repos/' + window.location.pathname.split('/')[1] + '/' + window.location.pathname.split('/')[2] + '/releases/latest')
+                .then(response => response.json())
+                .then(data => {
+                    const downloadsDiv = document.getElementById('download-links');
+                    if (data.assets) {
+                        let html = '';
+                        data.assets.forEach(asset => {
+                            html += `<a href="${asset.browser_download_url}" class="btn">📱 ${asset.name}</a>`;
+                        });
+                        downloadsDiv.innerHTML = html;
+                    }
+                })
+                .catch(() => {
+                    // Fallback if API fails
+                    document.getElementById('download-links').innerHTML = '<p>Visit the <a href="../../releases">Releases page</a> for downloads.</p>';
+                });
+            </script>
+        </body>
+        </html>
+        EOF
+    
+    - name: Update GitHub Pages with deployment info
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        destination_dir: .
+        keep_files: true
+
+  # Create GitHub release with packages (no deployment conflicts)
   create-release:
     needs: [build-packages]
     runs-on: ubuntu-latest
@@ -170,28 +221,25 @@ jobs:
         body: |
           ## ANT+ Middleware Bridge Release
           
-          ### Cloud Deployments
-          - **Heroku:** https://ant-bridge-${{ github.repository_owner }}.herokuapp.com
-          - **Railway:** Check deployment logs for URL
+          ### 🚂 Railway Cloud Deployment
+          **Live at:** https://web-production-f8ebc.up.railway.app  
+          **WebSocket:** wss://web-production-f8ebc.up.railway.app  
+          **Test Page:** [Railway Bridge Test](https://your-username.github.io/your-repo/your-railway-bridge.html)
           
-          ### Download Packages
-          - **Windows:** ant-bridge-windows-latest.zip
-          - **Linux:** ant-bridge-ubuntu-latest.tar.gz  
-          - **macOS:** ant-bridge-macos-latest.tar.gz
+          ### 📦 Local Bridge Downloads
+          For computers with ANT+ USB devices:
           
-          ### Setup Instructions
-          1. Download package for your platform
-          2. Extract files
-          3. Run setup script (setup.bat on Windows, setup.sh on Linux/Mac)
-          4. Start server: `npm start`
-          5. Connect browser to `ws://localhost:8888`
+          ### 🎯 Quick Start
+          1. **Test Railway Bridge:** Use the cloud deployment for interface testing
+          2. **Download Local Bridge:** For real ANT+ device access
+          3. **Setup Instructions:** Extract and run setup script
           
-          ### Features
+          ### ✨ Features
           - ✅ All 5 ANT+ transfer rates (50K - 3MHz)
-          - ✅ Real-time device data streaming
-          - ✅ WebSocket-based communication
+          - ✅ Real-time device data streaming  
+          - ✅ Cloud and local deployment options
           - ✅ Cross-platform compatibility
-          - ✅ No WebUSB dependencies
+          - ✅ WebSocket-based communication
         draft: false
         prerelease: false
     
@@ -224,40 +272,3 @@ jobs:
         asset_path: ./artifacts/ant-bridge-macos-latest/ant-bridge-macos-latest.tar.gz
         asset_name: ant-bridge-macos.tar.gz
         asset_content_type: application/gzip
-
-  # Update GitHub Pages with latest deployment info
-  update-pages:
-    needs: [deploy-heroku, deploy-railway, create-release]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Create deployment info
-      run: |
-        mkdir -p _data
-        cat > _data/deployment.json << EOF
-        {
-          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-          "version": "v${{ github.run_number }}",
-          "deployments": {
-            "heroku": "https://ant-bridge-${{ github.repository_owner }}.herokuapp.com",
-            "railway": "Check deployment logs",
-            "local": "ws://localhost:8888"
-          },
-          "downloads": {
-            "windows": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-windows.zip",
-            "linux": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-linux.tar.gz",
-            "macos": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-macos.tar.gz"
-          }
-        }
-        EOF
-    
-    - name: Update GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_data
-        destination_dir: _data
-        keep_files: true
