@@ -153,22 +153,22 @@
 
                 <!-- Zwift Click Controls -->
                 <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">-</button>
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;" onclick="changeGear('down')">-</button>
                     <div style="text-align: center;">
-                        <div style="font-size: 3rem; font-weight: bold; color: #2c3e50;" id="zwift-gear">4</div>
+                        <div style="font-size: 3rem; font-weight: bold; color: #2c3e50;" id="zwift-gear">1</div>
                         <div style="font-size: 0.8rem; color: #666;">Current Gear</div>
                     </div>
-                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">+</button>
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;" onclick="changeGear('up')">+</button>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
                     <div class="metric">
-                        <div class="metric-value" id="zwift-front-gear">50</div>
-                        <div class="metric-label">Front (?)</div>
+                        <div class="metric-value" id="zwift-front-gear">42</div>
+                        <div class="metric-label">Front (T)</div>
                     </div>
                     <div class="metric">
-                        <div class="metric-value" id="zwift-rear-gear">14</div>
-                        <div class="metric-label">Rear (?)</div>
+                        <div class="metric-value" id="zwift-rear-gear">30</div>
+                        <div class="metric-label">Rear (T)</div>
                     </div>
                 </div>
 
@@ -250,248 +250,7 @@
         </div>
     </div>
 
-    <!-- Serial Permissions Modal JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const serialCog = document.getElementById('serial-permissions-cog');
-            const serialModal = document.getElementById('serial-modal');
-            const closeSerial = document.getElementById('close-serial-modal');
-            const log = document.getElementById('serial-log');
-            
-            function addLog(message) {
-                const timestamp = new Date().toLocaleTimeString();
-                log.textContent += `[${timestamp}] ${message}\n`;
-                log.scrollTop = log.scrollHeight;
-            }
-            
-            async function checkPermissions() {
-                addLog('🔍 Checking all permissions...');
-                
-                // HTTPS Check
-                const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-                document.getElementById('https-result').textContent = isHTTPS ? '✅ Secure' : '❌ Not HTTPS';
-                document.getElementById('https-status').className = 'permission-item ' + (isHTTPS ? 'granted' : 'denied');
-                document.getElementById('https-status').style.background = isHTTPS ? '#d4edda' : '#f8d7da';
-                
-                // Bluetooth Check
-                const hasBluetoothAPI = 'bluetooth' in navigator;
-                document.getElementById('bluetooth-result').textContent = hasBluetoothAPI ? '✅ Available' : '❌ Not supported';
-                document.getElementById('bluetooth-status').className = 'permission-item ' + (hasBluetoothAPI ? 'granted' : 'denied');
-                document.getElementById('bluetooth-status').style.background = hasBluetoothAPI ? '#d4edda' : '#f8d7da';
-                
-                // Serial Check
-                const hasSerialAPI = 'serial' in navigator;
-                document.getElementById('serial-result').textContent = hasSerialAPI ? '✅ Available' : '❌ Not supported';
-                document.getElementById('serial-status').className = 'permission-item ' + (hasSerialAPI ? 'granted' : 'denied');
-                document.getElementById('serial-status').style.background = hasSerialAPI ? '#d4edda' : '#f8d7da';
-                
-                if (hasSerialAPI) {
-                    try {
-                        const ports = await navigator.serial.getPorts();
-                        addLog(`📶 Found ${ports.length} existing serial port permissions`);
-                        ports.forEach((port, index) => {
-                            const info = port.getInfo();
-                            addLog(`  Port ${index + 1}: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
-                        });
-                    } catch (error) {
-                        addLog(`❌ Error checking serial ports: ${error.message}`);
-                    }
-                }
-                
-                // Location Check (Android)
-                const isAndroid = /android/i.test(navigator.userAgent);
-                if (isAndroid && 'permissions' in navigator) {
-                    try {
-                        const result = await navigator.permissions.query({name: 'geolocation'});
-                        document.getElementById('location-result').textContent = `${result.state === 'granted' ? '✅' : '⚠️'} ${result.state}`;
-                        const statusColor = result.state === 'granted' ? '#d4edda' : result.state === 'denied' ? '#f8d7da' : '#fff3cd';
-                        document.getElementById('location-status').style.background = statusColor;
-                    } catch (error) {
-                        document.getElementById('location-result').textContent = '❓ Unknown';
-                        document.getElementById('location-status').style.background = '#fff3cd';
-                    }
-                } else {
-                    document.getElementById('location-result').textContent = isAndroid ? '❓ Cannot check' : 'ℹ️ Not needed';
-                    document.getElementById('location-status').style.background = '#fff3cd';
-                }
-                
-                addLog('✅ Permission check complete');
-            }
-
-            serialCog.addEventListener('click', function() {
-                serialModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-                checkPermissions();
-            });
-
-            closeSerial.addEventListener('click', function() {
-                serialModal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            });
-
-            // Close modal when clicking outside
-            serialModal.addEventListener('click', function(e) {
-                if (e.target === serialModal) {
-                    serialModal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            });
-            
-            // Permission request handlers
-            document.getElementById('request-serial').addEventListener('click', async () => {
-                addLog('🔍 Requesting serial port access...');
-                try {
-                    const port = await navigator.serial.requestPort();
-                    const info = port.getInfo();
-                    addLog(`✅ Serial port granted: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
-                    await checkPermissions(); // Refresh
-                } catch (error) {
-                    if (error.name === 'NotFoundError') {
-                        addLog('⚠️ No serial device selected');
-                    } else {
-                        addLog(`❌ Serial request failed: ${error.message}`);
-                    }
-                }
-            });
-            
-            document.getElementById('request-location').addEventListener('click', async () => {
-                addLog('🔍 Requesting location permission...');
-                try {
-                    await navigator.geolocation.getCurrentPosition(
-                        (position) => addLog('✅ Location permission granted'),
-                        (error) => addLog(`❌ Location denied: ${error.message}`)
-                    );
-                    await checkPermissions(); // Refresh
-                } catch (error) {
-                    addLog(`❌ Location request failed: ${error.message}`);
-                }
-            });
-            
-            document.getElementById('scan-bluetooth').addEventListener('click', async () => {
-                addLog('🔍 Scanning for Bluetooth devices...');
-                try {
-                    const device = await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalServices: [0x180D, 0x1818, 0x1816, 0x1826, 0x1812, '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e']
-                    });
-                    addLog(`✅ Bluetooth device selected: ${device.name || 'Unknown'} (${device.id})`);
-                    
-                    // Try to connect
-                    const server = await device.gatt.connect();
-                    addLog(`✅ Connected to GATT server`);
-                    
-                    const services = await server.getPrimaryServices();
-                    addLog(`📋 Found ${services.length} services:`);
-                    services.forEach(service => {
-                        addLog(`  Service: ${service.uuid}`);
-                    });
-                    
-                } catch (error) {
-                    if (error.name === 'NotFoundError') {
-                        addLog('⚠️ No Bluetooth device selected');
-                    } else {
-                        addLog(`❌ Bluetooth scan failed: ${error.message}`);
-                    }
-                }
-            });
-            
-            document.getElementById('scan-serial').addEventListener('click', async () => {
-                addLog('🔍 Requesting new serial port...');
-                try {
-                    const port = await navigator.serial.requestPort();
-                    const info = port.getInfo();
-                    addLog(`✅ Serial port selected: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
-                    
-                    // Try to open the port
-                    await port.open({ baudRate: 9600 });
-                    addLog(`✅ Serial port opened successfully`);
-                    
-                    // Close it
-                    await port.close();
-                    addLog(`📌 Serial port closed`);
-                    
-                } catch (error) {
-                    addLog(`❌ Serial port operation failed: ${error.message}`);
-                }
-            });
-            
-            document.getElementById('check-ports').addEventListener('click', async () => {
-                addLog('🔍 Checking all granted serial ports...');
-                try {
-                    const ports = await navigator.serial.getPorts();
-                    addLog(`📶 Found ${ports.length} granted serial ports:`);
-                    
-                    for (let i = 0; i < ports.length; i++) {
-                        const port = ports[i];
-                        const info = port.getInfo();
-                        addLog(`  Port ${i + 1}:`);
-                        addLog(`    Vendor ID: ${info.usbVendorId || 'Unknown'}`);
-                        addLog(`    Product ID: ${info.usbProductId || 'Unknown'}`);
-                    }
-                } catch (error) {
-                    addLog(`❌ Error checking ports: ${error.message}`);
-                }
-            });
-            
-            addLog('🚀 Serial Port Permissions Tool loaded');
-            addLog('💡 Grant serial port access for COM port connections');
-        });
-    </script>
-
-    <!-- DIRECT ONCLICK HANDLERS TO BYPASS EVENT SYSTEM ISSUES -->
-    <script>
-        // Global functions for direct button onclick handlers
-        function pairDevice(deviceType) {
-            console.log(`🔍 Pairing ${deviceType}...`);
-            if (window.antApp && window.antApp.handleDevicePair) {
-                window.antApp.handleDevicePair(deviceType);
-            } else {
-                alert(`Pairing ${deviceType}... (App not ready)`);
-                console.log('App not ready, trying to initialize...');
-            }
-        }
-        
-        function disconnectDevice(deviceType) {
-            console.log(`🔌 Disconnecting ${deviceType}...`);
-            if (window.antApp && window.antApp.handleDeviceDisconnect) {
-                window.antApp.handleDeviceDisconnect(deviceType);
-            } else {
-                alert(`Disconnecting ${deviceType}... (App not ready)`);
-                console.log('App not ready, trying to initialize...');
-            }
-        }
-        
-        // Debug function to check app status
-        function checkApp() {
-            console.log('App status:', window.antApp ? 'Ready' : 'Not ready');
-            if (window.antApp) {
-                console.log('Available methods:', Object.getOwnPropertyNames(window.antApp));
-            }
-        }
-        
-        // Auto-check app status after 2 seconds
-        setTimeout(checkApp, 2000);
-    </script>
-
-    <!-- Load the modular JavaScript -->
-    <script type="module" src="js/core/app.js"></script>
-    
-    <!-- Enhanced device control functions -->
-    <script src="js/device-control.js"></script>
-    
-    <!-- Add onclick handlers to gear buttons -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Find gear buttons and add onclick handlers
-            const gearButtons = document.querySelectorAll('#zwift-click-card .btn');
-            if (gearButtons.length >= 2) {
-                gearButtons[0].onclick = () => changeGear('down');
-                gearButtons[1].onclick = () => changeGear('up');
-            }
-        });
-    </script>
-    
-    <!-- Enhanced HRM and Connection Monitoring -->
+    <!-- Enhanced Device Monitoring JavaScript -->
     <script>
         // Enhanced device monitoring and HRM data display
         function addConnectionLog(message, type = 'info') {
@@ -500,17 +259,11 @@
             
             const timestamp = new Date().toLocaleTimeString();
             const logEntry = document.createElement('div');
-            logEntry.style.cssText = `
-                padding: 5px 10px;
-                margin: 2px 0;
-                border-radius: 3px;
-                font-family: monospace;
-                font-size: 0.85rem;
-                background: ${type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : type === 'warning' ? '#fff3cd' : '#e2e3e5'};
-                color: ${type === 'error' ? '#721c24' : type === 'success' ? '#155724' : type === 'warning' ? '#856404' : '#383d41'};
-                border-left: 3px solid ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#6c757d'};
-            `;
-            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.style.cssText = 'padding: 5px 10px; margin: 2px 0; border-radius: 3px; font-family: monospace; font-size: 0.85rem; background: ' + 
+                (type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : type === 'warning' ? '#fff3cd' : '#e2e3e5') + 
+                '; color: ' + (type === 'error' ? '#721c24' : type === 'success' ? '#155724' : type === 'warning' ? '#856404' : '#383d41') + 
+                '; border-left: 3px solid ' + (type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#6c757d');
+            logEntry.textContent = '[' + timestamp + '] ' + message;
             logContent.appendChild(logEntry);
             logContent.scrollTop = logContent.scrollHeight;
         }
@@ -560,112 +313,20 @@
             }
             
             if (lastUpdate) {
-                lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+                lastUpdate.textContent = 'Last update: ' + new Date().toLocaleTimeString();
                 lastUpdate.style.color = '#27ae60';
             }
             
-            addConnectionLog(`❤️ Heart Rate: ${heartRate} BPM (${zone})`, 'success');
+            addConnectionLog('❤️ Heart Rate: ' + heartRate + ' BPM (' + zone + ')', 'success');
         }
         
         // Launch Simulator Function
         function launchKickrSimulator() {
             addConnectionLog('🚴 Launching Wahoo Kickr Core Simulator...', 'info');
             
-            const simulatorWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+            const simulatorWindow = window.open('kickr-simulator.html', '_blank', 'width=900,height=700,scrollbars=yes');
             
             if (simulatorWindow) {
-                simulatorWindow.document.write(\`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Wahoo Kickr Core Simulator</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-                            .simulator { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                            .status { padding: 10px; margin: 10px 0; border-radius: 5px; background: #d4edda; color: #155724; }
-                            .metric { display: inline-block; margin: 10px; padding: 10px; background: #e9ecef; border-radius: 5px; min-width: 100px; text-align: center; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="simulator">
-                            <h1>🚴 Wahoo Kickr Core Simulator</h1>
-                            <div class="status" id="status">Initializing simulator...</div>
-                            
-                            <div>
-                                <div class="metric">
-                                    <div>Power</div>
-                                    <div id="power">0W</div>
-                                </div>
-                                <div class="metric">
-                                    <div>Cadence</div>
-                                    <div id="cadence">0 RPM</div>
-                                </div>
-                                <div class="metric">
-                                    <div>Speed</div>
-                                    <div id="speed">0 km/h</div>
-                                </div>
-                                <div class="metric">
-                                    <div>Resistance</div>
-                                    <div id="resistance">0%</div>
-                                </div>
-                            </div>
-                            
-                            <button onclick="startSimulation()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Start Simulation</button>
-                            <button onclick="stopSimulation()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Stop Simulation</button>
-                        </div>
-                        
-                        <script>
-                            // Inline simulator implementation
-                            let simulationRunning = false;
-                            let simulationInterval;
-                            
-                            function startSimulation() {
-                                if (simulationRunning) return;
-                                
-                                simulationRunning = true;
-                                document.getElementById('status').textContent = 'Simulation Running...';
-                                document.getElementById('status').style.background = '#d1ecf1';
-                                document.getElementById('status').style.color = '#0c5460';
-                                
-                                let power = 0;
-                                let cadence = 0;
-                                let speed = 0;
-                                let resistance = 0;
-                                
-                                simulationInterval = setInterval(() => {
-                                    // Simulate realistic cycling data
-                                    power = Math.floor(Math.random() * 200) + 100; // 100-300W
-                                    cadence = Math.floor(Math.random() * 40) + 60; // 60-100 RPM
-                                    speed = (power / 10) + Math.random() * 5; // Rough speed calc
-                                    resistance = Math.floor(Math.random() * 20) + 5; // 5-25%
-                                    
-                                    document.getElementById('power').textContent = power + 'W';
-                                    document.getElementById('cadence').textContent = cadence + ' RPM';
-                                    document.getElementById('speed').textContent = speed.toFixed(1) + ' km/h';
-                                    document.getElementById('resistance').textContent = resistance + '%';
-                                }, 1000);
-                            }
-                            
-                            function stopSimulation() {
-                                if (!simulationRunning) return;
-                                
-                                simulationRunning = false;
-                                clearInterval(simulationInterval);
-                                
-                                document.getElementById('status').textContent = 'Simulation Stopped';
-                                document.getElementById('status').style.background = '#f8d7da';
-                                document.getElementById('status').style.color = '#721c24';
-                                
-                                document.getElementById('power').textContent = '0W';
-                                document.getElementById('cadence').textContent = '0 RPM';
-                                document.getElementById('speed').textContent = '0 km/h';
-                                document.getElementById('resistance').textContent = '0%';
-                            }
-                        </script>
-                    </body>
-                    </html>
-                \`);
-                simulatorWindow.document.close();
                 addConnectionLog('✅ Simulator window opened successfully', 'success');
             } else {
                 addConnectionLog('❌ Failed to open simulator window (popup blocked?)', 'error');
@@ -675,7 +336,8 @@
         
         // Global connection monitoring
         window.deviceConnectionLogger = {
-            logConnection: (deviceType, status, details = '') => {
+            logConnection: function(deviceType, status, details) {
+                details = details || '';
                 const statusText = status === 'connected' ? '✅ Connected' : 
                                  status === 'connecting' ? '🔄 Connecting' : 
                                  status === 'disconnected' ? '❌ Disconnected' : 
@@ -684,25 +346,25 @@
                                status === 'error' ? 'error' : 
                                status === 'disconnected' ? 'warning' : 'info';
                 
-                addConnectionLog(\`\${deviceType.toUpperCase()}: \${statusText} \${details}\`, logType);
+                addConnectionLog(deviceType.toUpperCase() + ': ' + statusText + ' ' + details, logType);
                 
                 // Update device status indicator
-                const statusElement = document.getElementById(\`\${deviceType}-status-text\`);
-                const indicatorElement = document.getElementById(\`\${deviceType}-status\`);
+                const statusElement = document.getElementById(deviceType + '-status-text');
+                const indicatorElement = document.getElementById(deviceType + '-status');
                 
                 if (statusElement) {
                     statusElement.textContent = statusText.replace(/[✅❌🔄]/g, '').trim();
                 }
                 
                 if (indicatorElement) {
-                    indicatorElement.className = \`status-indicator \${status}\`;
+                    indicatorElement.className = 'status-indicator ' + status;
                     indicatorElement.style.background = status === 'connected' ? '#28a745' : 
                                                        status === 'connecting' ? '#ffc107' : 
                                                        status === 'error' ? '#dc3545' : '#6c757d';
                 }
             },
             
-            logData: (deviceType, data) => {
+            logData: function(deviceType, data) {
                 if (deviceType === 'hrm' && data.heartRate) {
                     updateHRMDisplay(data.heartRate);
                 }
@@ -710,18 +372,177 @@
             }
         };
         
-        // Initialize enhanced monitoring
+        // Fixed Gear Order (1 = easiest, 24 = hardest)
+        const gearRatios = [
+            // Gears 1-12: 42T chainring
+            {front: 42, rear: 30, gear: 1},  // Easiest
+            {front: 42, rear: 26, gear: 2},
+            {front: 42, rear: 23, gear: 3},
+            {front: 42, rear: 21, gear: 4},
+            {front: 42, rear: 19, gear: 5},
+            {front: 42, rear: 17, gear: 6},
+            {front: 42, rear: 16, gear: 7},
+            {front: 42, rear: 15, gear: 8},
+            {front: 42, rear: 14, gear: 9},
+            {front: 42, rear: 13, gear: 10},
+            {front: 42, rear: 12, gear: 11},
+            {front: 42, rear: 11, gear: 12},
+            // Gears 13-24: 52T chainring
+            {front: 52, rear: 30, gear: 13},
+            {front: 52, rear: 26, gear: 14},
+            {front: 52, rear: 23, gear: 15},
+            {front: 52, rear: 21, gear: 16},
+            {front: 52, rear: 19, gear: 17},
+            {front: 52, rear: 17, gear: 18},
+            {front: 52, rear: 16, gear: 19},
+            {front: 52, rear: 15, gear: 20},
+            {front: 52, rear: 14, gear: 21},
+            {front: 52, rear: 13, gear: 22},
+            {front: 52, rear: 12, gear: 23},
+            {front: 52, rear: 11, gear: 24}   // Hardest
+        ];
+        
+        let currentGear = 1;
+        
+        function changeGear(direction) {
+            if (direction === 'up' && currentGear < 24) {
+                currentGear++;
+            } else if (direction === 'down' && currentGear > 1) {
+                currentGear--;
+            }
+            
+            const gearInfo = gearRatios[currentGear - 1];
+            document.getElementById('zwift-gear').textContent = currentGear;
+            document.getElementById('zwift-front-gear').textContent = gearInfo.front;
+            document.getElementById('zwift-rear-gear').textContent = gearInfo.rear;
+            
+            const ratio = (gearInfo.front / gearInfo.rear).toFixed(2);
+            addConnectionLog('⚡ Gear changed to ' + currentGear + ' (' + gearInfo.front + 'T/' + gearInfo.rear + 'T = ' + ratio + ')', 'info');
+        }
+    </script>
+
+    <!-- Serial Permissions Modal JavaScript -->
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Launch simulator button
+            const serialCog = document.getElementById('serial-permissions-cog');
+            const serialModal = document.getElementById('serial-modal');
+            const closeSerial = document.getElementById('close-serial-modal');
+            const log = document.getElementById('serial-log');
+            
+            function addLog(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                log.textContent += '[' + timestamp + '] ' + message + '\n';
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            async function checkPermissions() {
+                addLog('🔍 Checking all permissions...');
+                
+                // HTTPS Check
+                const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+                document.getElementById('https-result').textContent = isHTTPS ? '✅ Secure' : '❌ Not HTTPS';
+                document.getElementById('https-status').className = 'permission-item ' + (isHTTPS ? 'granted' : 'denied');
+                document.getElementById('https-status').style.background = isHTTPS ? '#d4edda' : '#f8d7da';
+                
+                // Bluetooth Check
+                const hasBluetoothAPI = 'bluetooth' in navigator;
+                document.getElementById('bluetooth-result').textContent = hasBluetoothAPI ? '✅ Available' : '❌ Not supported';
+                document.getElementById('bluetooth-status').className = 'permission-item ' + (hasBluetoothAPI ? 'granted' : 'denied');
+                document.getElementById('bluetooth-status').style.background = hasBluetoothAPI ? '#d4edda' : '#f8d7da';
+                
+                // Serial Check
+                const hasSerialAPI = 'serial' in navigator;
+                document.getElementById('serial-result').textContent = hasSerialAPI ? '✅ Available' : '❌ Not supported';
+                document.getElementById('serial-status').className = 'permission-item ' + (hasSerialAPI ? 'granted' : 'denied');
+                document.getElementById('serial-status').style.background = hasSerialAPI ? '#d4edda' : '#f8d7da';
+                
+                if (hasSerialAPI) {
+                    try {
+                        const ports = await navigator.serial.getPorts();
+                        addLog('📶 Found ' + ports.length + ' existing serial port permissions');
+                        ports.forEach(function(port, index) {
+                            const info = port.getInfo();
+                            addLog('  Port ' + (index + 1) + ': Vendor=' + info.usbVendorId + ', Product=' + info.usbProductId);
+                        });
+                    } catch (error) {
+                        addLog('❌ Error checking serial ports: ' + error.message);
+                    }
+                }
+                
+                addLog('✅ Permission check complete');
+            }
+
+            serialCog.addEventListener('click', function() {
+                serialModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                checkPermissions();
+            });
+
+            closeSerial.addEventListener('click', function() {
+                serialModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            });
+
+            // Close modal when clicking outside
+            serialModal.addEventListener('click', function(e) {
+                if (e.target === serialModal) {
+                    serialModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Initialize enhanced monitoring
             const launchBtn = document.getElementById('launch-simulator-btn');
             if (launchBtn) {
                 launchBtn.addEventListener('click', launchKickrSimulator);
             }
             
-            // Clear log functionality
+            // Add capture specs button functionality
+            const captureBtn = document.getElementById('capture-specs-btn');
+            if (captureBtn) {
+                captureBtn.addEventListener('click', function() {
+                    addConnectionLog('📊 Starting device specification capture...', 'info');
+                    
+                    if (window.antApp && window.antApp.handleCaptureSpecs) {
+                        window.antApp.handleCaptureSpecs();
+                    } else {
+                        // Fallback implementation
+                        const deviceInfo = {
+                            timestamp: new Date().toISOString(),
+                            browser: navigator.userAgent,
+                            platform: navigator.platform,
+                            bluetooth: 'bluetooth' in navigator ? 'Available' : 'Not supported',
+                            serial: 'serial' in navigator ? 'Available' : 'Not supported',
+                            webusb: 'usb' in navigator ? 'Available' : 'Not supported',
+                            location: window.location.href
+                        };
+                        
+                        const specText = JSON.stringify(deviceInfo, null, 2);
+                        addConnectionLog('📄 Device specifications captured', 'success');
+                        addConnectionLog('Browser: ' + deviceInfo.browser.split(' ')[0], 'info');
+                        addConnectionLog('Platform: ' + deviceInfo.platform, 'info');
+                        addConnectionLog('Bluetooth: ' + deviceInfo.bluetooth, 'info');
+                        addConnectionLog('Serial: ' + deviceInfo.serial, 'info');
+                        
+                        // Create downloadable file
+                        const blob = new Blob([specText], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'device-specs-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.json';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        addConnectionLog('💾 Specifications saved to downloads', 'success');
+                    }
+                });
+            }
+            
             const clearBtn = document.getElementById('clear-log-btn');
             if (clearBtn) {
-                clearBtn.addEventListener('click', () => {
+                clearBtn.addEventListener('click', function() {
                     const logContent = document.getElementById('log-content');
                     if (logContent) {
                         logContent.innerHTML = '';
@@ -733,5 +554,46 @@
             addConnectionLog('🚀 Enhanced device monitoring system initialized', 'success');
         });
     </script>
+    
+    <!-- DIRECT ONCLICK HANDLERS -->
+    <script>
+        // Global functions for direct button onclick handlers
+        function pairDevice(deviceType) {
+            console.log('🔍 Pairing ' + deviceType + '...');
+            if (window.antApp && window.antApp.handleDevicePair) {
+                window.antApp.handleDevicePair(deviceType);
+            } else {
+                alert('Pairing ' + deviceType + '... (App not ready)');
+                console.log('App not ready, trying to initialize...');
+            }
+        }
+        
+        function disconnectDevice(deviceType) {
+            console.log('🔌 Disconnecting ' + deviceType + '...');
+            if (window.antApp && window.antApp.handleDeviceDisconnect) {
+                window.antApp.handleDeviceDisconnect(deviceType);
+            } else {
+                alert('Disconnecting ' + deviceType + '... (App not ready)');
+                console.log('App not ready, trying to initialize...');
+            }
+        }
+        
+        // Debug function to check app status
+        function checkApp() {
+            console.log('App status:', window.antApp ? 'Ready' : 'Not ready');
+            if (window.antApp) {
+                console.log('Available methods:', Object.getOwnPropertyNames(window.antApp));
+            }
+        }
+        
+        // Auto-check app status after 2 seconds
+        setTimeout(checkApp, 2000);
+    </script>
+
+    <!-- Load the modular JavaScript -->
+    <script type="module" src="js/core/app.js"></script>
+    
+    <!-- Enhanced device control functions -->
+    <script src="js/device-control.js"></script>
 </body>
 </html>
