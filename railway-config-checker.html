@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Configuration Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover { background: #0056b3; }
+        .railway-banner {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .config-section {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .url-display {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="railway-banner">
+            <h1>🚂 Railway Configuration Checker</h1>
+            <p>Debug your Railway WebSocket deployment</p>
+        </div>
+
+        <div class="config-section">
+            <h3>📊 Current Environment Detection</h3>
+            <div id="env-info">Analyzing...</div>
+        </div>
+
+        <div class="config-section">
+            <h3>🔧 Railway URL Generation</h3>
+            <div id="url-tests">
+                <button class="btn" onclick="testURLGeneration()">Test URL Generation</button>
+                <div id="url-results"></div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>🌐 WebSocket Connection Tests</h3>
+            <button class="btn" onclick="testConnections()">Test All Possible URLs</button>
+            <div id="connection-results"></div>
+        </div>
+
+        <div class="log" id="log">
+Railway Configuration Checker
+=============================
+This tool helps debug Railway WebSocket deployment issues.
+
+Checking your Railway setup...
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logEl.textContent += logMessage + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(logMessage);
+        }
+
+        function analyzeEnvironment() {
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            const port = window.location.port;
+            const pathname = window.location.pathname;
+            const fullURL = window.location.href;
+
+            log('🔍 Environment Analysis:');
+            log(`  Hostname: ${hostname}`);
+            log(`  Protocol: ${protocol}`);
+            log(`  Port: ${port || 'default'}`);
+            log(`  Pathname: ${pathname}`);
+            log(`  Full URL: ${fullURL}`);
+            log('');
+
+            // Check for Railway patterns
+            const isRailway = hostname.includes('railway.app') || hostname.includes('.railway.');
+            const isGitHubPages = hostname.includes('github.io');
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+            log('🏗️ Platform Detection:');
+            log(`  Railway: ${isRailway ? '✅ Yes' : '❌ No'}`);
+            log(`  GitHub Pages: ${isGitHubPages ? '✅ Yes' : '❌ No'}`);
+            log(`  Localhost: ${isLocalhost ? '✅ Yes' : '❌ No'}`);
+            log('');
+
+            // Update UI
+            const envInfo = document.getElementById('env-info');
+            envInfo.innerHTML = `
+                <div><span class="status-indicator ${isRailway ? 'status-success' : 'status-error'}"></span>Railway: ${isRailway ? 'Detected' : 'Not detected'}</div>
+                <div><span class="status-indicator ${hostname ? 'status-success' : 'status-error'}"></span>Hostname: ${hostname}</div>
+                <div><span class="status-indicator ${protocol === 'https:' ? 'status-success' : 'status-warning'}"></span>Protocol: ${protocol}</div>
+            `;
+
+            return { hostname, protocol, port, isRailway, isGitHubPages, isLocalhost };
+        }
+
+        function testURLGeneration() {
+            log('🔧 Testing Railway URL generation methods...');
+            
+            const env = analyzeEnvironment();
+            const possibleURLs = [];
+
+            // Method 1: Direct Railway URL
+            if (env.isRailway) {
+                const wsProtocol = env.protocol === 'https:' ? 'wss:' : 'ws:';
+                possibleURLs.push(`${wsProtocol}//${env.hostname}`);
+                log(`  Method 1 - Direct: ${wsProtocol}//${env.hostname}`);
+            }
+
+            // Method 2: Same domain different protocol
+            possibleURLs.push(`wss://${env.hostname}`);
+            possibleURLs.push(`ws://${env.hostname}`);
+            log(`  Method 2 - Protocol switch: wss://${env.hostname}`);
+
+            // Method 3: Check for Railway environment variables in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const bridgeParam = urlParams.get('bridge_url');
+            if (bridgeParam) {
+                possibleURLs.push(bridgeParam);
+                log(`  Method 3 - URL param: ${bridgeParam}`);
+            }
+
+            // Method 4: Manual Railway URL construction
+            if (env.hostname.includes('railway.app')) {
+                // Railway format: https://servicename-production-xxxx.up.railway.app
+                possibleURLs.push(`wss://${env.hostname}`);
+                possibleURLs.push(`wss://${env.hostname}:443`);
+                possibleURLs.push(`wss://${env.hostname}:8888`);
+                log(`  Method 4 - Railway formats generated`);
+            }
+
+            // Method 5: Default fallbacks
+            possibleURLs.push('wss://localhost:8888');
+            possibleURLs.push('ws://localhost:8888');
+
+            log('');
+            log('📋 Generated URLs:');
+            possibleURLs.forEach((url, index) => {
+                log(`  ${index + 1}. ${url}`);
+            });
+
+            // Update UI
+            const urlResults = document.getElementById('url-results');
+            urlResults.innerHTML = `
+                <h4>Generated URLs:</h4>
+                <div class="url-display">${possibleURLs.join('\n')}</div>
+            `;
+
+            return possibleURLs;
+        }
+
+        async function testConnections() {
+            log('🌐 Testing WebSocket connections...');
+            
+            const urls = testURLGeneration();
+            const connectionResults = document.getElementById('connection-results');
+            let resultsHTML = '<h4>Connection Test Results:</h4>';
+
+            for (let i = 0; i < urls.length; i++) {
+                const url = urls[i];
+                log(`🔍 Testing ${i + 1}/${urls.length}: ${url}`);
+                
+                try {
+                    const result = await testSingleConnection(url);
+                    const status = result.success ? 'status-success' : 'status-error';
+                    const statusText = result.success ? 'SUCCESS' : 'FAILED';
+                    
+                    resultsHTML += `<div><span class="status-indicator ${status}"></span>${url} - ${statusText}</div>`;
+                    
+                    if (result.success) {
+                        log(`✅ SUCCESS: ${url}`);
+                        log(`   Response time: ${result.responseTime}ms`);
+                        break; // Stop testing once we find a working URL
+                    } else {
+                        log(`❌ FAILED: ${url} - ${result.error}`);
+                    }
+                } catch (error) {
+                    log(`❌ ERROR: ${url} - ${error.message}`);
+                    resultsHTML += `<div><span class="status-indicator status-error"></span>${url} - ERROR: ${error.message}</div>`;
+                }
+
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            connectionResults.innerHTML = resultsHTML;
+            log('🏁 Connection testing complete');
+        }
+
+        function testSingleConnection(url) {
+            return new Promise((resolve) => {
+                const startTime = Date.now();
+                const ws = new WebSocket(url);
+                
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resolve({
+                        success: false,
+                        error: 'Connection timeout (10s)',
+                        responseTime: Date.now() - startTime
+                    });
+                }, 10000);
+
+                ws.onopen = () => {
+                    clearTimeout(timeout);
+                    const responseTime = Date.now() - startTime;
+                    ws.close();
+                    resolve({
+                        success: true,
+                        responseTime: responseTime
+                    });
+                };
+
+                ws.onerror = (error) => {
+                    clearTimeout(timeout);
+                    resolve({
+                        success: false,
+                        error: error.message || 'Connection error',
+                        responseTime: Date.now() - startTime
+                    });
+                };
+
+                ws.onclose = (event) => {
+                    clearTimeout(timeout);
+                    if (event.code !== 1000) { // Not a normal closure
+                        resolve({
+                            success: false,
+                            error: `Connection closed: ${event.code} - ${event.reason || 'Unknown reason'}`,
+                            responseTime: Date.now() - startTime
+                        });
+                    }
+                };
+            });
+        }
+
+        // Auto-run environment analysis
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚂 Railway Configuration Checker Started');
+            log('');
+            
+            const env = analyzeEnvironment();
+            
+            if (env.isRailway) {
+                log('✅ Railway deployment detected!');
+                log('💡 Your WebSocket URL should be:');
+                const wsProtocol = env.protocol === 'https:' ? 'wss:' : 'ws:';
+                const recommendedURL = `${wsProtocol}//${env.hostname}`;
+                log(`   ${recommendedURL}`);
+                log('');
+                log('🔧 Common Railway WebSocket issues:');
+                log('   • Must use WSS (not WS) for HTTPS sites');
+                log('   • Port should be omitted (Railway handles routing)');
+                log('   • Server must listen on process.env.PORT');
+                log('   • Both HTTP and WebSocket on same port');
+            } else if (env.isLocalhost) {
+                log('🏠 Local development detected');
+                log('💡 Use: ws://localhost:8888');
+            } else {
+                log('❓ Unknown hosting environment');
+                log('💡 Try running URL generation test');
+            }
+
+            log('');
+            log('🎯 Click "Test URL Generation" to see all possible URLs');
+            log('🌐 Click "Test All Possible URLs" to test connections');
+        });
+    </script>
+</body>
+</html>
