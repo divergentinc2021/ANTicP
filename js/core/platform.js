@@ -19,8 +19,10 @@ export class Platform extends EventEmitter {
         this.permissions = {
             https: false,
             webBluetooth: false,
+            webSerial: false,
             location: 'prompt',
-            bluetooth: 'prompt'
+            bluetooth: 'prompt',
+            serial: 'prompt'
         };
     }
 
@@ -93,6 +95,33 @@ export class Platform extends EventEmitter {
             return result.state === 'granted';
         } catch (error) {
             logger.error(`❌ Location permission denied: ${error.message}`);
+            return false;
+        }
+    }
+
+    async requestSerialPermission() {
+        if (!this.permissions.webSerial) {
+            logger.error('❌ Web Serial API not supported');
+            return false;
+        }
+        
+        try {
+            logger.info('🔍 Requesting serial port access...');
+            const port = await navigator.serial.requestPort();
+            
+            if (port) {
+                this.permissions.serial = 'granted';
+                this.emit('serial-permission-changed', 'granted');
+                logger.info('✅ Serial port access granted');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            if (error.name === 'NotFoundError') {
+                logger.warn('⚠️ No serial device selected');
+            } else {
+                logger.error(`❌ Serial permission denied: ${error.message}`);
+            }
             return false;
         }
     }

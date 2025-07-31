@@ -213,6 +213,21 @@ export class App {
         }
     }
 
+    async handleSerialPermission() {
+        try {
+            logger.info('🔍 Requesting serial port access for COM port connections...');
+            const granted = await platform.requestSerialPermission();
+            if (granted) {
+                logger.info('✅ Serial port access granted - devices can now connect via COM ports');
+                this.uiManager.updateConnectionMethods();
+            } else {
+                logger.warn('⚠️ Serial port access denied - some Bluetooth devices may not connect properly');
+            }
+        } catch (error) {
+            logger.error(`❌ Serial permission error: ${error.message}`);
+        }
+    }
+
     handleClearLog() {
         logger.clear();
         this.uiManager.clearLog();

@@ -13,86 +13,104 @@
             <p>Android, Windows, Mac & iOS Compatible</p>
         </div>
 
-        <div class="platform-info">
-            <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
-            <div id="platform-capabilities">Checking connection capabilities...</div>
+        <!-- Ready to Connect Section -->
+        <div class="ready-section" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; margin-bottom: 30px;">
+            <h2 style="color: #2c3e50; margin-bottom: 10px;">🚴‍♂️ Ready to Connect ANT+ Devices</h2>
+            <p style="color: #666; margin-bottom: 20px;">Select your device below to start pairing</p>
+            <button id="settings-cog" class="settings-button" style="background: #95a5a6; color: white; border: none; padding: 10px 14px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);" title="Settings & Permissions">⚙️</button>
         </div>
 
-        <!-- Android-specific instructions -->
-        <div id="android-instructions" class="android-instructions" style="display: none;">
-            <h4>📱 Android Setup Instructions</h4>
-            <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
-            <ul>
-                <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
-                <li>Enable "Experimental Web Platform features" in chrome://flags</li>
-                <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
-                <li>Make sure Bluetooth is enabled in Android settings</li>
-                <li>Keep your ANT+ devices in pairing mode</li>
-            </ul>
-        </div>
-
-        <!-- Permission Status Panel -->
-        <div class="permission-panel">
-            <h3>🔐 Permissions & Requirements</h3>
-            
-            <div class="permission-item" id="https-status">
-                <div>
-                    <strong>🔒 HTTPS Connection</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
-                </div>
-                <span id="https-indicator">❓</span>
-            </div>
-
-            <div class="permission-item" id="bluetooth-api-status">
-                <div>
-                    <strong>📶 Web Bluetooth API</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
-                </div>
-                <span id="bluetooth-api-indicator">❓</span>
-            </div>
-
-            <div class="permission-item" id="location-status" style="display: none;">
-                <div>
-                    <strong>📍 Location Permission</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
-                </div>
-                <div>
-                    <span id="location-indicator">❓</span>
-                    <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
-                </div>
-            </div>
-
-            <div class="permission-item" id="bluetooth-status">
-                <div>
-                    <strong>🔵 Bluetooth Device Access</strong>
-                    <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
-                </div>
-                <span id="bluetooth-indicator">❓</span>
+        <!-- Quick Pairing Section -->
+        <div class="quick-pairing" style="text-align: center; margin-bottom: 30px;">
+            <h3 style="color: #2c3e50; margin-bottom: 20px;">Quick Device Pairing</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; max-width: 600px; margin: 0 auto;">
+                <button class="btn btn-scan" id="scan-kickr-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">🚴 Pair Kickr Core</button>
+                <button class="btn btn-scan" id="scan-zwift-btn" style="background: linear-gradient(45deg, #f39c12, #d68910); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">⚡ Pair Zwift Click</button>
+                <button class="btn btn-scan" id="scan-hrm-btn" style="background: linear-gradient(45deg, #27ae60, #229954); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">❤️ Pair Heart Rate</button>
             </div>
         </div>
 
-        <div class="connection-panel">
-            <h3>🔗 Bluetooth Connection</h3>
-            
-            <div class="connection-options">
-                <!-- Bluetooth ANT+ Method -->
-                <div class="connection-method" id="bluetooth-method">
-                    <div class="method-icon">📱</div>
-                    <div class="method-title">Bluetooth ANT+</div>
-                    <div class="method-description">Bluetooth Low Energy (All platforms)</div>
-                    <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
+        <!-- Settings Modal (hidden by default) -->
+        <div id="settings-modal" class="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div class="settings-content" style="background: white; margin: 50px auto; padding: 20px; border-radius: 10px; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <h3 style="margin: 0;">⚙️ Settings & Permissions</h3>
+                    <button id="close-settings" class="close-button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
                 </div>
-            </div>
+                
+                <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
+                <div id="platform-capabilities">Checking connection capabilities...</div>
 
-            <!-- Specific device scanning buttons -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-scan" id="scan-kickr-btn" disabled>Pair Kickr Core</button>
-                <button class="btn btn-scan" id="scan-zwift-btn" disabled>Pair Zwift Click</button>
-                <button class="btn btn-scan" id="scan-hrm-btn" disabled>Pair Heart Rate</button>
-            </div>
+                <!-- Android-specific instructions -->
+                <div id="android-instructions" class="android-instructions" style="display: none;">
+                    <h4>📱 Android Setup Instructions</h4>
+                    <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
+                    <ul>
+                        <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
+                        <li>Enable "Experimental Web Platform features" in chrome://flags</li>
+                        <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
+                        <li>Make sure Bluetooth is enabled in Android settings</li>
+                        <li>Keep your ANT+ devices in pairing mode</li>
+                    </ul>
+                </div>
 
-            <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
-                <strong>Status:</strong> <span id="status-text">Disconnected</span>
+                <!-- Permission Status Panel -->
+                <div class="permission-panel">
+                    <h3>🔐 Permissions & Requirements</h3>
+                    
+                    <div class="permission-item" id="https-status">
+                        <div>
+                            <strong>🔒 HTTPS Connection</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
+                        </div>
+                        <span id="https-indicator">❓</span>
+                    </div>
+
+                    <div class="permission-item" id="bluetooth-api-status">
+                        <div>
+                            <strong>📶 Web Bluetooth API</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
+                        </div>
+                        <span id="bluetooth-api-indicator">❓</span>
+                    </div>
+
+                    <div class="permission-item" id="location-status" style="display: none;">
+                        <div>
+                            <strong>📍 Location Permission</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
+                        </div>
+                        <div>
+                            <span id="location-indicator">❓</span>
+                            <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
+                        </div>
+                    </div>
+
+                    <div class="permission-item" id="bluetooth-status">
+                        <div>
+                            <strong>🔵 Bluetooth Device Access</strong>
+                            <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
+                        </div>
+                        <span id="bluetooth-indicator">❓</span>
+                    </div>
+                </div>
+
+                <div class="connection-panel">
+                    <h3>🔗 Bluetooth Connection</h3>
+                    
+                    <div class="connection-options">
+                        <!-- Bluetooth ANT+ Method -->
+                        <div class="connection-method" id="bluetooth-method">
+                            <div class="method-icon">📱</div>
+                            <div class="method-title">Bluetooth ANT+</div>
+                            <div class="method-description">Bluetooth Low Energy (All platforms)</div>
+                            <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
+                        </div>
+                    </div>
+
+                    <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
+                        <strong>Status:</strong> <span id="status-text">Disconnected</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -105,10 +123,10 @@
                         <div class="device-title">Wahoo Kickr Core</div>
                         <div class="device-status">
                             <span class="status-indicator" id="kickr-status"></span>
-                            <span id="kickr-status-text">No Signal</span>
+                            <span id="kickr-status-text">Ready to Pair</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: FE-C (0x11) | Channel: 5 | Device ID: <span id="kickr-device-id">12345</span>
+                            Device Type: FE-C (0x11) | Channel: 5 | Device ID: <span id="kickr-device-id">---</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
                             RF Frequency: <span id="kickr-frequency">2457 MHz</span>
@@ -167,7 +185,7 @@
                 </div>
 
                 <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
+                    Ready to connect...
                 </div>
             </div>
 
@@ -179,10 +197,10 @@
                         <div class="device-title">Zwift Click</div>
                         <div class="device-status">
                             <span class="status-indicator" id="zwift-status"></span>
-                            <span id="zwift-status-text">No Signal</span>
+                            <span id="zwift-status-text">Ready to Pair</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: Shifting (0x22) | Channel: 5 | Device ID: <span id="zwift-device-id">23456</span>
+                            Device Type: Shifting (0x22) | Channel: 5 | Device ID: <span id="zwift-device-id">---</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
                             RF Frequency: <span id="zwift-frequency">2457 MHz</span>
@@ -217,7 +235,7 @@
                 </div>
 
                 <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
+                    Ready to connect...
                 </div>
             </div>
 
@@ -229,10 +247,10 @@
                         <div class="device-title">Heart Rate Monitor</div>
                         <div class="device-status">
                             <span class="status-indicator" id="hrm-status"></span>
-                            <span id="hrm-status-text">No Signal</span>
+                            <span id="hrm-status-text">Ready to Pair</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
-                            Device Type: Heart Rate (0x78) | Channel: 5 | Device ID: <span id="hrm-device-id">34567</span>
+                            Device Type: Heart Rate (0x78) | Channel: 5 | Device ID: <span id="hrm-device-id">---</span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999;">
                             RF Frequency: <span id="hrm-frequency">2457 MHz</span>
@@ -270,7 +288,7 @@
                 </div>
 
                 <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
-                    Waiting for data...
+                    Ready to connect...
                 </div>
             </div>
         </div>
@@ -287,6 +305,46 @@
             <div class="log-content" id="log-content"></div>
         </div>
     </div>
+
+    <!-- Settings Modal JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const settingsCog = document.getElementById('settings-cog');
+            const settingsModal = document.getElementById('settings-modal');
+            const closeSettings = document.getElementById('close-settings');
+
+            settingsCog.addEventListener('click', function() {
+                settingsModal.style.display = 'block';
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            });
+
+            closeSettings.addEventListener('click', function() {
+                settingsModal.style.display = 'none';
+                document.body.style.overflow = 'auto'; // Restore scrolling
+            });
+
+            // Close modal when clicking outside
+            settingsModal.addEventListener('click', function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            // Hover effects for pairing buttons
+            const pairingButtons = document.querySelectorAll('.quick-pairing .btn-scan');
+            pairingButtons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                });
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        });
+    </script>
 
     <!-- Load the modular JavaScript -->
     <script type="module" src="js/core/app.js"></script>
