@@ -1,0 +1,25 @@
+{
+  "name": "ant-bridge-middleware",
+  "version": "1.0.0",
+  "description": "ANT+ Middleware Bridge to bypass WebUSB libusbK limitations",
+  "main": "ant-bridge-server.js",
+  "scripts": {
+    "start": "node ant-bridge-server.js",
+    "test": "echo \"Start bridge server with: npm start\" && exit 1",
+    "install-deps": "npm install && pip install pyserial"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  },
+  "keywords": ["ant+", "webusb", "middleware", "bridge", "fitness"],
+  "author": "ANT+ WebUSB Bridge",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "readme": "README.md"
+}
