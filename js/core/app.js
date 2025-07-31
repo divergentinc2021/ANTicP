@@ -309,6 +309,12 @@ export class App {
     handleHeartRateData(data) {
         this.updateHRMSession(data.heartRate);
         this.uiManager.updateDeviceMetrics('hrm', data);
+        
+        // Use the new HRM display function
+        if (window.deviceConnectionLogger) {
+            window.deviceConnectionLogger.logData('hrm', data);
+        }
+        
         logger.debug(`❤️ HR: ${data.heartRate} BPM`);
     }
 
