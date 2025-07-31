@@ -1,12 +1,12 @@
 /**
- * Main Application Controller - UPDATED WITH DISCONNECT FUNCTIONALITY
+ * Main Application Controller - UPDATED VERSION
  * Orchestrates all modules and handles the main application flow
  * Now includes device-specific pairing and disconnect functionality
  */
 import { logger } from './logger.js';
 import { platform } from './platform.js';
 import { ConnectionManager } from '../connections/connection-manager.js';
-import { UIManager } from '../ui/ui-manager.js';
+import { UIManager } from '../ui/ui-manager-updated.js';
 import { DeviceCaptureManager } from './device-capture.js';
 
 export class App {

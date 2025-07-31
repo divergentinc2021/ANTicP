@@ -16,101 +16,44 @@
         <!-- Ready to Connect Section -->
         <div class="ready-section" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; margin-bottom: 30px;">
             <h2 style="color: #2c3e50; margin-bottom: 10px;">🚴‍♂️ Ready to Connect ANT+ Devices</h2>
-            <p style="color: #666; margin-bottom: 20px;">Select your device below to start pairing</p>
-            <button id="settings-cog" class="settings-button" style="background: #95a5a6; color: white; border: none; padding: 10px 14px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);" title="Settings & Permissions">⚙️</button>
+            <p style="color: #666; margin-bottom: 20px;">Pair your devices using the buttons below</p>
+            <button id="serial-permissions-cog" class="settings-button" style="background: #8e44ad; color: white; border: none; padding: 10px 14px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);" title="Set Serial Port">🔌</button>
         </div>
 
-        <!-- Quick Pairing Section -->
-        <div class="quick-pairing" style="text-align: center; margin-bottom: 30px;">
-            <h3 style="color: #2c3e50; margin-bottom: 20px;">Quick Device Pairing</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; max-width: 600px; margin: 0 auto;">
-                <button class="btn btn-scan" id="scan-kickr-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">🚴 Pair Kickr Core</button>
-                <button class="btn btn-scan" id="scan-zwift-btn" style="background: linear-gradient(45deg, #f39c12, #d68910); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">⚡ Pair Zwift Click</button>
-                <button class="btn btn-scan" id="scan-hrm-btn" style="background: linear-gradient(45deg, #27ae60, #229954); padding: 15px; font-size: 0.9rem; border: none; border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease;">❤️ Pair Heart Rate</button>
-            </div>
-        </div>
-
-        <!-- Settings Modal (hidden by default) -->
-        <div id="settings-modal" class="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <!-- Serial Port Permissions Modal -->
+        <div id="serial-modal" class="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
             <div class="settings-content" style="background: white; margin: 50px auto; padding: 20px; border-radius: 10px; max-width: 800px; max-height: 80vh; overflow-y: auto;">
                 <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                    <h3 style="margin: 0;">⚙️ Settings & Permissions</h3>
-                    <button id="close-settings" class="close-button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
+                    <h3 style="margin: 0;">🔌 Serial Port Permissions</h3>
+                    <button id="close-serial-modal" class="close-button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
                 </div>
                 
-                <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
-                <div id="platform-capabilities">Checking connection capabilities...</div>
-
-                <!-- Android-specific instructions -->
-                <div id="android-instructions" class="android-instructions" style="display: none;">
-                    <h4>📱 Android Setup Instructions</h4>
-                    <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
-                    <ul>
-                        <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
-                        <li>Enable "Experimental Web Platform features" in chrome://flags</li>
-                        <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
-                        <li>Make sure Bluetooth is enabled in Android settings</li>
-                        <li>Keep your ANT+ devices in pairing mode</li>
-                    </ul>
+                <div class="permission-item" id="https-status" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>🔒 HTTPS Connection:</strong> <span id="https-result">Checking...</span>
                 </div>
-
-                <!-- Permission Status Panel -->
-                <div class="permission-panel">
-                    <h3>🔐 Permissions & Requirements</h3>
-                    
-                    <div class="permission-item" id="https-status">
-                        <div>
-                            <strong>🔒 HTTPS Connection</strong>
-                            <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
-                        </div>
-                        <span id="https-indicator">❓</span>
-                    </div>
-
-                    <div class="permission-item" id="bluetooth-api-status">
-                        <div>
-                            <strong>📶 Web Bluetooth API</strong>
-                            <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
-                        </div>
-                        <span id="bluetooth-api-indicator">❓</span>
-                    </div>
-
-                    <div class="permission-item" id="location-status" style="display: none;">
-                        <div>
-                            <strong>📍 Location Permission</strong>
-                            <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
-                        </div>
-                        <div>
-                            <span id="location-indicator">❓</span>
-                            <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
-                        </div>
-                    </div>
-
-                    <div class="permission-item" id="bluetooth-status">
-                        <div>
-                            <strong>🔵 Bluetooth Device Access</strong>
-                            <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
-                        </div>
-                        <span id="bluetooth-indicator">❓</span>
-                    </div>
+                
+                <div class="permission-item" id="bluetooth-status" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>📶 Web Bluetooth API:</strong> <span id="bluetooth-result">Checking...</span>
                 </div>
-
-                <div class="connection-panel">
-                    <h3>🔗 Bluetooth Connection</h3>
-                    
-                    <div class="connection-options">
-                        <!-- Bluetooth ANT+ Method -->
-                        <div class="connection-method" id="bluetooth-method">
-                            <div class="method-icon">📱</div>
-                            <div class="method-title">Bluetooth ANT+</div>
-                            <div class="method-description">Bluetooth Low Energy (All platforms)</div>
-                            <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
-                        </div>
-                    </div>
-
-                    <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
-                        <strong>Status:</strong> <span id="status-text">Disconnected</span>
-                    </div>
+                
+                <div class="permission-item" id="serial-status" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>🔌 Web Serial API:</strong> <span id="serial-result">Checking...</span>
+                    <button id="request-serial" style="margin-left: 10px; padding: 5px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer;">Request Serial Access</button>
                 </div>
+                
+                <div class="permission-item" id="location-status" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>📍 Location Permission:</strong> <span id="location-result">Checking...</span>
+                    <button id="request-location" style="margin-left: 10px; padding: 5px 10px; border: none; border-radius: 3px; background: #007bff; color: white; cursor: pointer;">Request Location</button>
+                </div>
+                
+                <h4>🚴 Device Connection Tests</h4>
+                <div style="margin: 15px 0;">
+                    <button id="scan-bluetooth" style="margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer;">Scan Bluetooth Devices</button>
+                    <button id="scan-serial" style="margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer;">Scan Serial Ports</button>
+                    <button id="check-ports" style="margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer;">Check Existing Ports</button>
+                </div>
+                
+                <div id="serial-log" style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-top: 20px; height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; font-size: 0.8rem;"></div>
             </div>
         </div>
 
@@ -180,8 +123,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop Trainer</button>
+                    <button class="btn btn-scan" id="pair-kickr-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">🚴 Pair Kickr</button>
+                    <button class="btn btn-stop" id="disconnect-kickr-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -230,8 +173,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop Shifter</button>
+                    <button class="btn btn-scan" id="pair-zwift-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">⚡ Pair Zwift</button>
+                    <button class="btn btn-stop" id="disconnect-zwift-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -283,8 +226,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
-                    <button class="btn btn-stop">Stop HRM</button>
+                    <button class="btn btn-scan" id="pair-hrm-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">❤️ Pair HRM</button>
+                    <button class="btn btn-stop" id="disconnect-hrm-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -306,43 +249,191 @@
         </div>
     </div>
 
-    <!-- Settings Modal JavaScript -->
+    <!-- Serial Permissions Modal JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const settingsCog = document.getElementById('settings-cog');
-            const settingsModal = document.getElementById('settings-modal');
-            const closeSettings = document.getElementById('close-settings');
+            const serialCog = document.getElementById('serial-permissions-cog');
+            const serialModal = document.getElementById('serial-modal');
+            const closeSerial = document.getElementById('close-serial-modal');
+            const log = document.getElementById('serial-log');
+            
+            function addLog(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                log.textContent += `[${timestamp}] ${message}\n`;
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            async function checkPermissions() {
+                addLog('🔍 Checking all permissions...');
+                
+                // HTTPS Check
+                const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+                document.getElementById('https-result').textContent = isHTTPS ? '✅ Secure' : '❌ Not HTTPS';
+                document.getElementById('https-status').className = 'permission-item ' + (isHTTPS ? 'granted' : 'denied');
+                document.getElementById('https-status').style.background = isHTTPS ? '#d4edda' : '#f8d7da';
+                
+                // Bluetooth Check
+                const hasBluetoothAPI = 'bluetooth' in navigator;
+                document.getElementById('bluetooth-result').textContent = hasBluetoothAPI ? '✅ Available' : '❌ Not supported';
+                document.getElementById('bluetooth-status').className = 'permission-item ' + (hasBluetoothAPI ? 'granted' : 'denied');
+                document.getElementById('bluetooth-status').style.background = hasBluetoothAPI ? '#d4edda' : '#f8d7da';
+                
+                // Serial Check
+                const hasSerialAPI = 'serial' in navigator;
+                document.getElementById('serial-result').textContent = hasSerialAPI ? '✅ Available' : '❌ Not supported';
+                document.getElementById('serial-status').className = 'permission-item ' + (hasSerialAPI ? 'granted' : 'denied');
+                document.getElementById('serial-status').style.background = hasSerialAPI ? '#d4edda' : '#f8d7da';
+                
+                if (hasSerialAPI) {
+                    try {
+                        const ports = await navigator.serial.getPorts();
+                        addLog(`📶 Found ${ports.length} existing serial port permissions`);
+                        ports.forEach((port, index) => {
+                            const info = port.getInfo();
+                            addLog(`  Port ${index + 1}: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
+                        });
+                    } catch (error) {
+                        addLog(`❌ Error checking serial ports: ${error.message}`);
+                    }
+                }
+                
+                // Location Check (Android)
+                const isAndroid = /android/i.test(navigator.userAgent);
+                if (isAndroid && 'permissions' in navigator) {
+                    try {
+                        const result = await navigator.permissions.query({name: 'geolocation'});
+                        document.getElementById('location-result').textContent = `${result.state === 'granted' ? '✅' : '⚠️'} ${result.state}`;
+                        const statusColor = result.state === 'granted' ? '#d4edda' : result.state === 'denied' ? '#f8d7da' : '#fff3cd';
+                        document.getElementById('location-status').style.background = statusColor;
+                    } catch (error) {
+                        document.getElementById('location-result').textContent = '❓ Unknown';
+                        document.getElementById('location-status').style.background = '#fff3cd';
+                    }
+                } else {
+                    document.getElementById('location-result').textContent = isAndroid ? '❓ Cannot check' : 'ℹ️ Not needed';
+                    document.getElementById('location-status').style.background = '#fff3cd';
+                }
+                
+                addLog('✅ Permission check complete');
+            }
 
-            settingsCog.addEventListener('click', function() {
-                settingsModal.style.display = 'block';
-                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            serialCog.addEventListener('click', function() {
+                serialModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                checkPermissions();
             });
 
-            closeSettings.addEventListener('click', function() {
-                settingsModal.style.display = 'none';
-                document.body.style.overflow = 'auto'; // Restore scrolling
+            closeSerial.addEventListener('click', function() {
+                serialModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
             });
 
             // Close modal when clicking outside
-            settingsModal.addEventListener('click', function(e) {
-                if (e.target === settingsModal) {
-                    settingsModal.style.display = 'none';
+            serialModal.addEventListener('click', function(e) {
+                if (e.target === serialModal) {
+                    serialModal.style.display = 'none';
                     document.body.style.overflow = 'auto';
                 }
             });
-
-            // Hover effects for pairing buttons
-            const pairingButtons = document.querySelectorAll('.quick-pairing .btn-scan');
-            pairingButtons.forEach(button => {
-                button.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                });
-                button.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = 'none';
-                });
+            
+            // Permission request handlers
+            document.getElementById('request-serial').addEventListener('click', async () => {
+                addLog('🔍 Requesting serial port access...');
+                try {
+                    const port = await navigator.serial.requestPort();
+                    const info = port.getInfo();
+                    addLog(`✅ Serial port granted: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
+                    await checkPermissions(); // Refresh
+                } catch (error) {
+                    if (error.name === 'NotFoundError') {
+                        addLog('⚠️ No serial device selected');
+                    } else {
+                        addLog(`❌ Serial request failed: ${error.message}`);
+                    }
+                }
             });
+            
+            document.getElementById('request-location').addEventListener('click', async () => {
+                addLog('🔍 Requesting location permission...');
+                try {
+                    await navigator.geolocation.getCurrentPosition(
+                        (position) => addLog('✅ Location permission granted'),
+                        (error) => addLog(`❌ Location denied: ${error.message}`)
+                    );
+                    await checkPermissions(); // Refresh
+                } catch (error) {
+                    addLog(`❌ Location request failed: ${error.message}`);
+                }
+            });
+            
+            document.getElementById('scan-bluetooth').addEventListener('click', async () => {
+                addLog('🔍 Scanning for Bluetooth devices...');
+                try {
+                    const device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [0x180D, 0x1818, 0x1816, 0x1826, 0x1812, '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e']
+                    });
+                    addLog(`✅ Bluetooth device selected: ${device.name || 'Unknown'} (${device.id})`);
+                    
+                    // Try to connect
+                    const server = await device.gatt.connect();
+                    addLog(`✅ Connected to GATT server`);
+                    
+                    const services = await server.getPrimaryServices();
+                    addLog(`📋 Found ${services.length} services:`);
+                    services.forEach(service => {
+                        addLog(`  Service: ${service.uuid}`);
+                    });
+                    
+                } catch (error) {
+                    if (error.name === 'NotFoundError') {
+                        addLog('⚠️ No Bluetooth device selected');
+                    } else {
+                        addLog(`❌ Bluetooth scan failed: ${error.message}`);
+                    }
+                }
+            });
+            
+            document.getElementById('scan-serial').addEventListener('click', async () => {
+                addLog('🔍 Requesting new serial port...');
+                try {
+                    const port = await navigator.serial.requestPort();
+                    const info = port.getInfo();
+                    addLog(`✅ Serial port selected: Vendor=${info.usbVendorId}, Product=${info.usbProductId}`);
+                    
+                    // Try to open the port
+                    await port.open({ baudRate: 9600 });
+                    addLog(`✅ Serial port opened successfully`);
+                    
+                    // Close it
+                    await port.close();
+                    addLog(`📌 Serial port closed`);
+                    
+                } catch (error) {
+                    addLog(`❌ Serial port operation failed: ${error.message}`);
+                }
+            });
+            
+            document.getElementById('check-ports').addEventListener('click', async () => {
+                addLog('🔍 Checking all granted serial ports...');
+                try {
+                    const ports = await navigator.serial.getPorts();
+                    addLog(`📶 Found ${ports.length} granted serial ports:`);
+                    
+                    for (let i = 0; i < ports.length; i++) {
+                        const port = ports[i];
+                        const info = port.getInfo();
+                        addLog(`  Port ${i + 1}:`);
+                        addLog(`    Vendor ID: ${info.usbVendorId || 'Unknown'}`);
+                        addLog(`    Product ID: ${info.usbProductId || 'Unknown'}`);
+                    }
+                } catch (error) {
+                    addLog(`❌ Error checking ports: ${error.message}`);
+                }
+            });
+            
+            addLog('🚀 Serial Port Permissions Tool loaded');
+            addLog('💡 Grant serial port access for COM port connections');
         });
     </script>
 
