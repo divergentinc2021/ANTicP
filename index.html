@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cross-Platform Bluetooth ANT+ Receiver</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/fix-clicks.css">
 </head>
 <body>
     <div class="container">
@@ -124,8 +123,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn btn-scan" id="pair-kickr-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">🚴 Pair Kickr</button>
-                    <button class="btn btn-stop" id="disconnect-kickr-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
+                    <button class="btn btn-scan" id="pair-kickr-btn" onclick="pairDevice('kickr')" style="background: linear-gradient(45deg, #f39c12, #d68910);">🚴 Pair Kickr</button>
+                    <button class="btn btn-stop" id="disconnect-kickr-btn" onclick="disconnectDevice('kickr')" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -174,8 +173,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn btn-scan" id="pair-zwift-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">⚡ Pair Zwift</button>
-                    <button class="btn btn-stop" id="disconnect-zwift-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
+                    <button class="btn btn-scan" id="pair-zwift-btn" onclick="pairDevice('zwift-click')" style="background: linear-gradient(45deg, #f39c12, #d68910);">⚡ Pair Zwift</button>
+                    <button class="btn btn-stop" id="disconnect-zwift-btn" onclick="disconnectDevice('zwift-click')" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -227,8 +226,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn btn-scan" id="pair-hrm-btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">❤️ Pair HRM</button>
-                    <button class="btn btn-stop" id="disconnect-hrm-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
+                    <button class="btn btn-scan" id="pair-hrm-btn" onclick="pairDevice('hrm')" style="background: linear-gradient(45deg, #f39c12, #d68910);">❤️ Pair HRM</button>
+                    <button class="btn btn-stop" id="disconnect-hrm-btn" onclick="disconnectDevice('hrm')" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">Disconnect</button>
                 </div>
 
                 <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
@@ -436,6 +435,41 @@
             addLog('🚀 Serial Port Permissions Tool loaded');
             addLog('💡 Grant serial port access for COM port connections');
         });
+    </script>
+
+    <!-- DIRECT ONCLICK HANDLERS TO BYPASS EVENT SYSTEM ISSUES -->
+    <script>
+        // Global functions for direct button onclick handlers
+        function pairDevice(deviceType) {
+            console.log(`🔍 Pairing ${deviceType}...`);
+            if (window.antApp && window.antApp.handleDevicePair) {
+                window.antApp.handleDevicePair(deviceType);
+            } else {
+                alert(`Pairing ${deviceType}... (App not ready)`);
+                console.log('App not ready, trying to initialize...');
+            }
+        }
+        
+        function disconnectDevice(deviceType) {
+            console.log(`🔌 Disconnecting ${deviceType}...`);
+            if (window.antApp && window.antApp.handleDeviceDisconnect) {
+                window.antApp.handleDeviceDisconnect(deviceType);
+            } else {
+                alert(`Disconnecting ${deviceType}... (App not ready)`);
+                console.log('App not ready, trying to initialize...');
+            }
+        }
+        
+        // Debug function to check app status
+        function checkApp() {
+            console.log('App status:', window.antApp ? 'Ready' : 'Not ready');
+            if (window.antApp) {
+                console.log('Available methods:', Object.getOwnPropertyNames(window.antApp));
+            }
+        }
+        
+        // Auto-check app status after 2 seconds
+        setTimeout(checkApp, 2000);
     </script>
 
     <!-- Load the modular JavaScript -->
