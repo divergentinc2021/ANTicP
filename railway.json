@@ -14,8 +14,8 @@
     "startCommand": "node ant-bridge-server.js",
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 10,
-    "healthcheckPath": "/",
-    "healthcheckTimeout": 300
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 60
   },
   "networking": {
     "publicPort": true
@@ -28,7 +28,6 @@
     "production": {
       "variables": {
         "NODE_ENV": "production",
-        "RAILWAY_STATIC_URL": "web-production-f8ebc.up.railway.app",
         "PLATFORM": "railway"
       }
     }
