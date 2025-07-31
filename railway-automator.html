@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Configuration Automator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { background: #0056b3; transform: translateY(-2px); }
+        .btn-railway { background: #6366f1; }
+        .btn-railway:hover { background: #4f46e5; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        .railway-banner {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .step-container {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #6366f1;
+        }
+        
+        .step-container.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .file-preview {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            border: 1px solid #444;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ffeaa7;
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .step-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .railway-screenshot {
+            background: #f1f5f9;
+            border: 2px dashed #6366f1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            cursor: pointer;
+        }
+        
+        .checklist li:before {
+            content: "☐";
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .checklist li.checked:before {
+            content: "✅";
+        }
+        
+        .checklist li.checked {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="railway-banner">
+            <h1>🚂 Railway Configuration Automator</h1>
+            <p>Step-by-step Railway setup for your ANT+ Bridge</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <p id="progress-text">Ready to start</p>
+        </div>
+
+        <!-- Step 0: Overview -->
+        <div class="step-container active" id="step-0">
+            <h2>🎯 Railway Setup Overview</h2>
+            <p>This automator will help you:</p>
+            <ul>
+                <li>✅ Fix your current Railway deployment</li>
+                <li>✅ Configure the correct server settings</li>
+                <li>✅ Set up proper port binding</li>
+                <li>✅ Create the right start commands</li>
+                <li>✅ Test the WebSocket connection</li>
+            </ul>
+            
+            <div class="warning-box">
+                <strong>Current Issue:</strong> Your Railway deployment (web-production-f8ebc.up.railway.app) is returning 502 errors because the server configuration isn't compatible with Railway's hosting requirements.
+            </div>
+            
+            <button class="btn btn-railway" onclick="nextStep()">🚀 Start Railway Setup</button>
+        </div>
+
+        <!-- Step 1: Railway Dashboard Access -->
+        <div class="step-container" id="step-1">
+            <h2>📱 Step 1: Access Railway Dashboard</h2>
+            <p>Let's start by accessing your Railway project:</p>
+            
+            <ol>
+                <li>Open <a href="https://railway.app" target="_blank">railway.app</a> in a new tab</li>
+                <li>Log in to your account</li>
+                <li>Look for your project: <strong>"web-production-f8ebc"</strong></li>
+                <li>Click on the project to open it</li>
+            </ol>
+            
+            <div class="railway-screenshot">
+                <h4>🔍 What you should see:</h4>
+                <p>• Project dashboard with deployments</p>
+                <p>• Service overview (probably showing errors)</p>
+                <p>• Tabs like "Deployments", "Variables", "Settings"</p>
+            </div>
+            
+            <div class="success-box">
+                <strong>✅ Found your project?</strong> Great! You should see a service that's likely showing deployment errors or failed status.
+            </div>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-railway" onclick="nextStep()">Found Project →</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Check Current Status -->
+        <div class="step-container" id="step-2">
+            <h2>🔍 Step 2: Check Current Deployment Status</h2>
+            <p>Let's see what's happening with your current deployment:</p>
+            
+            <ol>
+                <li>In your Railway project, click the <strong>"Deployments"</strong> tab</li>
+                <li>Look at the most recent deployment (should be at the top)</li>
+                <li>Check if it shows "Failed", "Building", or "Running"</li>
+                <li>Click on the deployment to see logs</li>
+            </ol>
+            
+            <div class="warning-box">
+                <strong>Common error messages you might see:</strong>
+                <ul>
+                    <li>"Application failed to start"</li>
+                    <li>"Port 8888 is already in use"</li>
+                    <li>"Cannot bind to port"</li>
+                    <li>"Process exited with code 1"</li>
+                </ul>
+            </div>
+            
+            <h3>📋 Quick Checklist:</h3>
+            <ul class="checklist">
+                <li onclick="toggleCheck(this)">Found the Deployments tab</li>
+                <li onclick="toggleCheck(this)">Saw the recent deployment status</li>
+                <li onclick="toggleCheck(this)">Checked the deployment logs</li>
+                <li onclick="toggleCheck(this)">Noted any error messages</li>
+            </ul>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-railway" onclick="nextStep()">Checked Status →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Fix Server Configuration -->
+        <div class="step-container" id="step-3">
+            <h2>🔧 Step 3: Fix Server Configuration</h2>
+            <p>Now let's fix your server code to work with Railway:</p>
+            
+            <h3>Current Problem:</h3>
+            <div class="code-block">
+// ❌ Your current server (problematic for Railway)
+const port = 8888;  // Hardcoded port won't work
+const wss = new WebSocket.Server({ port: port });
+            </div>
+            
+            <h3>✅ Fixed Server Configuration:</h3>
+            <div class="file-preview">
+<strong>ant-bridge-server.js</strong> (Railway-compatible version)
+
+const WebSocket = require('ws');
+const { spawn } = require('child_process');
+
+class ANTBridgeServer {
+    constructor() {
+        // ✅ Use Railway's assigned port
+        this.port = process.env.PORT || 8888;
+        this.wss = null;
+        this.clients = new Set();
+        this.antProcess = null;
+        
+        console.log(`🚂 Railway Mode: Starting on port ${this.port}`);
+    }
+
+    start() {
+        console.log('🌉 Starting ANT+ Bridge for Railway...');
+        
+        // ✅ Proper Railway WebSocket configuration
+        this.wss = new WebSocket.Server({ 
+            port: this.port,
+            host: '0.0.0.0',  // ✅ Essential for Railway!
+            cors: true,
+            clientTracking: true
+        });
+        
+        console.log(`✅ Railway WebSocket server running on port ${this.port}`);
+        console.log(`🌐 Public URL: https://web-production-f8ebc.up.railway.app`);
+        
+        this.setupWebSocketHandling();
+        this.setupHealthCheck();
+    }
+
+    setupWebSocketHandling() {
+        this.wss.on('connection', (ws, req) => {
+            const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            console.log(`🔌 Client connected from ${clientIP}`);
+            this.clients.add(ws);
+            
+            // Send Railway-specific welcome message
+            this.sendToClient(ws, {
+                type: 'status',
+                message: 'Connected to Railway ANT+ Bridge',
+                platform: 'railway',
+                server_info: {
+                    port: this.port,
+                    environment: process.env.RAILWAY_ENVIRONMENT || 'production',
+                    host: '0.0.0.0'
+                }
+            });
+            
+            ws.on('message', (data) => {
+                try {
+                    const message = JSON.parse(data);
+                    this.handleBrowserMessage(ws, message);
+                } catch (error) {
+                    console.error('❌ Invalid message:', error);
+                }
+            });
+            
+            ws.on('close', () => {
+                console.log('🔌 Client disconnected');
+                this.clients.delete(ws);
+            });
+            
+            ws.on('error', (error) => {
+                console.error('❌ WebSocket error:', error);
+                this.clients.delete(ws);
+            });
+        });
+        
+        this.wss.on('error', (error) => {
+            console.error('❌ WebSocket server error:', error);
+        });
+    }
+
+    setupHealthCheck() {
+        // Railway health check endpoint
+        setInterval(() => {
+            if (this.clients.size > 0) {
+                console.log(`💓 Railway health: ${this.clients.size} clients connected`);
+            }
+        }, 30000);
+    }
+
+    // ... rest of your existing methods
+    handleBrowserMessage(ws, message) {
+        console.log('📨 Message:', message.type);
+        
+        switch (message.type) {
+            case 'connect':
+                this.connectANT(ws, message.rate || 57600);
+                break;
+            case 'disconnect':
+                this.disconnectANT(ws);
+                break;
+            case 'ping':
+                this.sendToClient(ws, { 
+                    type: 'pong', 
+                    timestamp: Date.now(),
+                    platform: 'railway'
+                });
+                break;
+            default:
+                this.sendToClient(ws, { 
+                    type: 'error', 
+                    message: `Unknown message type: ${message.type}` 
+                });
+        }
+    }
+
+    sendToClient(ws, message) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message));
+        }
+    }
+
+    connectANT(ws, rate) {
+        // Railway note: ANT+ hardware not available in cloud
+        // Provide demo data for testing the interface
+        console.log(`🎭 Railway Demo Mode: Simulating ANT+ at ${rate} Hz`);
+        
+        this.sendToClient(ws, {
+            type: 'connecting',
+            message: `Railway Demo: Connecting at ${rate} Hz...`,
+            platform: 'railway'
+        });
+        
+        setTimeout(() => {
+            this.sendToClient(ws, {
+                type: 'connected',
+                message: 'Railway Demo: ANT+ simulation active',
+                rate: rate,
+                platform: 'railway',
+                demo: true
+            });
+            
+            // Send demo data every 2 seconds
+            this.demoInterval = setInterval(() => {
+                this.sendToClient(ws, {
+                    type: 'data',
+                    device_type: '0x11',
+                    device_id: 12345,
+                    channel: 0,
+                    payload: ['0x00', '0x01', '0x02', '0x03', '0x04', '0x05', '0x06', '0x07'],
+                    rate: rate,
+                    trainer: {
+                        power: 200 + Math.floor(Math.random() * 100),
+                        speed_kmh: 30 + Math.floor(Math.random() * 20)
+                    },
+                    platform: 'railway',
+                    demo: true
+                });
+            }, 2000);
+            
+        }, 1000);
+    }
+
+    disconnectANT(ws) {
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
+            this.demoInterval = null;
+        }
+        
+        this.sendToClient(ws, {
+            type: 'disconnected',
+            message: 'Railway Demo: ANT+ simulation stopped',
+            platform: 'railway'
+        });
+    }
+}
+
+// ✅ Railway startup
+if (require.main === module) {
+    const server = new ANTBridgeServer();
+    server.start();
+    
+    // ✅ Railway process handlers
+    process.on('SIGINT', () => {
+        console.log('🛑 Railway SIGINT received');
+        process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('🚂 Railway SIGTERM received');
+        process.exit(0);
+    });
+}
+
+module.exports = ANTBridgeServer;
+            </div>
+            
+            <button class="btn btn-success" onclick="downloadRailwayServer()">📥 Download Fixed Server Code</button>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-railway" onclick="nextStep()">Code Ready →</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Update Package.json -->
+        <div class="step-container" id="step-4">
+            <h2>📦 Step 4: Update Package Configuration</h2>
+            <p>Make sure your package.json is Railway-compatible:</p>
+            
+            <div class="file-preview">
+<strong>package.json</strong> (Railway-optimized)
+
+{
+  "name": "ant-bridge-railway",
+  "version": "1.0.0",
+  "description": "ANT+ Bridge Server for Railway",
+  "main": "ant-bridge-server.js",
+  "scripts": {
+    "start": "node ant-bridge-server.js",
+    "dev": "node ant-bridge-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["ant+", "bridge", "websocket", "railway"],
+  "author": "",
+  "license": "MIT"
+}
+            </div>
+            
+            <div class="file-preview">
+<strong>Procfile</strong> (Railway start command)
+
+web: node ant-bridge-server.js
+            </div>
+            
+            <button class="btn btn-success" onclick="downloadPackageFiles()">📥 Download Package Files</button>
+            
+            <div class="success-box">
+                <strong>✅ Key Railway Requirements:</strong>
+                <ul>
+                    <li>Start script must be "node ant-bridge-server.js"</li>
+                    <li>Dependencies must include "ws" for WebSocket</li>
+                    <li>Procfile tells Railway how to start your app</li>
+                </ul>
+            </div>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-railway" onclick="nextStep()">Files Ready →</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Deploy to Railway -->
+        <div class="step-container" id="step-5">
+            <h2>🚀 Step 5: Deploy Fixed Code to Railway</h2>
+            <p>Now let's get your fixed code deployed:</p>
+            
+            <h3>Option A: GitHub Auto-Deploy (Recommended)</h3>
+            <ol>
+                <li>Replace your current files with the fixed versions</li>
+                <li>Commit and push to GitHub</li>
+                <li>Railway will automatically detect and redeploy</li>
+            </ol>
+            
+            <div class="code-block">
+git add .
+git commit -m "Fix Railway WebSocket configuration"
+git push origin main
+            </div>
+            
+            <h3>Option B: Manual Railway Deploy</h3>
+            <ol>
+                <li>In Railway dashboard, go to your service</li>
+                <li>Click "Deploy" or "Redeploy"</li>
+                <li>Select "Deploy Latest"</li>
+            </ol>
+            
+            <div class="warning-box">
+                <strong>⏱️ Deployment Time:</strong> Railway deploys usually take 2-5 minutes. You'll see build logs in real-time.
+            </div>
+            
+            <h3>📋 Deployment Checklist:</h3>
+            <ul class="checklist">
+                <li onclick="toggleCheck(this)">Updated ant-bridge-server.js with Railway config</li>
+                <li onclick="toggleCheck(this)">Updated package.json with start script</li>
+                <li onclick="toggleCheck(this)">Added Procfile for Railway</li>
+                <li onclick="toggleCheck(this)">Pushed changes to GitHub</li>
+                <li onclick="toggleCheck(this)">Railway started redeploying</li>
+            </ul>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-railway" onclick="nextStep()">Deployed →</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Test Connection -->
+        <div class="step-container" id="step-6">
+            <h2>🧪 Step 6: Test Your Railway Deployment</h2>
+            <p>Let's verify everything is working:</p>
+            
+            <div class="success-box">
+                <strong>🎯 Testing Your Railway Bridge</strong>
+                <p>URL: <a href="https://web-production-f8ebc.up.railway.app" target="_blank">web-production-f8ebc.up.railway.app</a></p>
+                <p>WebSocket: wss://web-production-f8ebc.up.railway.app</p>
+            </div>
+            
+            <button class="btn btn-railway" onclick="testRailwayConnection()">🔌 Test WebSocket Connection</button>
+            <button class="btn" onclick="openRailwayBridge()">🚂 Open Railway Bridge Test Page</button>
+            
+            <div id="test-results" style="margin: 20px 0;"></div>
+            
+            <h3>✅ What Should Happen:</h3>
+            <ol>
+                <li>WebSocket connects successfully</li>
+                <li>You receive a welcome message from Railway</li>
+                <li>Demo ANT+ data streams when you connect</li>
+                <li>All interface features work properly</li>
+            </ol>
+            
+            <div class="warning-box">
+                <strong>Note:</strong> Railway deployment can't access your local ANT+ USB device. It provides demo data to test the interface. For real ANT+ data, you'll use the local bridge.
+            </div>
+            
+            <div class="step-nav">
+                <button class="btn" onclick="prevStep()">← Back</button>
+                <button class="btn btn-success" onclick="nextStep()">Working! →</button>
+            </div>
+        </div>
+
+        <!-- Step 7: Success -->
+        <div class="step-container" id="step-7">
+            <h2>🎉 Step 7: Railway Setup Complete!</h2>
+            
+            <div class="success-box">
+                <h3>✅ Your Railway ANT+ Bridge is Live!</h3>
+                <p><strong>Cloud URL:</strong> https://web-production-f8ebc.up.railway.app</p>
+                <p><strong>WebSocket:</strong> wss://web-production-f8ebc.up.railway.app</p>
+                <p><strong>Status:</strong> Demo data streaming for interface testing</p>
+            </div>
+            
+            <h3>🎯 What You Have Now:</h3>
+            <ul>
+                <li>✅ Working Railway cloud deployment</li>
+                <li>✅ Global WebSocket access</li>
+                <li>✅ Demo ANT+ data for testing</li>
+                <li>✅ Professional interface showcase</li>
+                <li>✅ Automatic restarts and scaling</li>
+            </ul>
+            
+            <h3>📱 Quick Links:</h3>
+            <button class="btn btn-railway" onclick="window.open('your-railway-bridge.html', '_blank')">🚂 Test Railway Bridge</button>
+            <button class="btn" onclick="window.open('https://railway.app', '_blank')">📊 Railway Dashboard</button>
+            <button class="btn" onclick="window.open('railway-diagnostics.html', '_blank')">🔍 Diagnostics Tool</button>
+            
+            <h3>🔄 Next Steps:</h3>
+            <ul>
+                <li><strong>Share your cloud bridge:</strong> Anyone can test the interface</li>
+                <li><strong>Download local bridge:</strong> For real ANT+ device access</li>
+                <li><strong>Monitor performance:</strong> Check Railway metrics</li>
+                <li><strong>Scale as needed:</strong> Railway handles traffic automatically</li>
+            </ul>
+            
+            <div class="railway-screenshot">
+                <h4>🎊 Congratulations!</h4>
+                <p>Your ANT+ Bridge is successfully running on Railway!</p>
+                <p>Perfect for showcasing to users worldwide 🌍</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 7;
+
+        function updateProgress() {
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+            document.getElementById('progress-text').textContent = 
+                `Step ${currentStep + 1} of ${totalSteps + 1}`;
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.step-container').forEach(container => {
+                container.classList.remove('active');
+            });
+            
+            // Show current step
+            document.getElementById(`step-${step}`).classList.add('active');
+            updateProgress();
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        function toggleCheck(element) {
+            element.classList.toggle('checked');
+        }
+
+        function downloadRailwayServer() {
+            // Create and download the fixed server file
+            const serverCode = `// ANT+ Bridge Server - Railway Compatible
+// Fixed configuration for Railway deployment
+
+const WebSocket = require('ws');
+
+class ANTBridgeServer {
+    constructor() {
+        this.port = process.env.PORT || 8888;
+        this.wss = null;
+        this.clients = new Set();
+        this.demoInterval = null;
+        
+        console.log(\`🚂 Railway Mode: Starting on port \${this.port}\`);
+    }
+
+    start() {
+        console.log('🌉 Starting ANT+ Bridge for Railway...');
+        
+        this.wss = new WebSocket.Server({ 
+            port: this.port,
+            host: '0.0.0.0',
+            cors: true,
+            clientTracking: true
+        });
+        
+        console.log(\`✅ Railway WebSocket server running on port \${this.port}\`);
+        console.log(\`🌐 Public URL: https://web-production-f8ebc.up.railway.app\`);
+        
+        this.setupWebSocketHandling();
+        this.setupHealthCheck();
+    }
+
+    setupWebSocketHandling() {
+        this.wss.on('connection', (ws, req) => {
+            const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            console.log(\`🔌 Client connected from \${clientIP}\`);
+            this.clients.add(ws);
+            
+            this.sendToClient(ws, {
+                type: 'status',
+                message: 'Connected to Railway ANT+ Bridge',
+                platform: 'railway',
+                server_info: {
+                    port: this.port,
+                    environment: process.env.RAILWAY_ENVIRONMENT || 'production',
+                    host: '0.0.0.0'
+                }
+            });
+            
+            ws.on('message', (data) => {
+                try {
+                    const message = JSON.parse(data);
+                    this.handleBrowserMessage(ws, message);
+                } catch (error) {
+                    console.error('❌ Invalid message:', error);
+                }
+            });
+            
+            ws.on('close', () => {
+                console.log('🔌 Client disconnected');
+                this.clients.delete(ws);
+            });
+            
+            ws.on('error', (error) => {
+                console.error('❌ WebSocket error:', error);
+                this.clients.delete(ws);
+            });
+        });
+    }
+
+    setupHealthCheck() {
+        setInterval(() => {
+            if (this.clients.size > 0) {
+                console.log(\`💓 Railway health: \${this.clients.size} clients connected\`);
+            }
+        }, 30000);
+    }
+
+    handleBrowserMessage(ws, message) {
+        console.log('📨 Message:', message.type);
+        
+        switch (message.type) {
+            case 'connect':
+                this.connectANT(ws, message.rate || 57600);
+                break;
+            case 'disconnect':
+                this.disconnectANT(ws);
+                break;
+            case 'ping':
+                this.sendToClient(ws, { 
+                    type: 'pong', 
+                    timestamp: Date.now(),
+                    platform: 'railway'
+                });
+                break;
+            default:
+                this.sendToClient(ws, { 
+                    type: 'error', 
+                    message: \`Unknown message type: \${message.type}\` 
+                });
+        }
+    }
+
+    sendToClient(ws, message) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message));
+        }
+    }
+
+    connectANT(ws, rate) {
+        console.log(\`🎭 Railway Demo Mode: Simulating ANT+ at \${rate} Hz\`);
+        
+        this.sendToClient(ws, {
+            type: 'connecting',
+            message: \`Railway Demo: Connecting at \${rate} Hz...\`,
+            platform: 'railway'
+        });
+        
+        setTimeout(() => {
+            this.sendToClient(ws, {
+                type: 'connected',
+                message: 'Railway Demo: ANT+ simulation active',
+                rate: rate,
+                platform: 'railway',
+                demo: true
+            });
+            
+            this.demoInterval = setInterval(() => {
+                this.sendToClient(ws, {
+                    type: 'data',
+                    device_type: '0x11',
+                    device_id: 12345,
+                    channel: 0,
+                    payload: ['0x00', '0x01', '0x02', '0x03', '0x04', '0x05', '0x06', '0x07'],
+                    rate: rate,
+                    trainer: {
+                        power: 200 + Math.floor(Math.random() * 100),
+                        speed_kmh: 30 + Math.floor(Math.random() * 20)
+                    },
+                    platform: 'railway',
+                    demo: true
+                });
+            }, 2000);
+            
+        }, 1000);
+    }
+
+    disconnectANT(ws) {
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
+            this.demoInterval = null;
+        }
+        
+        this.sendToClient(ws, {
+            type: 'disconnected',
+            message: 'Railway Demo: ANT+ simulation stopped',
+            platform: 'railway'
+        });
+    }
+}
+
+if (require.main === module) {
+    const server = new ANTBridgeServer();
+    server.start();
+    
+    process.on('SIGINT', () => {
+        console.log('🛑 Railway SIGINT received');
+        process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('🚂 Railway SIGTERM received');
+        process.exit(0);
+    });
+}
+
+module.exports = ANTBridgeServer;`;
+
+            downloadFile('ant-bridge-server.js', serverCode);
+            alert('✅ Downloaded fixed Railway server code!');
+        }
+
+        function downloadPackageFiles() {
+            const packageJson = `{
+  "name": "ant-bridge-railway",
+  "version": "1.0.0",
+  "description": "ANT+ Bridge Server for Railway",
+  "main": "ant-bridge-server.js",
+  "scripts": {
+    "start": "node ant-bridge-server.js",
+    "dev": "node ant-bridge-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["ant+", "bridge", "websocket", "railway"],
+  "author": "",
+  "license": "MIT"
+}`;
+
+            const procfile = `web: node ant-bridge-server.js`;
+
+            downloadFile('package.json', packageJson);
+            setTimeout(() => downloadFile('Procfile', procfile), 500);
+            alert('✅ Downloaded package.json and Procfile!');
+        }
+
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        async function testRailwayConnection() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>🔍 Testing Railway WebSocket connection...</p>';
+
+            try {
+                const ws = new WebSocket('wss://web-production-f8ebc.up.railway.app');
+                
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resultsDiv.innerHTML = '<div class="warning-box">❌ Connection timeout - Railway server may still be starting</div>';
+                }, 15000);
+
+                ws.onopen = () => {
+                    clearTimeout(timeout);
+                    resultsDiv.innerHTML = '<div class="success-box">✅ Railway WebSocket connection successful!</div>';
+                    ws.close();
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resultsDiv.innerHTML = '<div class="warning-box">❌ Connection failed - Check Railway deployment status</div>';
+                };
+
+            } catch (error) {
+                resultsDiv.innerHTML = \`<div class="warning-box">❌ Test failed: \${error.message}</div>\`;
+            }
+        }
+
+        function openRailwayBridge() {
+            window.open('your-railway-bridge.html', '_blank');
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>
