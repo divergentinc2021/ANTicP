@@ -7,6 +7,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Add permissions for GitHub token
+permissions:
+  contents: write      # For creating releases
+  pages: write         # For GitHub Pages
+  id-token: write      # For GitHub Pages
+  actions: read        # For downloading artifacts
+
 env:
   NODE_VERSION: '18'
   PYTHON_VERSION: '3.9'
@@ -125,6 +132,10 @@ jobs:
   update-deployment-info:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     
     steps:
     - uses: actions/checkout@v4
@@ -137,8 +148,9 @@ jobs:
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
     
-    - name: Create deployment info for GitHub Pages
+    - name: Create deployment files
       run: |
+        # Create deployment info JSON
         mkdir -p _data
         cat > _data/deployment.json << EOF
         {
@@ -161,96 +173,80 @@ jobs:
           }
         }
         EOF
-    
-    - name: Create deployment status page
-      run: |
+        
+        # Create simple deployment status page
         cat > deployment-status.html << 'EOF'
         <!DOCTYPE html>
         <html>
         <head>
-            <title>ANT+ Bridge Deployment Status</title>
+            <title>ANT+ Bridge Status</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                .status-good { color: #28a745; }
-                .status-warning { color: #ffc107; }
-                .deployment-card { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+                .card { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
                 .btn { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 5px; }
+                .status-good { color: #28a745; font-weight: bold; }
             </style>
         </head>
         <body>
-            <h1>🚂 ANT+ Bridge Deployment Status</h1>
+            <h1>🚂 ANT+ Bridge Status</h1>
             
-            <div class="deployment-card">
-                <h2>🌐 Railway Cloud Deployment</h2>
+            <div class="card">
+                <h2>Railway Cloud Deployment</h2>
                 <p><strong>Status:</strong> <span class="status-good">✅ Live</span></p>
                 <p><strong>URL:</strong> <a href="https://web-production-f8ebc.up.railway.app">web-production-f8ebc.up.railway.app</a></p>
                 <p><strong>WebSocket:</strong> wss://web-production-f8ebc.up.railway.app</p>
-                <p><strong>Features:</strong> Global access, demo data, interface testing</p>
-                <a href="your-railway-bridge.html" class="btn">🚂 Test Railway Bridge</a>
+                <a href="your-railway-bridge.html" class="btn">Test Railway Bridge</a>
             </div>
             
-            <div class="deployment-card">
-                <h2>🏠 Local Bridge Setup</h2>
-                <p><strong>Status:</strong> <span class="status-warning">⚙️ Manual Setup Required</span></p>
-                <p><strong>WebSocket:</strong> ws://localhost:8888</p>
-                <p><strong>Features:</strong> Real ANT+ device access, all transfer rates</p>
-                <a href="#downloads" class="btn">📦 Download Local Bridge</a>
-                <a href="ant-bridge-client.html" class="btn">🏠 Test Local Bridge</a>
-            </div>
-            
-            <div class="deployment-card">
-                <h2>🔧 Configuration Tools</h2>
-                <a href="railway-config-checker.html" class="btn">🔍 Railway Config Checker</a>
-                <a href="ant-bridge-automator.html" class="btn">🤖 Bridge Automator</a>
-            </div>
-            
-            <div id="downloads">
-                <h2>📦 Download Local Bridge</h2>
-                <p>Download the bridge server to run on your computer with ANT+ USB device:</p>
-                <div id="download-links">
-                    <p>Latest release downloads will be available after GitHub Actions completes.</p>
-                </div>
+            <div class="card">
+                <h2>Local Bridge Downloads</h2>
+                <p>Download packages for local ANT+ device access:</p>
+                <div id="downloads">Loading...</div>
             </div>
             
             <script>
-                // Auto-update download links from GitHub releases
-                const repoPath = window.location.pathname.split('/').slice(1, 3).join('/');
-                fetch(`https://api.github.com/repos/${repoPath}/releases/latest`)
-                .then(response => response.json())
+                // Load download links
+                fetch('https://api.github.com/repos/' + window.location.pathname.split('/')[1] + '/' + window.location.pathname.split('/')[2] + '/releases/latest')
+                .then(r => r.json())
                 .then(data => {
-                    const downloadsDiv = document.getElementById('download-links');
-                    if (data.assets && data.assets.length > 0) {
-                        let html = '<h4>Available Downloads:</h4>';
+                    let html = '';
+                    if (data.assets) {
                         data.assets.forEach(asset => {
-                            html += `<a href="${asset.browser_download_url}" class="btn">📱 ${asset.name}</a>`;
+                            html += '<a href="' + asset.browser_download_url + '" class="btn">📱 ' + asset.name + '</a>';
                         });
-                        downloadsDiv.innerHTML = html;
-                    } else {
-                        downloadsDiv.innerHTML = '<p>No releases available yet. Check back after first deployment.</p>';
                     }
+                    document.getElementById('downloads').innerHTML = html || 'No downloads available yet.';
                 })
                 .catch(() => {
-                    document.getElementById('download-links').innerHTML = '<p>Visit the <a href="../../releases">Releases page</a> for downloads.</p>';
+                    document.getElementById('downloads').innerHTML = 'Visit <a href="../../releases">Releases</a> for downloads.';
                 });
             </script>
         </body>
         </html>
         EOF
     
-    - name: Update GitHub Pages with deployment info
-      uses: peaceiris/actions-gh-pages@v4
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: .
-        destination_dir: .
-        keep_files: true
-        force_orphan: true  # Create orphan branch if needed
+        path: .
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
 
   # Create GitHub release with packages (no deployment conflicts)
   create-release:
     needs: [build-packages]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && !cancelled()  # Run even if some packages failed
+    permissions:
+      contents: write
+      actions: read
     
     steps:
     - uses: actions/checkout@v4
@@ -265,30 +261,27 @@ jobs:
       run: |
         echo "Downloaded artifacts:"
         find ./artifacts -type f -name "*.zip" -o -name "*.tar.gz" | head -10
+        ls -la ./artifacts/
     
     - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2  # Use modern release action
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ github.run_number }}
         name: ANT+ Bridge v${{ github.run_number }}
         body: |
-          ## ANT+ Middleware Bridge Release
+          ## ANT+ Middleware Bridge Release v${{ github.run_number }}
           
           ### 🚂 Railway Cloud Deployment
           **Live at:** https://web-production-f8ebc.up.railway.app  
           **WebSocket:** wss://web-production-f8ebc.up.railway.app  
-          **Test Page:** [Railway Bridge Test](https://your-username.github.io/your-repo/your-railway-bridge.html)
           
           ### 📦 Local Bridge Downloads
-          For computers with ANT+ USB devices:
+          Download and run on your computer for real ANT+ device access:
           
           ### 🎯 Quick Start
-          1. **Test Railway Bridge:** Use the cloud deployment for interface testing
-          2. **Download Local Bridge:** For real ANT+ device access
-          3. **Setup Instructions:** Extract and run setup script
+          1. **Test Railway Bridge:** Use cloud deployment for interface testing
+          2. **Download Local Bridge:** For real ANT+ device access  
+          3. **Extract & Run:** Follow setup instructions in package
           
           ### ✨ Features
           - ✅ All 5 ANT+ transfer rates (50K - 3MHz)
@@ -296,9 +289,12 @@ jobs:
           - ✅ Cloud and local deployment options
           - ✅ Cross-platform compatibility
           - ✅ WebSocket-based communication
+          
+          Generated on: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
         draft: false
         prerelease: false
         files: |
           ./artifacts/ant-bridge-*.zip
           ./artifacts/ant-bridge-*.tar.gz
-        fail_on_unmatched_files: false  # Don't fail if some files are missing
+        fail_on_unmatched_files: false
+        token: ${{ secrets.GITHUB_TOKEN }}
