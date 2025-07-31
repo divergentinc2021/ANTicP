@@ -1,0 +1,63 @@
+/* SIMPLIFIED DEVICE CARD STYLES - REMOVING ALL CLICK BLOCKERS */
+
+.device-card {
+    background: white !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    margin: 10px 0 !important;
+    border: 1px solid #ddd !important;
+    /* REMOVED: All transforms, transitions, overlays, opacity, z-index */
+}
+
+.device-card.receiving {
+    background: #f0fff0 !important;
+    border: 2px solid #2ecc71 !important;
+    /* REMOVED: All complex effects */
+}
+
+/* ENSURE BUTTONS ARE CLICKABLE */
+.btn {
+    background: #007bff !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 15px !important;
+    border-radius: 5px !important;
+    cursor: pointer !important;
+    margin: 5px !important;
+    position: relative !important;
+    z-index: 999 !important;
+    pointer-events: auto !important;
+}
+
+.btn:hover {
+    background: #0056b3 !important;
+}
+
+.btn-scan {
+    background: #28a745 !important;
+}
+
+.btn-stop {
+    background: #dc3545 !important;
+}
+
+/* REMOVE ANY POTENTIAL OVERLAYS */
+.device-card::before,
+.device-card::after {
+    display: none !important;
+}
+
+/* ENSURE DEVICE GRID DOESN'T BLOCK */
+.devices-grid {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* ENSURE NO FIXED/ABSOLUTE ELEMENTS BLOCK CLICKS */
+* {
+    position: static !important;
+}
+
+.container {
+    position: relative !important;
+}
