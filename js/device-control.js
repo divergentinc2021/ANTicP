@@ -1,12 +1,31 @@
-// Enhanced Device Control Functions with Road Bike Gearing System
+// Enhanced Device Control Functions with Corrected Road Bike Gearing System
 // Global variables for device control
 let currentGear = 12; // Start at middle gear (12 out of 24)
 let targetPower = 150;
 
 // Road bike gearing configuration (user-definable)
-let frontChainrings = [52, 42]; // 2 chainrings
-let rearCassette = [10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28, 30]; // 12 cogs, smallest to biggest
-let currentFront = 0; // Index for current front chainring (0 = 52T, 1 = 42T)
+let frontChainrings = [42, 52]; // Small to big: 42T (easier), 52T (harder)
+let rearCassette = [30, 28, 26, 24, 23, 21, 19, 17, 15, 14, 13, 12, 11]; // Big to small: 30T (easier) to 11T (harder)
+
+// CORRECTED: Gear order from easiest to hardest
+function getGearCombination(gearNumber) {
+    // Gears 1-13: Use 42T front chainring (easier gears)
+    // Gears 14-24: Use 52T front chainring (harder gears)
+    
+    if (gearNumber <= 13) {
+        // Easy gears: 42T front with cassette from biggest (30T) to smallest (11T)
+        const frontTeeth = 42;
+        const rearIndex = gearNumber - 1; // 0-12 index
+        const rearTeeth = rearCassette[rearIndex];
+        return { front: frontTeeth, rear: rearTeeth };
+    } else {
+        // Hard gears: 52T front with cassette from biggest (30T) to smallest (11T)
+        const frontTeeth = 52;
+        const rearIndex = gearNumber - 14; // 0-10 index (gears 14-24 map to 0-10)
+        const rearTeeth = rearCassette[rearIndex];
+        return { front: frontTeeth, rear: rearTeeth };
+    }
+}
 
 // Calculate gear ratios and power mapping
 function calculateGearRatio(frontTeeth, rearTeeth) {
@@ -14,18 +33,12 @@ function calculateGearRatio(frontTeeth, rearTeeth) {
 }
 
 function calculateTargetPower(gearNumber) {
-    // Convert gear number (1-24) to front/rear combination
-    const gearsPerChainring = Math.ceil(24 / frontChainrings.length);
-    const frontIndex = Math.floor((gearNumber - 1) / gearsPerChainring);
-    const rearIndex = (gearNumber - 1) % rearCassette.length;
+    const { front, rear } = getGearCombination(gearNumber);
+    const gearRatio = calculateGearRatio(front, rear);
     
-    const frontTeeth = frontChainrings[Math.min(frontIndex, frontChainrings.length - 1)];
-    const rearTeeth = rearCassette[rearIndex];
-    const gearRatio = calculateGearRatio(frontTeeth, rearTeeth);
-    
-    // Power curve: base 100W + gear ratio scaling (realistic road bike power)
-    const basePower = 100;
-    const powerMultiplier = gearRatio * 25; // Adjust this for realistic feel
+    // Power curve: base 80W + gear ratio scaling (realistic road bike power)
+    const basePower = 80;
+    const powerMultiplier = gearRatio * 30; // Adjust this for realistic feel
     
     return Math.round(basePower + powerMultiplier);
 }
@@ -51,6 +64,7 @@ async function pairDeviceDirect(deviceType) {
                     { namePrefix: 'KICKR SNAP' },
                     { namePrefix: 'KICKR' },
                     { namePrefix: 'Wahoo KICKR' },
+                    { namePrefix: 'Wahoo' },
                     { manufacturerData: [{ companyIdentifier: 0x010C }] }, // Wahoo company ID
                     { services: [0x1826] }, // Fitness Machine Service
                     { services: [0x1818] }  // Cycling Power Service
@@ -65,10 +79,11 @@ async function pairDeviceDirect(deviceType) {
                 ]
             };
         } else if (deviceType === 'hrm') {
-            // Specific HRM device filters
+            // Enhanced HRM device filters including watches
             filters = {
                 filters: [
-                    { services: [0x180D] }, // Heart Rate Service
+                    { services: [0x180D] }, // Heart Rate Service (most important)
+                    // Chest straps
                     { namePrefix: 'Polar H' },
                     { namePrefix: 'Polar' },
                     { namePrefix: 'Garmin HRM' },
@@ -76,7 +91,21 @@ async function pairDeviceDirect(deviceType) {
                     { namePrefix: 'TICKR' },
                     { namePrefix: 'Suunto' },
                     { namePrefix: 'HRM' },
-                    { namePrefix: 'Heart Rate' }
+                    { namePrefix: 'Heart Rate' },
+                    // Watches with HRM
+                    { namePrefix: 'Apple Watch' },
+                    { namePrefix: 'Galaxy Watch' },
+                    { namePrefix: 'Fitbit' },
+                    { namePrefix: 'Garmin' },
+                    { namePrefix: 'Forerunner' },
+                    { namePrefix: 'fenix' },
+                    { namePrefix: 'Venu' },
+                    { namePrefix: 'Vivoactive' },
+                    { namePrefix: 'Instinct' },
+                    { namePrefix: 'Amazfit' },
+                    { namePrefix: 'Huawei Watch' },
+                    { namePrefix: 'TicWatch' },
+                    { namePrefix: 'Wear OS' }
                 ],
                 optionalServices: [
                     0x180D,    // Heart Rate
@@ -153,14 +182,14 @@ function disconnectDevice(deviceType) {
     alert(`Disconnected ${deviceType}`);
 }
 
-// GEAR CONTROL FUNCTIONS (24-gear system with road bike ratios)
+// CORRECTED GEAR CONTROL FUNCTIONS (24-gear system, easiest to hardest)
 function changeGear(direction) {
     const oldGear = currentGear;
     
     if (direction === 'up') {
-        currentGear = Math.min(24, currentGear + 1); // Max 24 gears
+        currentGear = Math.min(24, currentGear + 1); // Harder gear
     } else if (direction === 'down') {
-        currentGear = Math.max(1, currentGear - 1); // Min 1 gear
+        currentGear = Math.max(1, currentGear - 1); // Easier gear
     }
     
     // Only update if gear actually changed
@@ -168,16 +197,11 @@ function changeGear(direction) {
         targetPower = calculateTargetPower(currentGear);
         updateGearDisplay();
         
-        // Calculate current front/rear combination for display
-        const gearsPerChainring = Math.ceil(24 / frontChainrings.length);
-        const frontIndex = Math.floor((currentGear - 1) / gearsPerChainring);
-        const rearIndex = (currentGear - 1) % rearCassette.length;
+        // Get current gear combination for display
+        const { front, rear } = getGearCombination(currentGear);
+        const gearRatio = calculateGearRatio(front, rear);
         
-        const frontTeeth = frontChainrings[Math.min(frontIndex, frontChainrings.length - 1)];
-        const rearTeeth = rearCassette[rearIndex];
-        const gearRatio = calculateGearRatio(frontTeeth, rearTeeth);
-        
-        console.log(`⚡ Gear: ${currentGear}/24, Ratio: ${gearRatio.toFixed(2)} (${frontTeeth}T/${rearTeeth}T), Target Power: ${targetPower}W`);
+        console.log(`⚡ Gear: ${currentGear}/24, Ratio: ${gearRatio.toFixed(2)} (${front}T/${rear}T), Target Power: ${targetPower}W`);
     }
 }
 
@@ -206,19 +230,14 @@ function updateGearDisplay() {
         resistanceValue.textContent = currentGear;
     }
     
-    // Update front/rear gear displays
-    const gearsPerChainring = Math.ceil(24 / frontChainrings.length);
-    const frontIndex = Math.floor((currentGear - 1) / gearsPerChainring);
-    const rearIndex = (currentGear - 1) % rearCassette.length;
-    
-    const frontTeeth = frontChainrings[Math.min(frontIndex, frontChainrings.length - 1)];
-    const rearTeeth = rearCassette[rearIndex];
+    // Update front/rear gear displays with actual teeth
+    const { front, rear } = getGearCombination(currentGear);
     
     const frontGearDisplay = document.getElementById('zwift-front-gear');
     const rearGearDisplay = document.getElementById('zwift-rear-gear');
     
-    if (frontGearDisplay) frontGearDisplay.textContent = `${frontTeeth}T`;
-    if (rearGearDisplay) rearGearDisplay.textContent = `${rearTeeth}T`;
+    if (frontGearDisplay) frontGearDisplay.textContent = `${front}T`;
+    if (rearGearDisplay) rearGearDisplay.textContent = `${rear}T`;
 }
 
 // Direct gear adjustment functions for resistance buttons
@@ -256,9 +275,11 @@ function initializeControls() {
     targetPower = calculateTargetPower(currentGear);
     updateGearDisplay();
     
-    console.log('🚴 Road bike gearing initialized:');
-    console.log(`   Front chainrings: ${frontChainrings.join('T, ')}T`);
-    console.log(`   Rear cassette: ${rearCassette.join('-')}T`);
+    console.log('🚴 Corrected road bike gearing initialized:');
+    console.log(`   Gear 1 (easiest): 42T/${rearCassette[0]}T = ${calculateGearRatio(42, rearCassette[0]).toFixed(2)}`);
+    console.log(`   Gear 13: 42T/${rearCassette[12]}T = ${calculateGearRatio(42, rearCassette[12]).toFixed(2)}`);
+    console.log(`   Gear 14: 52T/${rearCassette[0]}T = ${calculateGearRatio(52, rearCassette[0]).toFixed(2)}`);
+    console.log(`   Gear 24 (hardest): 52T/${rearCassette[10]}T = ${calculateGearRatio(52, rearCassette[10]).toFixed(2)}`);
     console.log(`   Starting gear: ${currentGear}/24`);
     console.log(`   Starting power: ${targetPower}W`);
 }
