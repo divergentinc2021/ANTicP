@@ -1,0 +1,36 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks",
+    "buildCommand": "npm install",
+    "watchPatterns": [
+      "**/*.js",
+      "package.json",
+      "Procfile",
+      "railway.json"
+    ]
+  },
+  "deploy": {
+    "startCommand": "node ant-bridge-server.js",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 300
+  },
+  "networking": {
+    "publicPort": true
+  },
+  "scaling": {
+    "minReplicas": 1,
+    "maxReplicas": 1
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "RAILWAY_STATIC_URL": "web-production-f8ebc.up.railway.app",
+        "PLATFORM": "railway"
+      }
+    }
+  }
+}
