@@ -1,0 +1,263 @@
+name: Deploy ANT+ Bridge
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  # Deploy to Heroku
+  deploy-heroku:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Deploy to Heroku
+      uses: akhileshns/heroku-deploy@v3.12.12
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: "ant-bridge-${{ github.repository_owner }}"
+        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        buildpack: |
+          heroku/nodejs
+          heroku/python
+    
+    - name: Update deployment status
+      run: |
+        echo "Heroku deployment completed"
+        echo "Bridge URL: https://ant-bridge-${{ github.repository_owner }}.herokuapp.com"
+
+  # Deploy to Railway
+  deploy-railway:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli
+    
+    - name: Deploy to Railway
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        railway login --token $RAILWAY_TOKEN
+        railway up
+    
+    - name: Get deployment URL
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        URL=$(railway status --json | jq -r '.deployments[0].url')
+        echo "Railway deployment completed"
+        echo "Bridge URL: $URL"
+
+  # Build downloadable packages
+  build-packages:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        npm install
+        pip install pyserial pyinstaller
+    
+    - name: Create platform-specific package
+      run: |
+        mkdir -p dist/${{ matrix.os }}
+        cp ant-bridge-server.js dist/${{ matrix.os }}/
+        cp package.json dist/${{ matrix.os }}/
+        cp README.md dist/${{ matrix.os }}/
+    
+    - name: Create Windows installer (Windows only)
+      if: matrix.os == 'windows-latest'
+      run: |
+        echo '@echo off' > dist/${{ matrix.os }}/setup.bat
+        echo 'echo Installing ANT+ Bridge...' >> dist/${{ matrix.os }}/setup.bat
+        echo 'npm install' >> dist/${{ matrix.os }}/setup.bat
+        echo 'pip install pyserial' >> dist/${{ matrix.os }}/setup.bat
+        echo 'echo Setup complete! Run "npm start" to start the server.' >> dist/${{ matrix.os }}/setup.bat
+        echo 'pause' >> dist/${{ matrix.os }}/setup.bat
+    
+    - name: Create Unix installer (Linux/Mac)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cat > dist/${{ matrix.os }}/setup.sh << 'EOF'
+        #!/bin/bash
+        echo "Installing ANT+ Bridge..."
+        npm install
+        pip install pyserial
+        echo "Setup complete! Run 'npm start' to start the server."
+        EOF
+        chmod +x dist/${{ matrix.os }}/setup.sh
+    
+    - name: Create archive
+      run: |
+        cd dist
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          7z a ant-bridge-${{ matrix.os }}.zip ${{ matrix.os }}/*
+        else
+          tar -czf ant-bridge-${{ matrix.os }}.tar.gz ${{ matrix.os }}/*
+        fi
+    
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ant-bridge-${{ matrix.os }}
+        path: dist/ant-bridge-${{ matrix.os }}.*
+
+  # Create GitHub release with packages
+  create-release:
+    needs: [build-packages]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: ANT+ Bridge v${{ github.run_number }}
+        body: |
+          ## ANT+ Middleware Bridge Release
+          
+          ### Cloud Deployments
+          - **Heroku:** https://ant-bridge-${{ github.repository_owner }}.herokuapp.com
+          - **Railway:** Check deployment logs for URL
+          
+          ### Download Packages
+          - **Windows:** ant-bridge-windows-latest.zip
+          - **Linux:** ant-bridge-ubuntu-latest.tar.gz  
+          - **macOS:** ant-bridge-macos-latest.tar.gz
+          
+          ### Setup Instructions
+          1. Download package for your platform
+          2. Extract files
+          3. Run setup script (setup.bat on Windows, setup.sh on Linux/Mac)
+          4. Start server: `npm start`
+          5. Connect browser to `ws://localhost:8888`
+          
+          ### Features
+          - ✅ All 5 ANT+ transfer rates (50K - 3MHz)
+          - ✅ Real-time device data streaming
+          - ✅ WebSocket-based communication
+          - ✅ Cross-platform compatibility
+          - ✅ No WebUSB dependencies
+        draft: false
+        prerelease: false
+    
+    - name: Upload Windows Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/ant-bridge-windows-latest/ant-bridge-windows-latest.zip
+        asset_name: ant-bridge-windows.zip
+        asset_content_type: application/zip
+    
+    - name: Upload Linux Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/ant-bridge-ubuntu-latest/ant-bridge-ubuntu-latest.tar.gz
+        asset_name: ant-bridge-linux.tar.gz
+        asset_content_type: application/gzip
+    
+    - name: Upload macOS Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/ant-bridge-macos-latest/ant-bridge-macos-latest.tar.gz
+        asset_name: ant-bridge-macos.tar.gz
+        asset_content_type: application/gzip
+
+  # Update GitHub Pages with latest deployment info
+  update-pages:
+    needs: [deploy-heroku, deploy-railway, create-release]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Create deployment info
+      run: |
+        mkdir -p _data
+        cat > _data/deployment.json << EOF
+        {
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "version": "v${{ github.run_number }}",
+          "deployments": {
+            "heroku": "https://ant-bridge-${{ github.repository_owner }}.herokuapp.com",
+            "railway": "Check deployment logs",
+            "local": "ws://localhost:8888"
+          },
+          "downloads": {
+            "windows": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-windows.zip",
+            "linux": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-linux.tar.gz",
+            "macos": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ant-bridge-macos.tar.gz"
+          }
+        }
+        EOF
+    
+    - name: Update GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_data
+        destination_dir: _data
+        keep_files: true

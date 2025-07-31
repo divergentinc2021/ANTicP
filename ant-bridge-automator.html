@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANT+ Bridge Automator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { background: #0056b3; transform: translateY(-2px); }
+        .btn:disabled { background: #6c757d; cursor: not-allowed; transform: none; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-cloud { background: #6f42c1; }
+        .btn-cloud:hover { background: #5a32a3; }
+        
+        .hero-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .hero-section h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-panel {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+        .status-ready { background: #28a745; }
+        .status-deploying { background: #ffc107; }
+        .status-error { background: #dc3545; }
+        .status-offline { background: #6c757d; }
+        
+        .deployment-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .deployment-card {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .deployment-card:hover {
+            border-color: #007bff;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .deployment-card.active {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .deployment-card h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .environment-info {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .instructions.visible {
+            display: block;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero-section">
+            <h1>🤖 ANT+ Bridge Automator</h1>
+            <p>Intelligent deployment and management for GitHub hosting</p>
+        </div>
+        
+        <div class="status-panel">
+            <h3>📊 System Status</h3>
+            <div id="environment-status">
+                <div><span class="status-indicator status-offline"></span>Environment: <span id="env-text">Detecting...</span></div>
+                <div><span class="status-indicator status-offline"></span>Bridge Server: <span id="bridge-text">Not deployed</span></div>
+                <div><span class="status-indicator status-offline"></span>ANT+ Connection: <span id="ant-text">Not connected</span></div>
+            </div>
+            <div class="progress-bar" id="progress-container" style="display: none;">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="environment-info" id="env-info">
+            <h3>🔍 Environment Detection</h3>
+            <div id="env-details">Analyzing your hosting environment...</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-success" onclick="autoSetup()" id="auto-btn">🚀 Auto Setup</button>
+            <button class="btn btn-cloud" onclick="deployCloud()" id="cloud-btn">☁️ Cloud Deploy</button>
+            <button class="btn" onclick="setupLocal()" id="local-btn">🏠 Local Setup</button>
+            <button class="btn btn-warning" onclick="downloadPackage()" id="download-btn">📦 Download Package</button>
+            <button class="btn btn-danger" onclick="stopBridge()" disabled id="stop-btn">🛑 Stop Bridge</button>
+            <button class="btn" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+
+        <div class="deployment-options">
+            <div class="deployment-card" id="heroku-card">
+                <h3>🚀 Heroku Deployment</h3>
+                <p><strong>Best for:</strong> Always-on hosting</p>
+                <ul>
+                    <li>Free tier available</li>
+                    <li>Automatic SSL/HTTPS</li>
+                    <li>Global CDN</li>
+                    <li>Easy scaling</li>
+                </ul>
+                <button class="btn btn-cloud" onclick="deployToHeroku()">Deploy to Heroku</button>
+                <div id="heroku-status" style="margin-top: 10px; display: none;">
+                    <span class="status-indicator status-deploying"></span>Deploying...
+                </div>
+            </div>
+
+            <div class="deployment-card" id="railway-card">
+                <h3>🚂 Railway Deployment</h3>
+                <p><strong>Best for:</strong> GitHub integration</p>
+                <ul>
+                    <li>Auto-deploy from GitHub</li>
+                    <li>Generous free tier</li>
+                    <li>Built-in monitoring</li>
+                    <li>Fast deployment</li>
+                </ul>
+                <button class="btn btn-cloud" onclick="deployToRailway()">Deploy to Railway</button>
+                <div id="railway-status" style="margin-top: 10px; display: none;">
+                    <span class="status-indicator status-deploying"></span>Deploying...
+                </div>
+            </div>
+
+            <div class="deployment-card" id="replit-card">
+                <h3>🔄 Replit Deployment</h3>
+                <p><strong>Best for:</strong> Quick testing</p>
+                <ul>
+                    <li>Instant deployment</li>
+                    <li>Built-in IDE</li>
+                    <li>Always-on hosting</li>
+                    <li>Easy sharing</li>
+                </ul>
+                <button class="btn btn-cloud" onclick="deployToReplit()">Deploy to Replit</button>
+                <div id="replit-status" style="margin-top: 10px; display: none;">
+                    <span class="status-indicator status-deploying"></span>Deploying...
+                </div>
+            </div>
+
+            <div class="deployment-card" id="local-card">
+                <h3>🏠 Local Setup</h3>
+                <p><strong>Best for:</strong> Development</p>
+                <ul>
+                    <li>Direct ANT+ access</li>
+                    <li>No internet required</li>
+                    <li>Full control</li>
+                    <li>Fastest performance</li>
+                </ul>
+                <button class="btn" onclick="setupLocal()">Setup Locally</button>
+                <div id="local-status" style="margin-top: 10px; display: none;">
+                    <span class="status-indicator status-ready"></span>Ready for setup
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions" id="instructions-panel">
+            <h3 id="instructions-title">Setup Instructions</h3>
+            <div id="instructions-content"></div>
+        </div>
+
+        <div class="log" id="log">
+ANT+ Bridge Automator
+====================
+🤖 Intelligent deployment system for GitHub hosting
+
+Features:
+• Auto-detects your hosting environment
+• Deploys to cloud platforms (Heroku, Railway, Replit)
+• Generates downloadable packages
+• Manages bridge server lifecycle
+• GitHub Actions integration
+
+Click "Auto Setup" to begin automated deployment...
+        </div>
+    </div>
+
+    <script type="module">
+        import { ANTBridgeAutomator } from './js/bridge/ant-bridge-automator.js';
+        import { ANTBridgeClient } from './js/connections/ant-bridge-client.js';
+
+        let automator = null;
+        let bridgeClient = null;
+        let currentDeployment = null;
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logEl.textContent += logMessage + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(logMessage);
+        }
+
+        function updateStatus(type, status, text) {
+            const indicators = {
+                'env': document.querySelector('#environment-status div:nth-child(1) .status-indicator'),
+                'bridge': document.querySelector('#environment-status div:nth-child(2) .status-indicator'),
+                'ant': document.querySelector('#environment-status div:nth-child(3) .status-indicator')
+            };
+
+            const texts = {
+                'env': document.getElementById('env-text'),
+                'bridge': document.getElementById('bridge-text'),
+                'ant': document.getElementById('ant-text')
+            };
+
+            if (indicators[type] && texts[type]) {
+                indicators[type].className = `status-indicator status-${status}`;
+                texts[type].textContent = text;
+            }
+        }
+
+        function showProgress(show, percent = 0) {
+            const container = document.getElementById('progress-container');
+            const bar = document.getElementById('progress-bar');
+            
+            container.style.display = show ? 'block' : 'none';
+            bar.style.width = `${percent}%`;
+        }
+
+        function showInstructions(title, content) {
+            const panel = document.getElementById('instructions-panel');
+            const titleEl = document.getElementById('instructions-title');
+            const contentEl = document.getElementById('instructions-content');
+            
+            titleEl.textContent = title;
+            contentEl.innerHTML = content;
+            panel.classList.add('visible');
+        }
+
+        function hideInstructions() {
+            const panel = document.getElementById('instructions-panel');
+            panel.classList.remove('visible');
+        }
+
+        function setCardActive(cardId) {
+            // Remove active class from all cards
+            document.querySelectorAll('.deployment-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to selected card
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.classList.add('active');
+            }
+        }
+
+        function showCardStatus(cardId, status, show = true) {
+            const statusEl = document.getElementById(`${cardId}-status`);
+            if (statusEl) {
+                statusEl.style.display = show ? 'block' : 'none';
+                if (show) {
+                    const indicator = statusEl.querySelector('.status-indicator');
+                    if (indicator) {
+                        indicator.className = `status-indicator status-${status}`;
+                    }
+                }
+            }
+        }
+
+        async function initializeAutomator() {
+            log('🤖 Initializing ANT+ Bridge Automator...');
+            
+            automator = new ANTBridgeAutomator();
+            
+            // Set up event listeners
+            automator.on('auto-setup-start', (data) => {
+                log(`🔍 Environment detected: ${data.environment.platform}`);
+                updateEnvironmentInfo(data.environment);
+            });
+            
+            automator.on('cloud-deploy', (data) => {
+                log(`☁️ Deploying to ${data.platform}...`);
+                setCardActive(`${data.platform}-card`);
+                showCardStatus(data.platform, 'deploying');
+                showDeploymentInstructions(data);
+            });
+            
+            automator.on('local-setup', (data) => {
+                log('🏠 Setting up local environment...');
+                setCardActive('local-card');
+                showLocalInstructions(data);
+            });
+            
+            automator.on('download-ready', (data) => {
+                log('📦 Download package ready');
+                triggerDownload(data);
+            });
+            
+            automator.on('status', (data) => {
+                log(`📊 Status: ${data.message}`);
+                if (data.type === 'deploying') {
+                    showProgress(true, 25);
+                }
+            });
+            
+            automator.on('error', (error) => {
+                log(`❌ Error: ${error.message}`);
+                updateStatus('bridge', 'error', 'Deployment failed');
+                showProgress(false);
+            });
+            
+            // Detect environment
+            const env = automator.detectEnvironment();
+            updateEnvironmentInfo(env);
+        }
+
+        function updateEnvironmentInfo(env) {
+            updateStatus('env', 'ready', env.platform);
+            
+            const details = document.getElementById('env-details');
+            details.innerHTML = `
+                <strong>Platform:</strong> ${env.platform}<br>
+                <strong>Hosting:</strong> ${env.isGitHubPages ? 'GitHub Pages' : env.isLocalhost ? 'Localhost' : 'Remote'}<br>
+                <strong>Can Run Server:</strong> ${env.canRunServer ? 'Yes' : 'No'}<br>
+                <strong>Recommended:</strong> ${env.isGitHubPages ? 'Cloud deployment' : env.isLocalhost ? 'Local setup' : 'Download package'}
+            `;
+        }
+
+        async function autoSetup() {
+            log('🚀 Starting automatic setup...');
+            showProgress(true, 10);
+            
+            try {
+                const result = await automator.autoSetup();
+                showProgress(true, 100);
+                
+                if (result.success) {
+                    log(`✅ Auto setup completed: ${result.platform || 'local'}`);
+                    updateStatus('bridge', 'ready', `Ready on ${result.platform || 'localhost'}`);
+                    
+                    // Try to connect to the bridge
+                    setTimeout(() => connectToBridge(result.serverUrl || result.url), 2000);
+                } else {
+                    log('💡 Manual setup required');
+                    showProgress(false);
+                }
+                
+            } catch (error) {
+                log(`❌ Auto setup failed: ${error.message}`);
+                updateStatus('bridge', 'error', 'Auto setup failed');
+                showProgress(false);
+            }
+        }
+
+        async function deployCloud() {
+            log('☁️ Initiating cloud deployment...');
+            showProgress(true, 20);
+            
+            try {
+                const result = await automator.deployCloudBridge();
+                showProgress(true, 80);
+                
+                if (result.success) {
+                    log(`✅ Cloud deployment initiated: ${result.platform}`);
+                    currentDeployment = result;
+                    showProgress(true, 100);
+                    
+                    // Show deployment instructions
+                    showDeploymentInstructions(result);
+                }
+                
+            } catch (error) {
+                log(`❌ Cloud deployment failed: ${error.message}`);
+                showProgress(false);
+            }
+        }
+
+        async function deployToHeroku() {
+            log('🚀 Deploying to Heroku...');
+            showCardStatus('heroku', 'deploying');
+            setCardActive('heroku-card');
+            
+            try {
+                const result = await automator.deployToHeroku();
+                showHerokuInstructions(result);
+                showCardStatus('heroku', 'ready');
+                
+            } catch (error) {
+                log(`❌ Heroku deployment failed: ${error.message}`);
+                showCardStatus('heroku', 'error');
+            }
+        }
+
+        async function deployToRailway() {
+            log('🚂 Deploying to Railway...');
+            showCardStatus('railway', 'deploying');
+            setCardActive('railway-card');
+            
+            try {
+                const result = await automator.deployToRailway();
+                showRailwayInstructions(result);
+                showCardStatus('railway', 'ready');
+                
+            } catch (error) {
+                log(`❌ Railway deployment failed: ${error.message}`);
+                showCardStatus('railway', 'error');
+            }
+        }
+
+        async function deployToReplit() {
+            log('🔄 Deploying to Replit...');
+            showCardStatus('replit', 'deploying');
+            setCardActive('replit-card');
+            
+            try {
+                const result = await automator.deployToReplit();
+                showReplitInstructions(result);
+                showCardStatus('replit', 'ready');
+                
+            } catch (error) {
+                log(`❌ Replit deployment failed: ${error.message}`);
+                showCardStatus('replit', 'error');
+            }
+        }
+
+        async function setupLocal() {
+            log('🏠 Setting up local environment...');
+            setCardActive('local-card');
+            showCardStatus('local', 'ready');
+            
+            try {
+                const result = await automator.startLocalBridge();
+                showLocalInstructions(result);
+                
+            } catch (error) {
+                log(`❌ Local setup failed: ${error.message}`);
+                showCardStatus('local', 'error');
+            }
+        }
+
+        async function downloadPackage() {
+            log('📦 Generating download package...');
+            
+            try {
+                const result = await automator.downloadAndRunLocal();
+                if (result.package) {
+                    triggerDownload(result);
+                }
+                
+            } catch (error) {
+                log(`❌ Package generation failed: ${error.message}`);
+            }
+        }
+
+        function triggerDownload(data) {
+            // Create downloadable zip file
+            const files = data.package || {};
+            const zipContent = Object.entries(files).map(([filename, content]) => 
+                `${filename}:\n${content}\n\n`
+            ).join('---\n\n');
+            
+            const blob = new Blob([zipContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = data.filename || 'ant-bridge-setup.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            log(`📥 Download started: ${link.download}`);
+        }
+
+        function showDeploymentInstructions(data) {
+            const instructions = data.instructions;
+            let content = `
+                <h4>${instructions.title}</h4>
+                <ol>
+                    ${instructions.steps.map(step => `<li>${step}</li>`).join('')}
+                </ol>
+            `;
+            
+            if (instructions.commands) {
+                content += `
+                    <h4>Commands:</h4>
+                    <pre style="background: #2c3e50; color: white; padding: 10px; border-radius: 5px;">
+${instructions.commands.join('\n')}
+                    </pre>
+                `;
+            }
+            
+            showInstructions(instructions.title, content);
+        }
+
+        function showHerokuInstructions(result) {
+            const content = `
+                <h4>🚀 Heroku Deployment</h4>
+                <p>Follow these steps to deploy your ANT+ bridge to Heroku:</p>
+                <ol>
+                    <li>Create a Heroku account at <a href="https://heroku.com" target="_blank">heroku.com</a></li>
+                    <li>Install the Heroku CLI</li>
+                    <li>Clone this repository</li>
+                    <li>Run the deployment commands</li>
+                </ol>
+                <h4>Commands:</h4>
+                <pre style="background: #2c3e50; color: white; padding: 10px; border-radius: 5px;">
+heroku create your-ant-bridge
+git push heroku main
+heroku logs --tail
+                </pre>
+                <p><strong>Your bridge will be available at:</strong> https://your-ant-bridge.herokuapp.com</p>
+            `;
+            
+            showInstructions('Heroku Deployment', content);
+        }
+
+        function showRailwayInstructions(result) {
+            const content = `
+                <h4>🚂 Railway Deployment</h4>
+                <p>Railway offers the easiest deployment with GitHub integration:</p>
+                <ol>
+                    <li>Go to <a href="https://railway.app" target="_blank">railway.app</a></li>
+                    <li>Connect your GitHub account</li>
+                    <li>Import this repository</li>
+                    <li>Railway will automatically deploy</li>
+                </ol>
+                <p><strong>Advantages:</strong></p>
+                <ul>
+                    <li>Automatic deployments from GitHub</li>
+                    <li>Generous free tier</li>
+                    <li>Built-in monitoring</li>
+                    <li>Fast global network</li>
+                </ul>
+            `;
+            
+            showInstructions('Railway Deployment', content);
+        }
+
+        function showReplitInstructions(result) {
+            const content = `
+                <h4>🔄 Replit Deployment</h4>
+                <p>Replit provides instant deployment with a built-in IDE:</p>
+                <ol>
+                    <li>Go to <a href="https://replit.com" target="_blank">replit.com</a></li>
+                    <li>Click "Import from GitHub"</li>
+                    <li>Enter your repository URL</li>
+                    <li>Click "Run" to start the bridge</li>
+                </ol>
+                <p><strong>Perfect for:</strong></p>
+                <ul>
+                    <li>Quick testing and development</li>
+                    <li>Educational use</li>
+                    <li>Sharing with others</li>
+                    <li>Always-on hosting</li>
+                </ul>
+            `;
+            
+            showInstructions('Replit Deployment', content);
+        }
+
+        function showLocalInstructions(result) {
+            const content = `
+                <h4>🏠 Local Setup</h4>
+                <p>Set up the bridge server on your computer for direct ANT+ access:</p>
+                <h4>Prerequisites:</h4>
+                <ul>
+                    <li>Node.js 14+ (from nodejs.org)</li>
+                    <li>Python 3.6+ (from python.org)</li>
+                    <li>ANT+ USB device connected</li>
+                </ul>
+                <h4>Setup Commands:</h4>
+                <pre style="background: #2c3e50; color: white; padding: 10px; border-radius: 5px;">
+npm install
+pip install pyserial
+node ant-bridge-server.js
+                </pre>
+                <p><strong>Connect to:</strong> ws://localhost:8888</p>
+                <p><strong>Advantages:</strong> Direct hardware access, no internet required, fastest performance</p>
+            `;
+            
+            showInstructions('Local Setup', content);
+        }
+
+        async function connectToBridge(serverUrl) {
+            log(`🌉 Connecting to bridge at ${serverUrl}...`);
+            
+            try {
+                bridgeClient = new ANTBridgeClient();
+                if (serverUrl) {
+                    bridgeClient.serverUrl = serverUrl;
+                }
+                
+                bridgeClient.on('bridge-connected', () => {
+                    log('✅ Connected to bridge server');
+                    updateStatus('bridge', 'ready', 'Connected');
+                });
+                
+                bridgeClient.on('ant-connected', (data) => {
+                    log(`✅ ANT+ device connected: ${data.message}`);
+                    updateStatus('ant', 'ready', 'Connected');
+                });
+                
+                await bridgeClient.connect();
+                
+            } catch (error) {
+                log(`❌ Bridge connection failed: ${error.message}`);
+                updateStatus('bridge', 'error', 'Connection failed');
+            }
+        }
+
+        async function stopBridge() {
+            log('🛑 Stopping bridge...');
+            
+            if (bridgeClient) {
+                bridgeClient.disconnect();
+                bridgeClient = null;
+            }
+            
+            if (automator) {
+                await automator.stopBridge();
+            }
+            
+            updateStatus('bridge', 'offline', 'Stopped');
+            updateStatus('ant', 'offline', 'Disconnected');
+            
+            // Reset all cards
+            document.querySelectorAll('.deployment-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            hideInstructions();
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Log cleared.\nANT+ Bridge Automator ready...\n';
+        }
+
+        // Make functions available globally
+        window.autoSetup = autoSetup;
+        window.deployCloud = deployCloud;
+        window.deployToHeroku = deployToHeroku;
+        window.deployToRailway = deployToRailway;
+        window.deployToReplit = deployToReplit;
+        window.setupLocal = setupLocal;
+        window.downloadPackage = downloadPackage;
+        window.stopBridge = stopBridge;
+        window.clearLog = clearLog;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeAutomator);
+
+        log('🤖 ANT+ Bridge Automator Ready');
+        log('💡 Intelligent deployment system for GitHub hosting');
+        log('🎯 Click "Auto Setup" for automatic deployment');
+    </script>
+</body>
+</html>
