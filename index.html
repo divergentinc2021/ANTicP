@@ -3,222 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebUSB Permission Fix Guide</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .fix-box {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .step-box {
-            background: #e8f4fd;
-            border: 1px solid #3498db;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .code {
-            background: #2c3e50;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            margin: 10px 0;
-        }
-        .btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px 5px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn:hover {
-            background: #0056b3;
-        }
-        .btn-success {
-            background: #28a745;
-        }
-        .btn-success:hover {
-            background: #1e7e34;
-        }
-        .step-list {
-            counter-reset: step-counter;
-        }
-        .step-list li {
-            counter-increment: step-counter;
-            margin-bottom: 15px;
-            position: relative;
-            padding-left: 40px;
-        }
-        .step-list li:before {
-            content: counter(step-counter);
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: #007bff;
-            color: white;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-        }
-    </style>
+    <title>Cross-Platform Bluetooth ANT+ Receiver</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>🔧 WebUSB Permission Fix Guide</h1>
-        
-        <div class="success-box">
-            <h3>✅ Great Progress!</h3>
-            <p><strong>Your WebUSB setup is working correctly:</strong></p>
+        <div class="header">
+            <h1>📡 Cross-Platform Bluetooth ANT+ Receiver</h1>
+            <p>Android, Windows, Mac & iOS Compatible</p>
+        </div>
+
+        <div class="platform-info">
+            <div class="platform-detected" id="platform-detected">🔍 Detecting platform...</div>
+            <div id="platform-capabilities">Checking connection capabilities...</div>
+        </div>
+
+        <!-- Android-specific instructions -->
+        <div id="android-instructions" class="android-instructions" style="display: none;">
+            <h4>📱 Android Setup Instructions</h4>
+            <p><strong>Important:</strong> This page must be served over HTTPS for Bluetooth to work on Android.</p>
             <ul>
-                <li>✅ Device picker appears and shows "ANT USBStick2"</li>
-                <li>✅ Correct device detected (VID: 0x0FCF, PID: 0x1008)</li>
-                <li>✅ WebUSB API is functional</li>
-                <li>✅ Your libusb0 driver is compatible</li>
+                <li>Open Chrome browser (other browsers may not support Web Bluetooth)</li>
+                <li>Enable "Experimental Web Platform features" in chrome://flags</li>
+                <li>Grant location permission when prompted (required for Bluetooth scanning)</li>
+                <li>Make sure Bluetooth is enabled in Android settings</li>
+                <li>Keep your ANT+ devices in pairing mode</li>
             </ul>
-            <p><strong>Issue:</strong> "Access denied" - Just a browser permission that needs to be enabled.</p>
         </div>
 
-        <div class="fix-box">
-            <h3>🔧 Required Fix: Enable WebUSB Flag</h3>
-            <p><strong>The "Access denied" error happens because Windows Chrome requires a special flag to be enabled for WebUSB device access.</strong></p>
-        </div>
-
-        <div class="step-box">
-            <h3>📋 Step-by-Step Fix</h3>
+        <!-- Permission Status Panel -->
+        <div class="permission-panel">
+            <h3>🔐 Permissions & Requirements</h3>
             
-            <h4>Method 1: Enable Chrome WebUSB Flag (Recommended)</h4>
-            <ol class="step-list">
-                <li>
-                    <strong>Open Chrome Flags</strong><br>
-                    Copy and paste this URL into your Chrome address bar:<br>
-                    <div class="code">chrome://flags/#enable-experimental-web-platform-features</div>
-                    <a href="chrome://flags/#enable-experimental-web-platform-features" class="btn">🔗 Open Chrome Flags</a>
-                </li>
-                <li>
-                    <strong>Find the WebUSB Setting</strong><br>
-                    Look for: <strong>"Experimental Web Platform features"</strong><br>
-                    It should be highlighted when you use the direct link above.
-                </li>
-                <li>
-                    <strong>Enable the Flag</strong><br>
-                    Change the dropdown from <strong>"Default"</strong> to <strong>"Enabled"</strong>
-                </li>
-                <li>
-                    <strong>Restart Chrome</strong><br>
-                    Click the <strong>"Relaunch"</strong> button that appears, or close and reopen Chrome completely.
-                </li>
-                <li>
-                    <strong>Test Again</strong><br>
-                    Come back to the WebUSB test page and try connecting again.
-                </li>
-            </ol>
+            <div class="permission-item" id="https-status">
+                <div>
+                    <strong>🔒 HTTPS Connection</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Required for Web Bluetooth on mobile</div>
+                </div>
+                <span id="https-indicator">❓</span>
+            </div>
 
-            <h4>Alternative Method 2: Use Chrome Canary (If Method 1 doesn't work)</h4>
-            <ol class="step-list">
-                <li>
-                    <strong>Download Chrome Canary</strong><br>
-                    Chrome Canary has more experimental features enabled by default.<br>
-                    <a href="https://www.google.com/chrome/canary/" class="btn" target="_blank">📥 Download Chrome Canary</a>
-                </li>
-                <li>
-                    <strong>Test in Canary</strong><br>
-                    Open your WebUSB test page in Chrome Canary instead of regular Chrome.
-                </li>
-            </ol>
+            <div class="permission-item" id="bluetooth-api-status">
+                <div>
+                    <strong>📶 Web Bluetooth API</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Browser support for Bluetooth devices</div>
+                </div>
+                <span id="bluetooth-api-indicator">❓</span>
+            </div>
 
-            <h4>Alternative Method 3: Command Line Chrome (Advanced)</h4>
-            <ol class="step-list">
-                <li>
-                    <strong>Close Chrome Completely</strong><br>
-                    Make sure no Chrome processes are running.
-                </li>
-                <li>
-                    <strong>Start Chrome with WebUSB Flag</strong><br>
-                    Open Command Prompt and run:<br>
-                    <div class="code">"C:\Program Files\Google\Chrome\Application\chrome.exe" --enable-experimental-web-platform-features</div>
-                </li>
-                <li>
-                    <strong>Test WebUSB</strong><br>
-                    Navigate to your test page in this Chrome instance.
-                </li>
-            </ol>
+            <div class="permission-item" id="location-status" style="display: none;">
+                <div>
+                    <strong>📍 Location Permission</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Required for Bluetooth scanning on Android</div>
+                </div>
+                <div>
+                    <span id="location-indicator">❓</span>
+                    <button class="btn btn-permission" id="request-location-btn" style="display: none; margin-left: 10px; width: auto; padding: 5px 10px;">Grant</button>
+                </div>
+            </div>
+
+            <div class="permission-item" id="bluetooth-status">
+                <div>
+                    <strong>🔵 Bluetooth Device Access</strong>
+                    <div style="font-size: 0.8rem; color: #666;">Permission to connect to Bluetooth devices</div>
+                </div>
+                <span id="bluetooth-indicator">❓</span>
+            </div>
         </div>
 
-        <div class="step-box">
-            <h3>🧪 Test After Fix</h3>
-            <p>Once you've enabled the WebUSB flag and restarted Chrome:</p>
-            <button class="btn btn-success" onclick="testWebUSBAgain()">🔌 Test WebUSB Again</button>
+        <div class="connection-panel">
+            <h3>🔗 Bluetooth Connection</h3>
             
-            <h4>Expected Results After Fix:</h4>
-            <ul>
-                <li>✅ Device picker shows "ANT USBStick2" (already working)</li>
-                <li>✅ Device opens without "Access denied" error</li>
-                <li>✅ Interface claimed successfully</li>
-                <li>✅ ANT+ reset command sent</li>
-                <li>✅ Full WebUSB communication established</li>
-            </ul>
+            <div class="connection-options">
+                <!-- Bluetooth ANT+ Method -->
+                <div class="connection-method" id="bluetooth-method">
+                    <div class="method-icon">📱</div>
+                    <div class="method-title">Bluetooth ANT+</div>
+                    <div class="method-description">Bluetooth Low Energy (All platforms)</div>
+                    <button class="btn" id="bluetooth-connect-btn" disabled>Scan Bluetooth</button>
+                </div>
+            </div>
+
+            <!-- Specific device scanning buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-scan" id="scan-kickr-btn" disabled>Pair Kickr Core</button>
+                <button class="btn btn-scan" id="scan-zwift-btn" disabled>Pair Zwift Click</button>
+                <button class="btn btn-scan" id="scan-hrm-btn" disabled>Pair Heart Rate</button>
+            </div>
+
+            <div id="connection-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;">
+                <strong>Status:</strong> <span id="status-text">Disconnected</span>
+            </div>
         </div>
 
-        <div class="success-box">
-            <h3>🎯 Why This Fix Works</h3>
-            <p><strong>Technical Explanation:</strong></p>
-            <ul>
-                <li>WebUSB is still an "experimental" web standard</li>
-                <li>Chrome requires explicit permission for USB device access</li>
-                <li>Windows has additional security restrictions for USB access</li>
-                <li>The experimental flag bypasses these restrictions</li>
-                <li>Your libusb0 driver provides the necessary USB interface</li>
-            </ul>
-            
-            <p><strong>After this fix:</strong></p>
-            <ul>
-                <li>🔌 Direct USB communication with ANT+ stick</li>
-                <li>📡 Full ANT+ protocol support</li>
-                <li>⚡ Lower latency than serial communication</li>
-                <li>🔧 No driver changes needed</li>
-                <li>✅ No conflicts with other ANT+ software</li>
-            </ul>
+        <div class="devices-grid">
+            <!-- Wahoo Kickr Core Card -->
+            <div class="device-card trainer" id="kickr-card">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e);">🚴</div>
+                    <div>
+                        <div class="device-title">Wahoo Kickr Core</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="kickr-status"></span>
+                            <span id="kickr-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: FE-C (0x11) | Channel: 5 | Device ID: <span id="kickr-device-id">12345</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="kickr-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric" id="kickr-power-metric">
+                        <div class="metric-value" id="kickr-power-value">---</div>
+                        <div class="metric-label">Power (W)</div>
+                    </div>
+                    <div class="metric" id="kickr-resistance-metric">
+                        <div class="metric-value" id="kickr-resistance-value">---</div>
+                        <div class="metric-label">Resistance (%)</div>
+                    </div>
+                    <div class="metric" id="kickr-cadence-metric">
+                        <div class="metric-value" id="kickr-cadence-value">---</div>
+                        <div class="metric-label">Cadence (RPM)</div>
+                    </div>
+                    <div class="metric" id="kickr-speed-metric">
+                        <div class="metric-value" id="kickr-speed-value">---</div>
+                        <div class="metric-label">Speed (KM/H)</div>
+                    </div>
+                    <div class="metric" id="kickr-distance-metric">
+                        <div class="metric-value" id="kickr-distance-value">---</div>
+                        <div class="metric-label">Distance (KM)</div>
+                    </div>
+                    <div class="metric" id="kickr-time-metric">
+                        <div class="metric-value" id="kickr-time-value">---</div>
+                        <div class="metric-label">Time</div>
+                    </div>
+                </div>
+
+                <!-- Kickr Controls -->
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 600;">Target Power (W)</span>
+                        <span id="kickr-target-power" style="font-weight: bold; color: #2c3e50;">150</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Resistance (%)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">-10%</span>
+                            <input type="range" id="kickr-resistance-slider" min="-10" max="10" value="0" style="flex: 1;" title="Resistance Control">
+                            <span style="background: #34495e; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">+10%</span>
+                        </div>
+                        <div style="text-align: center; margin-top: 5px; font-size: 1.2rem; font-weight: bold;" id="kickr-resistance-display">0</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop Trainer</button>
+                </div>
+
+                <div id="kickr-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+
+            <!-- Zwift Click Card -->
+            <div class="device-card" id="zwift-click-card" style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #28a745, #20c997);">⚡</div>
+                    <div>
+                        <div class="device-title">Zwift Click</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="zwift-status"></span>
+                            <span id="zwift-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: Shifting (0x22) | Channel: 5 | Device ID: <span id="zwift-device-id">23456</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="zwift-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zwift Click Controls -->
+                <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">-</button>
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; font-weight: bold; color: #2c3e50;" id="zwift-gear">4</div>
+                        <div style="font-size: 0.8rem; color: #666;">Current Gear</div>
+                    </div>
+                    <button class="btn" style="background: #6c757d; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; margin: 0 20px;">+</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <div class="metric">
+                        <div class="metric-value" id="zwift-front-gear">50</div>
+                        <div class="metric-label">Front (?)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="zwift-rear-gear">14</div>
+                        <div class="metric-label">Rear (?)</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop Shifter</button>
+                </div>
+
+                <div id="zwift-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+
+            <!-- Heart Rate Monitor Card -->
+            <div class="device-card hrm" id="hrm-card">
+                <div class="device-header">
+                    <div class="device-icon" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">❤️</div>
+                    <div>
+                        <div class="device-title">Heart Rate Monitor</div>
+                        <div class="device-status">
+                            <span class="status-indicator" id="hrm-status"></span>
+                            <span id="hrm-status-text">No Signal</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            Device Type: Heart Rate (0x78) | Channel: 5 | Device ID: <span id="hrm-device-id">34567</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #999;">
+                            RF Frequency: <span id="hrm-frequency">2457 MHz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="metric" id="hr-current-metric">
+                        <div class="metric-value" id="hr-current-value">---</div>
+                        <div class="metric-label">BPM</div>
+                    </div>
+                    <div class="metric" id="hr-avg-metric">
+                        <div class="metric-value" id="hr-avg-value">---</div>
+                        <div class="metric-label">Avg BPM</div>
+                    </div>
+                </div>
+
+                <div class="hr-zone" id="hr-zone">Zone Unknown</div>
+
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-size: 0.8rem;">Base Heart Rate (BPM)</span>
+                        <span style="font-size: 0.8rem;" id="base-hr">65</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-size: 0.8rem;">Max Heart Rate (BPM)</span>
+                        <span style="font-size: 0.8rem;" id="max-hr">185</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" style="background: linear-gradient(45deg, #f39c12, #d68910);">Pair Device</button>
+                    <button class="btn btn-stop">Stop HRM</button>
+                </div>
+
+                <div id="hrm-last-update" style="text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    Waiting for data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Section -->
+        <div class="log-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>📋 Connection Log</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button id="capture-specs-btn" style="background: #3498db; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">📊 Capture Device Specs</button>
+                    <button id="clear-log-btn" style="background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Clear</button>
+                </div>
+            </div>
+            <div class="log-content" id="log-content"></div>
         </div>
     </div>
 
-    <script>
-        function testWebUSBAgain() {
-            // Open the simple test page
-            window.open('simple-webusb-test.html', '_blank');
-        }
-    </script>
+    <!-- Load the modular JavaScript -->
+    <script type="module" src="js/core/app.js"></script>
 </body>
 </html>

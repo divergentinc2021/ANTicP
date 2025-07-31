@@ -6,15 +6,17 @@ import { logger } from './logger.js';
 import { platform } from './platform.js';
 import { ConnectionManager } from '../connections/connection-manager.js';
 import { UIManager } from '../ui/ui-manager.js';
+import { DeviceCaptureManager } from './device-capture.js';
 
 export class App {
     constructor() {
         this.connectionManager = new ConnectionManager();
         this.uiManager = new UIManager();
         this.sessionData = {
-            trainer: { distance: 0, startTime: null, maxPower: 0 },
-            hrm: { avgHR: 0, maxHR: 0, hrHistory: [] }
+            trainer: { distance: 0, startTime: null, maxPower: 0, avgPower: 0, totalEnergy: 0 },
+            hrm: { avgHR: 0, maxHR: 0, hrHistory: [], timeInZones: {} }
         };
+        this.deviceCapture = new DeviceCaptureManager(this.connectionManager, this.sessionData);
         this.initialized = false;
     }
 
@@ -216,10 +218,27 @@ export class App {
         this.uiManager.clearLog();
     }
 
-    handleCaptureSpecs() {
-        // This would implement the device specs capture functionality
-        logger.info('📊 Capturing device specifications...');
-        // Implementation would go here
+    async handleCaptureSpecs() {
+        logger.info('📊 Starting device specification capture...');
+        
+        try {
+            await this.deviceCapture.captureAllConnectedDevices();
+            
+            const stats = this.deviceCapture.getSessionStats();
+            if (stats.devicesConnected > 0) {
+                logger.info(`✅ Device capture completed!`);
+                logger.info(`📄 Generated files:`);
+                stats.availableFiles.forEach(file => {
+                    logger.info(`   • ${file.filename} (${file.deviceType})`);
+                });
+                logger.info(`📄 Session log: ant-session-log-${new Date().toISOString().split('T')[0]}.md`);
+            } else {
+                logger.warn('⚠️ No devices connected to capture');
+                logger.info('💡 Connect some devices first, then try capturing again');
+            }
+        } catch (error) {
+            logger.error(`❌ Device capture failed: ${error.message}`);
+        }
     }
 
     handleDeviceData(data) {
@@ -369,17 +388,41 @@ export class App {
         if (data.power > this.sessionData.trainer.maxPower) {
             this.sessionData.trainer.maxPower = data.power;
         }
+
+        // Calculate average power
+        if (data.power > 0) {
+            const currentAvg = this.sessionData.trainer.avgPower || 0;
+            const powerHistory = this.sessionData.trainer.powerHistory || [];
+            powerHistory.push(data.power);
+            
+            // Keep only last 20 power readings for moving average
+            if (powerHistory.length > 20) {
+                powerHistory.shift();
+            }
+            
+            this.sessionData.trainer.powerHistory = powerHistory;
+            this.sessionData.trainer.avgPower = Math.round(
+                powerHistory.reduce((a, b) => a + b, 0) / powerHistory.length
+            );
+        }
         
         if (this.sessionData.trainer.startTime) {
             const elapsedTime = Date.now() - this.sessionData.trainer.startTime;
             const speedKmh = parseFloat(data.speed) || 0;
             this.sessionData.trainer.distance += speedKmh * (1000 / 3600000);
             
+            // Calculate total energy (kJ)
+            if (data.power > 0) {
+                this.sessionData.trainer.totalEnergy += (data.power * (elapsedTime / 1000)) / 1000;
+            }
+            
             // Update UI with session data
             const sessionData = {
                 ...data,
                 distance: this.sessionData.trainer.distance.toFixed(2),
-                time: this.formatTime(elapsedTime)
+                time: this.formatTime(elapsedTime),
+                avgPower: this.sessionData.trainer.avgPower,
+                totalEnergy: Math.round(this.sessionData.trainer.totalEnergy)
             };
             
             this.uiManager.updateDeviceMetrics('trainer', sessionData);
@@ -398,14 +441,43 @@ export class App {
         if (heartRate > this.sessionData.hrm.maxHR) {
             this.sessionData.hrm.maxHR = heartRate;
         }
+
+        // Calculate HR zones (basic implementation)
+        const zones = this.calculateHRZones(heartRate);
+        if (!this.sessionData.hrm.timeInZones[zones.current]) {
+            this.sessionData.hrm.timeInZones[zones.current] = 0;
+        }
+        this.sessionData.hrm.timeInZones[zones.current] += 1; // increment by 1 second approximation
         
         const hrmData = {
             heartRate,
             avgHR: this.sessionData.hrm.avgHR,
-            maxHR: this.sessionData.hrm.maxHR
+            maxHR: this.sessionData.hrm.maxHR,
+            zone: zones.current
         };
         
         this.uiManager.updateDeviceMetrics('hrm', hrmData);
+    }
+
+    calculateHRZones(heartRate) {
+        // Basic HR zone calculation (using age-based max HR estimation)
+        const maxHR = 220 - 30; // Assuming 30 years old, should be configurable
+        const restingHR = 65;    // Should be configurable
+        
+        const hrReserve = maxHR - restingHR;
+        const intensity = (heartRate - restingHR) / hrReserve;
+        
+        let zone = 'recovery';
+        if (intensity > 0.85) zone = 'neuromuscular';
+        else if (intensity > 0.75) zone = 'vo2max';
+        else if (intensity > 0.65) zone = 'anaerobic';
+        else if (intensity > 0.55) zone = 'aerobic';
+        
+        return {
+            current: zone,
+            intensity: Math.round(intensity * 100),
+            zones: ['recovery', 'aerobic', 'anaerobic', 'vo2max', 'neuromuscular']
+        };
     }
 
     checkConnectionStatus() {

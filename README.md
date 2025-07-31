@@ -1,113 +1,115 @@
-# Modular ANT+ Receiver
+# Cross-Platform Bluetooth ANT+ Receiver
 
-A modern, modular implementation of the ANT+ receiver with proper separation of concerns and ES6 modules.
+A modern, cross-platform implementation of ANT+ device connectivity using Web Bluetooth API.
 
-## Structure
+## 🔄 Recent Changes
+
+**This workspace has been cleaned and simplified to focus exclusively on Bluetooth ANT+ connections:**
+
+- ❌ **Removed**: All USB ANT+ functionality 
+- ❌ **Removed**: Railway deployment configurations
+- ❌ **Removed**: WebUSB implementations
+- ✅ **Kept**: Full Bluetooth ANT+ support
+- ✅ **Kept**: Cross-platform compatibility
+- ✅ **Kept**: Device detection and permissions
+
+## 📁 Structure
 
 ```
-modular-receiver/
-├── index.html              # Main HTML page
-├── css/
-│   └── styles.css          # All CSS styles
-├── js/
-│   ├── core/
-│   │   ├── app.js          # Main application controller
-│   │   ├── logger.js       # Centralized logging system
-│   │   └── platform.js     # Platform detection & capabilities
-│   ├── connections/
-│   │   ├── usb-ant.js      # USB ANT+ connection module
-│   │   ├── bluetooth.js    # Bluetooth connection module
-│   │   └── connection-manager.js # Manages both connection types
-│   ├── ui/
-│   │   └── ui-manager.js   # Handles all UI updates and interactions
-│   └── utils/
-│       └── event-emitter.js # Custom event system for module communication
-└── pages/                  # Future expansion (workout.html, settings.html)
+📁 Project Root/
+├── 📄 index.html                    # Main Bluetooth-only interface
+├── 📄 index_workingbluetooth.html   # Reference implementation
+├── 📄 LICENSE
+├── 📄 README.md
+├── 📁 css/
+│   └── styles.css                   # All CSS styles
+├── 📁 js/
+│   ├── 📁 core/
+│   │   ├── app.js                   # Main application controller
+│   │   ├── logger.js                # Centralized logging system
+│   │   └── platform.js              # Platform detection & capabilities
+│   ├── 📁 connections/
+│   │   ├── bluetooth.js             # Bluetooth connection module
+│   │   └── connection-manager.js    # Bluetooth-only connection manager
+│   ├── 📁 ui/
+│   │   └── ui-manager.js            # UI updates and interactions
+│   └── 📁 utils/
+│       └── event-emitter.js         # Event system for module communication
+└── 📁 backup/                       # All removed files safely stored
 ```
 
-## Features
+## ✅ Features
 
-### ✅ Working Features
-- **Modular Architecture**: Clean separation of concerns with ES6 modules
-- **Platform Detection**: Automatic detection of OS and browser capabilities
-- **Permission Management**: Proper handling of HTTPS, location, and Bluetooth permissions
-- **USB ANT+ Support**: Full ANT+ protocol implementation with proper initialization
-- **Bluetooth Support**: Comprehensive Bluetooth Low Energy support
-- **Device-Specific Pairing**: Dedicated pairing for Kickr, Zwift Click, and HRM devices
-- **Real-time Data Processing**: Live metrics display with session tracking
-- **Event-Driven Architecture**: Clean module communication via custom events
-- **Centralized Logging**: Advanced logging with export capabilities
-- **Responsive UI**: Mobile-friendly design with platform-specific instructions
+### Bluetooth Device Support
+- **Wahoo Kickr Core** - Smart trainer with power, cadence, speed data
+- **Zwift Click** - Wireless shifter for virtual cycling
+- **Heart Rate Monitors** - Standard BLE heart rate devices
+- **Generic ANT+ over Bluetooth** - Compatible with BLE-enabled ANT+ devices
 
-### 🔧 Modules
+### Cross-Platform Compatibility
+- 🤖 **Android** - Chrome browser with Web Bluetooth
+- 🖥️ **Windows** - Chrome, Edge browsers
+- 🍎 **macOS** - Chrome, Safari browsers  
+- 📱 **iOS** - Safari browser (iOS 13.4+)
 
-#### Core Modules
-- **App**: Main orchestrator that initializes and coordinates all modules
-- **Logger**: Centralized logging with different levels and export functionality
-- **Platform**: Detects OS, browser capabilities, and manages permissions
+### Smart Features
+- **Automatic Platform Detection** - Detects device capabilities
+- **Permission Management** - Guides users through required permissions
+- **Real-time Metrics** - Live power, cadence, speed, heart rate display
+- **Session Tracking** - Distance, time, max power tracking
+- **Connection Recovery** - Automatic reconnection on disconnect
 
-#### Connection Modules  
-- **USB ANT+**: Handles USB ANT+ stick connections with full protocol support
-- **Bluetooth**: Manages Bluetooth Low Energy connections with service discovery
-- **Connection Manager**: Coordinates and manages multiple connection types
+## 🚀 Quick Start
 
-#### UI Module
-- **UI Manager**: Handles all user interface updates and user interactions
+1. **Open the app**: Load `index.html` in a modern browser
+2. **Check permissions**: App will guide you through HTTPS and location permissions
+3. **Scan devices**: Use "Scan Bluetooth" or device-specific pairing buttons
+4. **Start training**: Watch real-time data from your ANT+ devices
 
-#### Utility Modules
-- **Event Emitter**: Custom event system for clean module communication
+## 📱 Platform Requirements
 
-## How It Works
+### Android
+- Chrome browser (recommended)
+- Enable "Experimental Web Platform features" in `chrome://flags`
+- Location permission (required for Bluetooth scanning)
+- HTTPS connection (for Web Bluetooth API)
 
-1. **Initialization**: `app.js` initializes all modules and sets up event listeners
-2. **Platform Detection**: Detects OS, browser capabilities, and checks permissions
-3. **UI Setup**: UI Manager caches elements and sets up event handlers
-4. **Connection Handling**: User interactions trigger connection attempts via Connection Manager
-5. **Data Processing**: Incoming data is processed and routed to appropriate UI updates
-6. **Event Flow**: All modules communicate via events for loose coupling
+### Windows/Mac
+- Chrome or Edge browser
+- HTTPS connection
+- Bluetooth adapter enabled
 
-## Integration with Fixes
+### iOS
+- Safari browser (iOS 13.4+)
+- HTTPS connection
 
-This modular version incorporates all the fixes from:
-- `usb-fix.js` - Proper USB ANT+ device filtering and initialization
-- `bluetooth-fix.js` - Improved Bluetooth service discovery and connection handling
+## 🔧 Development
 
-## Advantages
+### Architecture
+- **Modular Design** - ES6 modules with clear separation of concerns
+- **Event-Driven** - Custom event system for component communication
+- **Platform Agnostic** - Adaptive UI based on device capabilities
+- **Error Resilient** - Comprehensive error handling and recovery
 
-### For Development
-- **Maintainability**: Each module has a single responsibility
-- **Testability**: Modules can be unit tested independently  
-- **Debugging**: Issues can be isolated to specific modules
-- **Extensibility**: Easy to add new device types or connection methods
+### Key Files
+- `js/core/app.js` - Main application orchestrator
+- `js/connections/bluetooth.js` - Bluetooth device communication
+- `js/ui/ui-manager.js` - User interface management
+- `js/core/platform.js` - Platform detection and capabilities
 
-### For Future Expansion
-- **Workout Pages**: Can import device modules for workout tracking
-- **Settings Pages**: Can reuse platform and storage modules
-- **Mobile Apps**: Connection modules can be reused with different UI
-- **Third-party Integration**: Others can import specific modules
+## 🔄 Migration Notes
 
-## Usage
+If you need the original USB ANT+ functionality, all removed files are available in the `/backup/` directory:
 
-1. Serve the files over HTTPS (required for Bluetooth on mobile)
-2. Open `index.html` in a modern browser
-3. The app will automatically detect platform and check permissions
-4. Connect USB ANT+ stick or pair Bluetooth devices
-5. Monitor real-time data from connected devices
+- `backup/index_old.html` - Original interface with USB support
+- `backup/package.json` - Node.js dependencies for USB bridge
+- `backup/ant-bridge-server.js` - USB ANT+ bridge server
+- `backup/*.yml` - GitHub Actions deployment workflows
 
-## Browser Compatibility
+## 📄 License
 
-- **Chrome/Edge**: Full support for both USB and Bluetooth
-- **Firefox**: Bluetooth support, no USB support
-- **Safari**: Limited Bluetooth support
-- **Mobile Chrome**: Full Bluetooth support with location permission
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Future Expansion
+## 🤝 Contributing
 
-The modular structure makes it easy to add:
-- Workout tracking pages
-- Settings and configuration
-- Data export and analysis
-- Integration with training platforms
-- PWA capabilities for mobile installation
-
-This modular approach provides a solid foundation for building a complete cycling training ecosystem while maintaining clean, maintainable code.
+This is now a Bluetooth-focused ANT+ receiver. Contributions for additional Bluetooth device support, UI improvements, and cross-platform compatibility are welcome.

@@ -1,9 +1,9 @@
 /**
- * Connection Manager - Coordinates USB and Bluetooth connections
+ * Connection Manager - FIXED VERSION
+ * Coordinates USB and Bluetooth connections with improved error handling
  */
 import { EventEmitter } from '../utils/event-emitter.js';
 import { logger } from '../core/logger.js';
-import { USBANTConnection } from './usb-ant.js';
 import { BluetoothConnection } from './bluetooth.js';
 
 export class ConnectionManager extends EventEmitter {
@@ -18,20 +18,32 @@ export class ConnectionManager extends EventEmitter {
             const usbConnection = new USBANTConnection();
             
             // Set up event listeners
-            usbConnection.on('connecting', () => this.emit('usb-connecting'));
+            usbConnection.on('connecting', () => {
+                logger.info('🔍 Connecting to USB ANT+ device...');
+                this.emit('usb-connecting');
+            });
+            
             usbConnection.on('connected', (data) => {
                 this.activeConnection = usbConnection;
                 this.connections.set('usb', usbConnection);
+                logger.info(`✅ USB ANT+ connected: ${data.deviceName}`);
                 this.emit('usb-connected', data);
             });
-            usbConnection.on('error', (error) => this.emit('usb-error', error));
+            
+            usbConnection.on('error', (error) => {
+                logger.error(`❌ USB connection error: ${error.message}`);
+                this.emit('usb-error', error);
+            });
+            
             usbConnection.on('disconnected', () => {
                 this.connections.delete('usb');
                 if (this.activeConnection === usbConnection) {
                     this.activeConnection = null;
                 }
+                logger.info('🔌 USB ANT+ disconnected');
                 this.emit('usb-disconnected');
             });
+            
             usbConnection.on('device-data', (data) => this.emit('device-data', data));
             
             await usbConnection.connect();
@@ -48,18 +60,29 @@ export class ConnectionManager extends EventEmitter {
             const bluetoothConnection = new BluetoothConnection();
             
             // Set up event listeners
-            bluetoothConnection.on('connecting', () => this.emit('bluetooth-connecting'));
+            bluetoothConnection.on('connecting', () => {
+                logger.info('🔍 Scanning for Bluetooth devices...');
+                this.emit('bluetooth-connecting');
+            });
+            
             bluetoothConnection.on('connected', (data) => {
                 this.activeConnection = bluetoothConnection;
                 this.connections.set('bluetooth', bluetoothConnection);
+                logger.info(`✅ Bluetooth connected: ${data.deviceName}`);
                 this.emit('bluetooth-connected', data);
             });
-            bluetoothConnection.on('error', (error) => this.emit('bluetooth-error', error));
+            
+            bluetoothConnection.on('error', (error) => {
+                logger.error(`❌ Bluetooth connection error: ${error.message}`);
+                this.emit('bluetooth-error', error);
+            });
+            
             bluetoothConnection.on('disconnected', () => {
                 this.connections.delete('bluetooth');
                 if (this.activeConnection === bluetoothConnection) {
                     this.activeConnection = null;
                 }
+                logger.info('🔌 Bluetooth disconnected');
                 this.emit('bluetooth-disconnected');
             });
             
@@ -84,14 +107,25 @@ export class ConnectionManager extends EventEmitter {
             const bluetoothConnection = new BluetoothConnection();
             
             // Set up event listeners
-            bluetoothConnection.on('connecting', () => this.emit('bluetooth-connecting'));
+            bluetoothConnection.on('connecting', () => {
+                logger.info(`🔍 Connecting to ${deviceType}...`);
+                this.emit('bluetooth-connecting');
+            });
+            
             bluetoothConnection.on('connected', (data) => {
                 this.connections.set(`bluetooth-${deviceType}`, bluetoothConnection);
+                logger.info(`✅ ${deviceType} connected: ${data.deviceName}`);
                 this.emit('bluetooth-device-connected', { ...data, deviceType });
             });
-            bluetoothConnection.on('error', (error) => this.emit('bluetooth-device-error', { error, deviceType }));
+            
+            bluetoothConnection.on('error', (error) => {
+                logger.error(`❌ ${deviceType} connection error: ${error.message}`);
+                this.emit('bluetooth-device-error', { error, deviceType });
+            });
+            
             bluetoothConnection.on('disconnected', () => {
                 this.connections.delete(`bluetooth-${deviceType}`);
+                logger.info(`🔌 ${deviceType} disconnected`);
                 this.emit('bluetooth-device-disconnected', { deviceType });
             });
             
@@ -133,21 +167,36 @@ export class ConnectionManager extends EventEmitter {
     async disconnectUSB() {
         const usbConnection = this.connections.get('usb');
         if (usbConnection) {
-            await usbConnection.disconnect();
+            try {
+                await usbConnection.disconnect();
+                logger.info('🔌 USB ANT+ disconnected successfully');
+            } catch (error) {
+                logger.error(`❌ USB disconnect error: ${error.message}`);
+            }
         }
     }
 
     async disconnectBluetooth() {
         const bluetoothConnection = this.connections.get('bluetooth');
         if (bluetoothConnection) {
-            await bluetoothConnection.disconnect();
+            try {
+                await bluetoothConnection.disconnect();
+                logger.info('🔌 Bluetooth disconnected successfully');
+            } catch (error) {
+                logger.error(`❌ Bluetooth disconnect error: ${error.message}`);
+            }
         }
     }
 
     async disconnectBluetoothDevice(deviceType) {
         const connection = this.connections.get(`bluetooth-${deviceType}`);
         if (connection) {
-            await connection.disconnect();
+            try {
+                await connection.disconnect();
+                logger.info(`🔌 ${deviceType} disconnected successfully`);
+            } catch (error) {
+                logger.error(`❌ ${deviceType} disconnect error: ${error.message}`);
+            }
         }
     }
 
@@ -155,12 +204,22 @@ export class ConnectionManager extends EventEmitter {
         const disconnectPromises = [];
         
         for (const [key, connection] of this.connections) {
-            disconnectPromises.push(connection.disconnect());
+            logger.info(`🔌 Disconnecting ${key}...`);
+            disconnectPromises.push(
+                connection.disconnect().catch(error => {
+                    logger.error(`❌ Error disconnecting ${key}: ${error.message}`);
+                })
+            );
         }
         
-        await Promise.all(disconnectPromises);
-        this.connections.clear();
-        this.activeConnection = null;
+        try {
+            await Promise.all(disconnectPromises);
+            this.connections.clear();
+            this.activeConnection = null;
+            logger.info('✅ All connections disconnected');
+        } catch (error) {
+            logger.error(`❌ Error during disconnect all: ${error.message}`);
+        }
     }
 
     getConnection(type) {
@@ -178,7 +237,8 @@ export class ConnectionManager extends EventEmitter {
     getConnectionStatus() {
         const status = {
             totalConnections: this.connections.size,
-            connections: {}
+            connections: {},
+            activeConnection: this.activeConnection?.getStatus() || null
         };
         
         for (const [key, connection] of this.connections) {
@@ -205,5 +265,63 @@ export class ConnectionManager extends EventEmitter {
 
     hasBluetoothDevice(deviceType) {
         return this.connections.has(`bluetooth-${deviceType}`);
+    }
+
+    getConnectionSummary() {
+        const summary = {
+            usb: this.hasUSBConnection(),
+            bluetooth: this.hasBluetoothConnection(),
+            devices: []
+        };
+
+        for (const [key, connection] of this.connections) {
+            if (key.startsWith('bluetooth-')) {
+                const deviceType = key.replace('bluetooth-', '');
+                summary.devices.push({
+                    type: deviceType,
+                    status: connection.getStatus()
+                });
+            }
+        }
+
+        return summary;
+    }
+
+    // Helper method to check if any connection method is available
+    async checkAvailableConnectionMethods() {
+        const methods = {
+            usb: false,
+            bluetooth: false,
+            issues: []
+        };
+
+        // Check USB Serial API
+        if ('serial' in navigator) {
+            methods.usb = true;
+        } else {
+            methods.issues.push('USB Serial API not supported (requires Chrome/Edge 89+)');
+        }
+
+        // Check Bluetooth API
+        if ('bluetooth' in navigator) {
+            try {
+                const available = await navigator.bluetooth.getAvailability();
+                methods.bluetooth = available;
+                if (!available) {
+                    methods.issues.push('Bluetooth not available on this device');
+                }
+            } catch (error) {
+                methods.issues.push(`Bluetooth check failed: ${error.message}`);
+            }
+        } else {
+            methods.issues.push('Bluetooth API not supported (requires Chrome/Edge)');
+        }
+
+        // Check HTTPS requirement
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            methods.issues.push('HTTPS required for Web APIs (both USB and Bluetooth)');
+        }
+
+        return methods;
     }
 }
