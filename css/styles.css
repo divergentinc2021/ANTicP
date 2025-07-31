@@ -176,7 +176,7 @@ body {
     padding: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    opacity: 0.6;
+    opacity: 1; /* FIXED: Removed overlay effect */
 }
 
 .device-card.receiving {
