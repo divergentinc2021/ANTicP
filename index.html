@@ -486,28 +486,38 @@
             }
         };
         
-        // Enhanced Gear System
+        // Fixed Gear System - Correct Road Bike Progression (42T/52T chainrings)
         const enhancedGearRatios = [
-            // Enhanced gear ratios for more realistic cycling
-            {front: 34, rear: 32, gear: 1, ratio: 1.06, description: 'Climbing'},
-            {front: 34, rear: 28, gear: 2, ratio: 1.21, description: 'Steep Hill'},
-            {front: 34, rear: 25, gear: 3, ratio: 1.36, description: 'Hill'},
-            {front: 34, rear: 23, gear: 4, ratio: 1.48, description: 'Rolling'},
-            {front: 34, rear: 21, gear: 5, ratio: 1.62, description: 'Rolling'},
-            {front: 34, rear: 19, gear: 6, ratio: 1.79, description: 'Flat'},
-            {front: 50, rear: 32, gear: 7, ratio: 1.56, description: 'Recovery'},
-            {front: 50, rear: 28, gear: 8, ratio: 1.79, description: 'Endurance'},
-            {front: 50, rear: 25, gear: 9, ratio: 2.00, description: 'Tempo'},
-            {front: 50, rear: 23, gear: 10, ratio: 2.17, description: 'Tempo'},
-            {front: 50, rear: 21, gear: 11, ratio: 2.38, description: 'Threshold'},
-            {front: 50, rear: 19, gear: 12, ratio: 2.63, description: 'Fast'},
-            {front: 50, rear: 17, gear: 13, ratio: 2.94, description: 'Racing'},
-            {front: 50, rear: 15, gear: 14, ratio: 3.33, description: 'Sprint'},
-            {front: 50, rear: 13, gear: 15, ratio: 3.85, description: 'High Speed'},
-            {front: 50, rear: 11, gear: 16, ratio: 4.55, description: 'Maximum'}
+            // Small chainring (42T) - Gears 1-12
+            {front: 42, rear: 30, gear: 1, ratio: 1.40, description: 'EASIEST - Climbing'},
+            {front: 42, rear: 28, gear: 2, ratio: 1.50, description: 'Steep Hill'},
+            {front: 42, rear: 26, gear: 3, ratio: 1.62, description: 'Hill'},
+            {front: 42, rear: 24, gear: 4, ratio: 1.75, description: 'Hill'},
+            {front: 42, rear: 23, gear: 5, ratio: 1.83, description: 'Rolling'},
+            {front: 42, rear: 21, gear: 6, ratio: 2.00, description: 'Rolling'},
+            {front: 42, rear: 19, gear: 7, ratio: 2.21, description: 'Flat'},
+            {front: 42, rear: 17, gear: 8, ratio: 2.47, description: 'Flat'},
+            {front: 42, rear: 15, gear: 9, ratio: 2.80, description: 'Fast'},
+            {front: 42, rear: 14, gear: 10, ratio: 3.00, description: 'Fast'},
+            {front: 42, rear: 13, gear: 11, ratio: 3.23, description: 'Very Fast'},
+            {front: 42, rear: 11, gear: 12, ratio: 3.82, description: 'Sprint'},
+            
+            // Big chainring (52T) - Gears 13-24
+            {front: 52, rear: 30, gear: 13, ratio: 1.73, description: 'Big Ring Start'},
+            {front: 52, rear: 28, gear: 14, ratio: 1.86, description: 'Endurance'},
+            {front: 52, rear: 26, gear: 15, ratio: 2.00, description: 'Tempo'},
+            {front: 52, rear: 24, gear: 16, ratio: 2.17, description: 'Tempo'},
+            {front: 52, rear: 23, gear: 17, ratio: 2.26, description: 'Threshold'},
+            {front: 52, rear: 21, gear: 18, ratio: 2.48, description: 'Threshold'},
+            {front: 52, rear: 19, gear: 19, ratio: 2.74, description: 'Fast'},
+            {front: 52, rear: 17, gear: 20, ratio: 3.06, description: 'Racing'},
+            {front: 52, rear: 15, gear: 21, ratio: 3.47, description: 'Racing'},
+            {front: 52, rear: 14, gear: 22, ratio: 3.71, description: 'Sprint'},
+            {front: 52, rear: 13, gear: 23, ratio: 4.00, description: 'High Speed'},
+            {front: 52, rear: 11, gear: 24, ratio: 4.73, description: 'HARDEST - Maximum'}
         ];
         
-        let currentGear = 1;
+        let currentGear = 12; // Start at gear 12 (middle gear - 42T/11T = 3.82 ratio)
         let maxGear = enhancedGearRatios.length;
         
         function changeGear(direction, source = 'virtual') {

@@ -1,5 +1,6 @@
 // Enhanced Zwift Click Real Device Integration - FIXED VERSION
 // This module handles real Zwift Click device input and translates it to virtual gear changes
+// BUT DOES NOT OVERRIDE THE ORIGINAL PAIRING - Let the original device selector work
 
 class ZwiftClickHandler {
     constructor() {
@@ -523,49 +524,21 @@ async function disconnectZwiftClickReal() {
     }
 }
 
-// Override the original pairDevice function for Zwift Click
-const originalPairDevice = window.pairDevice;
-window.pairDevice = function(deviceType) {
-    if (deviceType === 'zwift-click') {
-        console.log('🎮 Using enhanced Zwift Click pairing...');
-        // Try to connect to real Zwift Click device
-        pairZwiftClickReal().then(success => {
-            if (!success) {
-                console.log('⚠️ Real device pairing failed, trying standard Bluetooth...');
-                // Fallback to original pairing method
-                if (originalPairDevice) {
-                    originalPairDevice(deviceType);
-                }
-            }
-        });
-    } else {
-        // Use original pairing for other devices
-        if (originalPairDevice) {
-            originalPairDevice(deviceType);
-        }
-    }
-};
+// DON'T OVERRIDE THE ORIGINAL PAIRING FUNCTION
+// Let the original device-control.js handle the pairing with device selector
+// This enhanced handler is just available for additional functionality
 
-// Override the original disconnectDevice function for Zwift Click
-const originalDisconnectDevice = window.disconnectDevice;
-window.disconnectDevice = function(deviceType) {
-    if (deviceType === 'zwift-click') {
-        disconnectZwiftClickReal();
-    } else {
-        // Use original disconnect for other devices
-        if (originalDisconnectDevice) {
-            originalDisconnectDevice(deviceType);
-        }
-    }
-};
+// Export functions for direct use if needed
+window.pairZwiftClickReal = pairZwiftClickReal;
+window.disconnectZwiftClickReal = disconnectZwiftClickReal;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎮 Enhanced Zwift Click real device handler initialized');
+    console.log('🎮 Enhanced Zwift Click real device handler initialized (non-overriding version)');
     
     if (window.addConnectionLog) {
         window.addConnectionLog('🎮 Enhanced Zwift Click real device support loaded', 'info');
-        window.addConnectionLog('💡 Pair your Zwift Click to control gears with real button presses', 'info');
+        window.addConnectionLog('💡 Pair your Zwift Click using the main pair button for device selector', 'info');
     }
 });
 
