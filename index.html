@@ -164,8 +164,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-scan" id="pair-kickr-btn" onclick="pairDevice('kickr')" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🚴 Auto-Pair Kickr</button>
-                    <button class="btn btn-stop" id="disconnect-kickr-btn" onclick="disconnectDevice('kickr')" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
+                    <button class="btn btn-scan" id="pair-kickr-btn" onclick="pairEnhancedKickr()" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🚴 Enhanced Kickr</button>
+                    <button class="btn btn-stop" id="disconnect-kickr-btn" onclick="disconnectEnhancedKickr()" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
                 </div>
 
                 <div id="kickr-last-update" style="text-align: center; font-size: 0.85rem; color: #28a745; margin-top: 12px; font-weight: bold;">
@@ -967,5 +967,7 @@
     
     <!-- Load Simple Zwift Click Handler with Cycling Resistance System -->
     <script src="js/simple-zwift-click.js"></script>
+    <!-- Load Enhanced Kickr Core Handler with Service Discovery -->
+    <script src="js/enhanced-kickr-handler.js"></script>
 </body>
 </html>
