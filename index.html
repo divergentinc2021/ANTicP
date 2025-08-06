@@ -969,5 +969,266 @@
     <script src="js/simple-zwift-click.js"></script>
     <!-- Load Enhanced Kickr Core Handler with Service Discovery -->
     <script src="js/enhanced-kickr-handler.js"></script>
+    
+    <!-- CRITICAL FIXES SCRIPT - Fixes 24-gear system + Kickr data mapping -->
+    <script>
+    console.log('🔧 Loading Critical Fixes for Cycling Resistance System...');
+
+    // OVERRIDE 1: Replace the old 24-gear system with 8-level resistance
+    const cyclingResistanceSystem = {
+        currentLevel: 4,
+        minLevel: 1,
+        maxLevel: 8,
+        
+        levels: {
+            1: { resistance: '10%', description: 'Recovery - Very Easy', color: '#27ae60', power: 80 },
+            2: { resistance: '20%', description: 'Endurance - Easy', color: '#2ecc71', power: 120 },
+            3: { resistance: '35%', description: 'Aerobic - Moderate Easy', color: '#3498db', power: 160 },
+            4: { resistance: '50%', description: 'Tempo - Moderate', color: '#f39c12', power: 200 },
+            5: { resistance: '65%', description: 'Threshold - Hard', color: '#e67e22', power: 250 },
+            6: { resistance: '80%', description: 'VO2 Max - Very Hard', color: '#e74c3c', power: 300 },
+            7: { resistance: '90%', description: 'Anaerobic - Extremely Hard', color: '#c0392b', power: 350 },
+            8: { resistance: '100%', description: 'Maximum - All Out', color: '#8e44ad', power: 400 }
+        }
+    };
+
+    // OVERRIDE: Replace changeGear function with cycling resistance control
+    window.changeGear = function(direction, source = 'virtual') {
+        const previousLevel = cyclingResistanceSystem.currentLevel;
+        
+        if (direction === 'up' && cyclingResistanceSystem.currentLevel < cyclingResistanceSystem.maxLevel) {
+            cyclingResistanceSystem.currentLevel++;
+        } else if (direction === 'down' && cyclingResistanceSystem.currentLevel > cyclingResistanceSystem.minLevel) {
+            cyclingResistanceSystem.currentLevel--;
+        }
+        
+        if (previousLevel !== cyclingResistanceSystem.currentLevel) {
+            const levelInfo = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
+            
+            // Update UI with cycling resistance instead of gears
+            const gearDisplay = document.getElementById('zwift-gear');
+            const frontGear = document.getElementById('zwift-front-gear');
+            const rearGear = document.getElementById('zwift-rear-gear');
+            
+            if (gearDisplay) gearDisplay.textContent = cyclingResistanceSystem.currentLevel;
+            if (frontGear) frontGear.textContent = levelInfo.resistance;
+            if (rearGear) rearGear.textContent = `${levelInfo.power}W`;
+            
+            // Update labels
+            const frontLabel = frontGear?.parentElement.querySelector('.metric-label');
+            const rearLabel = rearGear?.parentElement.querySelector('.metric-label');
+            if (frontLabel) frontLabel.textContent = 'Resistance';
+            if (rearLabel) rearLabel.textContent = 'Target (W)';
+            
+            // Set target power on Kickr
+            const targetPowerEl = document.getElementById('kickr-target-power');
+            if (targetPowerEl) {
+                targetPowerEl.textContent = levelInfo.power;
+                targetPowerEl.style.color = levelInfo.color;
+            }
+            
+            const sourceText = source === 'real' ? '🎮 Real Zwift Click' : '🖱️ Virtual Control';
+            addConnectionLog(`🚴 Cycling Level: ${cyclingResistanceSystem.currentLevel} (${levelInfo.resistance} - ${levelInfo.description}) Target: ${levelInfo.power}W via ${sourceText}`, 'info');
+            
+            // Enhanced button feedback
+            const button = direction === 'up' ? 
+                document.getElementById('gear-up-btn') : 
+                document.getElementById('gear-down-btn');
+                
+            if (button) {
+                button.style.transform = 'scale(0.95)';
+                button.style.background = levelInfo.color;
+                setTimeout(() => {
+                    button.style.transform = '';
+                    button.style.background = '';
+                }, 300);
+            }
+        }
+    };
+
+    // OVERRIDE 2: Fix Zwift Click UI labels
+    function updateZwiftClickUI() {
+        const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
+        const frontGear = document.getElementById('zwift-front-gear');
+        const rearGear = document.getElementById('zwift-rear-gear');
+        
+        if (frontGear && rearGear) {
+            frontGear.textContent = currentLevel.resistance;
+            rearGear.textContent = `${currentLevel.power}W`;
+            
+            const frontLabel = frontGear.parentElement.querySelector('.metric-label');
+            const rearLabel = rearGear.parentElement.querySelector('.metric-label');
+            if (frontLabel) frontLabel.textContent = 'Resistance';
+            if (rearLabel) rearLabel.textContent = 'Target (W)';
+        }
+        
+        const gearDisplay = document.getElementById('zwift-gear');
+        if (gearDisplay) gearDisplay.textContent = cyclingResistanceSystem.currentLevel;
+    }
+
+    // OVERRIDE 3: Enhanced Kickr pairing with fixed data handling
+    window.pairEnhancedKickr = async function() {
+        console.log('🚴 Enhanced Kickr pairing with fixed data handling...');
+        
+        if (!navigator.bluetooth) {
+            addConnectionLog('❌ Bluetooth not available', 'error');
+            return;
+        }
+        
+        try {
+            addConnectionLog('🔍 Scanning for Wahoo Kickr Core...', 'info');
+            
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [
+                    { namePrefix: 'KICKR' },
+                    { namePrefix: 'Wahoo' },
+                    { services: [0x1826] },
+                    { services: [0x1818] }
+                ],
+                optionalServices: [0x1826, 0x1818, 0x1816, 0x180A, 0x180F]
+            });
+            
+            addConnectionLog(`✅ Found device: ${device.name || 'Kickr Core'}`, 'success');
+            window.deviceConnectionLogger.logConnection('kickr', 'connecting');
+            
+            const server = await device.gatt.connect();
+            addConnectionLog('🔗 Connected to Kickr Core', 'success');
+            
+            // Fixed data handler for proper parsing
+            let lastDistance = 0;
+            let lastTime = Date.now();
+            let sessionStartTime = Date.now();
+            
+            function parseAndUpdateKickrData(dataView) {
+                const data = {};
+                
+                try {
+                    if (dataView.byteLength >= 8) {
+                        const flags = dataView.getUint16(0, true);
+                        data.power = dataView.getUint16(2, true); // Power is at offset 2
+                        
+                        // Calculate estimated speed from power
+                        if (data.power > 0) {
+                            data.speed = Math.pow(data.power * 0.22 / 0.004, 1/3) * 3.6; // Power-to-speed formula
+                        }
+                    } else if (dataView.byteLength >= 4) {
+                        data.power = dataView.getUint16(2, true);
+                        if (data.power > 0) {
+                            data.speed = Math.pow(data.power * 0.22 / 0.004, 1/3) * 3.6;
+                        }
+                    }
+                    
+                    // Calculate distance and time
+                    const currentTime = Date.now();
+                    const timeDiffSeconds = (currentTime - lastTime) / 1000;
+                    
+                    if (data.speed && timeDiffSeconds > 0) {
+                        const distanceIncrement = (data.speed * timeDiffSeconds) / 3600;
+                        lastDistance += distanceIncrement;
+                        data.distance = parseFloat(lastDistance.toFixed(2));
+                    }
+                    
+                    data.time = Math.floor((currentTime - sessionStartTime) / 1000);
+                    lastTime = currentTime;
+                    
+                    // Update display
+                    if (data.power !== undefined) {
+                        document.getElementById('kickr-power-value').textContent = data.power;
+                    }
+                    if (data.speed !== undefined) {
+                        document.getElementById('kickr-speed-value').textContent = data.speed.toFixed(1);
+                    }
+                    if (data.distance !== undefined) {
+                        document.getElementById('kickr-distance-value').textContent = data.distance.toFixed(2);
+                    }
+                    if (data.time !== undefined) {
+                        const minutes = Math.floor(data.time / 60);
+                        const seconds = data.time % 60;
+                        document.getElementById('kickr-time-value').textContent = 
+                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Update resistance display
+                    const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
+                    document.getElementById('kickr-resistance-value').textContent = currentLevel.resistance;
+                    
+                    if (data.power && data.power > 0) {
+                        addConnectionLog(`🚴 Kickr: ${data.power}W, ${data.speed ? data.speed.toFixed(1) + ' km/h' : ''}, ${data.distance ? data.distance.toFixed(2) + ' km' : ''}`, 'info');
+                    }
+                    
+                } catch (error) {
+                    console.error('Data parsing error:', error);
+                }
+            }
+            
+            // Try to find and connect to power service
+            try {
+                const powerService = await server.getPrimaryService(0x1818);
+                const powerCharacteristic = await powerService.getCharacteristic(0x2A63);
+                
+                await powerCharacteristic.startNotifications();
+                addConnectionLog('📡 Monitoring Cycling Power data', 'success');
+                
+                powerCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    parseAndUpdateKickrData(event.target.value);
+                });
+                
+            } catch (powerError) {
+                try {
+                    const fitnessService = await server.getPrimaryService(0x1826);
+                    const fitnessCharacteristic = await fitnessService.getCharacteristic(0x2ACD);
+                    
+                    await fitnessCharacteristic.startNotifications();
+                    addConnectionLog('📡 Monitoring Fitness Machine data', 'success');
+                    
+                    fitnessCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+                        parseAndUpdateKickrData(event.target.value);
+                    });
+                    
+                } catch (fitnessError) {
+                    addConnectionLog('⚠️ No standard services found, using basic connection', 'warning');
+                }
+            }
+            
+            device.addEventListener('gattserverdisconnected', () => {
+                addConnectionLog('⚠️ Kickr disconnected', 'warning');
+                window.deviceConnectionLogger.logConnection('kickr', 'disconnected');
+            });
+            
+            window.kickrDevice = device;
+            window.deviceConnectionLogger.logConnection('kickr', 'connected', device.name);
+            
+            document.getElementById('kickr-last-update').textContent = '🚴 Enhanced Kickr connected';
+            document.getElementById('kickr-last-update').style.color = '#28a745';
+            
+        } catch (error) {
+            if (error.name === 'NotFoundError') {
+                addConnectionLog('⚠️ No Kickr device selected', 'warning');
+            } else {
+                addConnectionLog(`❌ Kickr pairing failed: ${error.message}`, 'error');
+                window.deviceConnectionLogger.logConnection('kickr', 'error', error.message);
+            }
+        }
+    };
+
+    // Apply fixes when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            updateZwiftClickUI();
+            
+            const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
+            const targetPowerEl = document.getElementById('kickr-target-power');
+            if (targetPowerEl) {
+                targetPowerEl.textContent = currentLevel.power;
+                targetPowerEl.style.color = currentLevel.color;
+            }
+            
+            addConnectionLog('🔧 Critical Fixes Applied: 8-Level Resistance System + Enhanced Data Parsing', 'success');
+            addConnectionLog('🚴 System now uses cycling resistance levels instead of gears', 'info');
+        }, 500);
+    });
+
+    console.log('✅ Critical Fixes Loaded Successfully');
+    </script>
 </body>
 </html>
