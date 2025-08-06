@@ -627,19 +627,19 @@
                     
                     const device = await navigator.bluetooth.requestDevice({
                         filters: [
-                            { services: ['1818'] }, // Cycling Power Service
+                            { services: ['00001818-0000-1000-8000-00805f9b34fb'] }, // ✅ FIXED - Full UUID for Cycling Power
                             { namePrefix: 'KICKR' },
                             { namePrefix: 'Wahoo' },
                             { namePrefix: 'Stages' },
                             { namePrefix: 'Quarq' },
                             { namePrefix: 'PowerTap' }
                         ],
-                        optionalServices: ['1818', '180f', '180a']
+                        optionalServices: ['00001818-0000-1000-8000-00805f9b34fb', '0000180f-0000-1000-8000-00805f9b34fb', '0000180a-0000-1000-8000-00805f9b34fb']
                     });
 
                     const server = await device.gatt.connect();
-                    const powerService = await server.getPrimaryService('1818');
-                    const powerChar = await powerService.getCharacteristic('2a63');
+                    const powerService = await server.getPrimaryService('00001818-0000-1000-8000-00805f9b34fb');
+                    const powerChar = await powerService.getCharacteristic('00002a63-0000-1000-8000-00805f9b34fb');
                     
                     await powerChar.startNotifications();
                     powerChar.addEventListener('characteristicvaluechanged', (event) => {
@@ -665,19 +665,19 @@
                     
                     const device = await navigator.bluetooth.requestDevice({
                         filters: [
-                            { services: ['1816'] }, // Cycling Speed and Cadence Service
+                            { services: ['00001816-0000-1000-8000-00805f9b34fb'] }, // ✅ FIXED - Full UUID for CSC
                             { namePrefix: 'KICKR' },
                             { namePrefix: 'Wahoo' },
                             { namePrefix: 'Garmin' },
                             { namePrefix: 'Bontrager' },
                             { namePrefix: 'Speed' }
                         ],
-                        optionalServices: ['1816', '180f', '180a']
+                        optionalServices: ['00001816-0000-1000-8000-00805f9b34fb', '0000180f-0000-1000-8000-00805f9b34fb', '0000180a-0000-1000-8000-00805f9b34fb']
                     });
 
                     const server = await device.gatt.connect();
-                    const cscService = await server.getPrimaryService('1816');
-                    const cscChar = await cscService.getCharacteristic('2a5b');
+                    const cscService = await server.getPrimaryService('00001816-0000-1000-8000-00805f9b34fb');
+                    const cscChar = await cscService.getCharacteristic('00002a5b-0000-1000-8000-00805f9b34fb');
                     
                     await cscChar.startNotifications();
                     cscChar.addEventListener('characteristicvaluechanged', (event) => {
@@ -703,18 +703,18 @@
                     
                     const device = await navigator.bluetooth.requestDevice({
                         filters: [
-                            { services: ['1816'] }, // Cycling Speed and Cadence Service
+                            { services: ['00001816-0000-1000-8000-00805f9b34fb'] }, // ✅ FIXED - Full UUID for CSC
                             { namePrefix: 'KICKR' },
                             { namePrefix: 'Wahoo' },
                             { namePrefix: 'Garmin' },
                             { namePrefix: 'Cadence' }
                         ],
-                        optionalServices: ['1816', '180f', '180a']
+                        optionalServices: ['00001816-0000-1000-8000-00805f9b34fb', '0000180f-0000-1000-8000-00805f9b34fb', '0000180a-0000-1000-8000-00805f9b34fb']
                     });
 
                     const server = await device.gatt.connect();
-                    const cscService = await server.getPrimaryService('1816');
-                    const cscChar = await cscService.getCharacteristic('2a5b');
+                    const cscService = await server.getPrimaryService('00001816-0000-1000-8000-00805f9b34fb');
+                    const cscChar = await cscService.getCharacteristic('00002a5b-0000-1000-8000-00805f9b34fb');
                     
                     await cscChar.startNotifications();
                     cscChar.addEventListener('characteristicvaluechanged', (event) => {
@@ -735,8 +735,9 @@
 
             async pairControls() {
                 try {
-                    this.log('🎮 Pairing Controls (Zwift Click)...');
+                    this.log('🎮 🎮 🎮 PAIRING ZWIFT CLICK WITH ENHANCED DEBUGGING 🎮 🎮 🎮');
                     this.updateSensorCard('controls', 'connecting');
+                    
                     
                     const device = await navigator.bluetooth.requestDevice({
                         filters: [
@@ -752,6 +753,8 @@
                     });
 
                     const server = await device.gatt.connect();
+                    this.log('📱 📱 📱 FOUND DEVICE: Zwift Click 📱 📱 📱');
+                    this.log('🔗 🔗 🔗 GATT SERVER CONNECTED 🔗 🔗 🔗');
                     const zwiftService = await server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
                     
                     // Get Zwift Click characteristics
@@ -799,18 +802,18 @@
                     
                     const device = await navigator.bluetooth.requestDevice({
                         filters: [
-                            { services: ['1826'] }, // Fitness Machine Service
+                            { services: ['00001826-0000-1000-8000-00805f9b34fb'] }, // ✅ FIXED - Full UUID for Fitness Machine
                             { namePrefix: 'KICKR' },
                             { namePrefix: 'Wahoo' },
                             { namePrefix: 'Tacx' },
                             { namePrefix: 'Elite' }
                         ],
-                        optionalServices: ['1826', '180f', '180a']
+                        optionalServices: ['00001826-0000-1000-8000-00805f9b34fb', '0000180f-0000-1000-8000-00805f9b34fb', '0000180a-0000-1000-8000-00805f9b34fb']
                     });
 
                     const server = await device.gatt.connect();
-                    const fitnessService = await server.getPrimaryService('1826');
-                    const controlChar = await fitnessService.getCharacteristic('2ad9'); // Fitness Machine Control Point
+                    const fitnessService = await server.getPrimaryService('00001826-0000-1000-8000-00805f9b34fb');
+                    const controlChar = await fitnessService.getCharacteristic('00002ad9-0000-1000-8000-00805f9b34fb'); // Fitness Machine Control Point
                     
                     this.sensorConnections.resistance = { 
                         device, server, service: fitnessService, controlChar 
