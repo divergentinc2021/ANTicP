@@ -1142,6 +1142,60 @@
                 }
             }
 
+            // FIXED: Start Zwift Click notifications after successful handshake
+            async startZwiftClickNotifications(measurementChar) {
+                try {
+                    await measurementChar.startNotifications();
+                    measurementChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleZwiftClickDataFixed(event.target.value);
+                    });
+                    this.log('✅ FIXED: Zwift Click notifications started after handshake');
+                } catch (error) {
+                    this.log(`❌ Failed to start Zwift Click notifications: ${error.message}`);
+                }
+            }
+
+            // FIXED: Handle Zwift Click data with proper protocol parsing
+            handleZwiftClickDataFixed(dataValue) {
+                const data = new Uint8Array(dataValue.buffer);
+                
+                // Log raw data for debugging
+                const hexData = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                this.log(`🔧 Zwift Click raw data: ${hexData}`);
+                
+                // FIXED: Check for protocol buffer message ID 0x23 (button press)
+                if (data.length > 0 && data[0] === 0x23) {
+                    this.log('🎮 Zwift Click button press message detected');
+                    
+                    // FIXED: Parse protocol buffer message for button state
+                    // The button state is in a bitmap format after the message ID
+                    if (data.length >= 5) {
+                        // Extract 32-bit bitmap (little endian)
+                        const buttonBitmap = data[1] | (data[2] << 8) | (data[3] << 16) | (data[4] << 24);
+                        
+                        // FIXED: Inverse logic - bit set to 0 means button is pressed
+                        const upPressed = !(buttonBitmap & 0x01);    // Bit 0 for up button
+                        const downPressed = !(buttonBitmap & 0x02);  // Bit 1 for down button
+                        
+                        if (upPressed) {
+                            this.gearUp();
+                            this.log(`🎮 FIXED: Zwift Click Gear Up pressed (bitmap: 0x${buttonBitmap.toString(16)})`);
+                        }
+                        
+                        if (downPressed) {
+                            this.gearDown();
+                            this.log(`🎮 FIXED: Zwift Click Gear Down pressed (bitmap: 0x${buttonBitmap.toString(16)})`);
+                        }
+                    }
+                } else if (data.length > 0 && (data[0] === 0x19 || data[0] === 0x15)) {
+                    // Idle/keepalive message - normal operation
+                    this.log(`🔄 Zwift Click keepalive: 0x${data[0].toString(16)}`);
+                } else {
+                    // Unknown message - still log for debugging
+                    this.log(`❓ Unknown Zwift Click message: ${hexData}`);
+                }
+            }
+
             // ============================================================================
             // REAL METRIC DISPLAY UPDATES
             // ============================================================================
