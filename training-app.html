@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CycleTracker Pro - Training Sessions & Device Management</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .training-card { border: 2px solid #28a745; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2); }
+        .session-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); } }
+        .nav-tabs { display: flex; background: #f8f9fa; border-radius: 10px; margin-bottom: 20px; }
+        .nav-tab { flex: 1; padding: 15px 20px; text-align: center; cursor: pointer; border-radius: 8px; margin: 5px; transition: all 0.3s; }
+        .nav-tab.active { background: #28a745; color: white; }
+        .nav-tab:hover { background: #e9ecef; }
+        .nav-tab.active:hover { background: #20c997; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .session-card { background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); border: 2px solid #28a745; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+        .strava-orange { background: #fc4c02; }
+        .device-status-connected { color: #28a745; }
+        .device-status-disconnected { color: #6c757d; }
+        .session-active { border-color: #ffc107; background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚴‍♂️ CycleTracker Pro</h1>
+            <p>Professional Training Sessions • Device Management • Strava Integration</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="switchTab('training')">
+                🎯 Training Sessions
+            </div>
+            <div class="nav-tab" onclick="switchTab('devices')">
+                📱 Devices
+            </div>
+            <div class="nav-tab" onclick="switchTab('history')">
+                📊 History
+            </div>
+            <div class="nav-tab" onclick="switchTab('profile')">
+                👤 Profile
+            </div>
+        </div>
+
+        <!-- Training Sessions Tab -->
+        <div id="training-tab" class="tab-content active">
+            <div class="session-card session-pulse" id="current-session-card">
+                <h2 style="color: #155724; margin-bottom: 15px;">🎯 Current Training Session</h2>
+                <div id="session-status" style="font-size: 1.1rem; color: #28a745; margin-bottom: 20px;">
+                    Ready to start training session
+                </div>
+                
+                <!-- Session Controls -->
+                <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 25px;">
+                    <button id="start-session-btn" onclick="startTrainingSession()" style="background: linear-gradient(45deg, #28a745, #20c997); color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                        ▶️ Start Session
+                    </button>
+                    <button id="pause-session-btn" onclick="pauseTrainingSession()" disabled style="background: #ffc107; color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.2rem;">
+                        ⏸️ Pause
+                    </button>
+                    <button id="stop-session-btn" onclick="stopTrainingSession()" disabled style="background: #dc3545; color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.2rem;">
+                        ⏹️ Stop & Save
+                    </button>
+                </div>
+
+                <!-- Live Metrics -->
+                <div class="metric-grid">
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-power" style="color: #e74c3c; font-size: 2.5rem;">---</div>
+                        <div class="metric-label">Power (W)</div>
+                    </div>
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-speed" style="color: #9b59b6; font-size: 2.5rem;">---</div>
+                        <div class="metric-label">Speed (km/h)</div>
+                    </div>
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-cadence" style="color: #3498db; font-size: 2.5rem;">---</div>
+                        <div class="metric-label">Cadence (RPM)</div>
+                    </div>
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-hr" style="color: #e74c3c; font-size: 2.5rem;">---</div>
+                        <div class="metric-label">Heart Rate (BPM)</div>
+                    </div>
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-distance" style="color: #1abc9c; font-size: 2.5rem;">0.0</div>
+                        <div class="metric-label">Distance (km)</div>
+                    </div>
+                    <div class="metric training-card">
+                        <div class="metric-value" id="session-time" style="color: #34495e; font-size: 2.5rem;">00:00</div>
+                        <div class="metric-label">Duration</div>
+                    </div>
+                </div>
+
+                <!-- Resistance Control -->
+                <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h3 style="color: #2c3e50; margin-bottom: 15px;">🎮 Training Resistance Control</h3>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 30px;">
+                        <button id="resistance-down" onclick="changeResistance('down')" style="background: linear-gradient(45deg, #6c757d, #5a6268); width: 60px; height: 60px; border-radius: 50%; font-size: 1.8rem; border: none; color: white; cursor: pointer;">-</button>
+                        <div style="text-align: center;">
+                            <div id="resistance-level" style="font-size: 3.5rem; font-weight: bold; color: #f39c12;">4</div>
+                            <div style="font-size: 1rem; color: #666;">Resistance Level</div>
+                            <div id="resistance-description" style="font-size: 0.9rem; color: #28a745; margin-top: 5px;">Tempo - Moderate</div>
+                        </div>
+                        <button id="resistance-up" onclick="changeResistance('up')" style="background: linear-gradient(45deg, #6c757d, #5a6268); width: 60px; height: 60px; border-radius: 50%; font-size: 1.8rem; border: none; color: white; cursor: pointer;">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Session Types -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px;">
+                <div class="session-card" onclick="selectSessionType('endurance')" style="cursor: pointer;">
+                    <h4 style="color: #155724;">🚴 Endurance Training</h4>
+                    <p style="color: #666;">60-120 min steady-state riding</p>
+                </div>
+                <div class="session-card" onclick="selectSessionType('intervals')" style="cursor: pointer;">
+                    <h4 style="color: #155724;">⚡ Interval Training</h4>
+                    <p style="color: #666;">High-intensity interval sessions</p>
+                </div>
+                <div class="session-card" onclick="selectSessionType('recovery')" style="cursor: pointer;">
+                    <h4 style="color: #155724;">🧘 Recovery Ride</h4>
+                    <p style="color: #666;">Easy spinning and recovery</p>
+                </div>
+                <div class="session-card" onclick="selectSessionType('custom')" style="cursor: pointer;">
+                    <h4 style="color: #155724;">🎯 Custom Session</h4>
+                    <p style="color: #666;">Create your own workout</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devices Tab -->
+        <div id="devices-tab" class="tab-content">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">📱 Connected Devices</h2>
+            
+            <!-- Auto-Connect Button -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button id="auto-connect-all" onclick="autoConnectDevices()" style="background: linear-gradient(45deg, #28a745, #20c997); color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                    🚀 Auto-Connect All Devices
+                </button>
+            </div>
+            
+            <!-- Device Status Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Kickr Card -->
+                <div class="device-card training-card" id="kickr-device-card">
+                    <div class="device-header">
+                        <div class="device-icon" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e); font-size: 1.5rem;">🚴</div>
+                        <div>
+                            <div class="device-title">Wahoo Kickr Core</div>
+                            <div class="device-status">
+                                <span class="status-indicator" id="kickr-status-indicator" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #6c757d; margin-right: 8px;"></span>
+                                <span id="kickr-connection-status" class="device-status-disconnected">Not Connected</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                                <span id="kickr-device-name">No device detected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button id="connect-kickr-btn" onclick="connectDevice('kickr')" class="btn btn-scan" style="flex: 1;">🔗 Connect Kickr</button>
+                        <button id="disconnect-kickr-btn" onclick="disconnectDevice('kickr')" class="btn btn-stop" style="flex: 1;" disabled>Disconnect</button>
+                    </div>
+                </div>
+
+                <!-- Heart Rate Monitor -->
+                <div class="device-card training-card" id="hrm-device-card">
+                    <div class="device-header">
+                        <div class="device-icon" style="background: linear-gradient(45deg, #e74c3c, #c0392b); font-size: 1.5rem;">❤️</div>
+                        <div>
+                            <div class="device-title">Heart Rate Monitor</div>
+                            <div class="device-status">
+                                <span class="status-indicator" id="hrm-status-indicator" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #6c757d; margin-right: 8px;"></span>
+                                <span id="hrm-connection-status" class="device-status-disconnected">Not Connected</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                                <span id="hrm-device-name">No device detected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button id="connect-hrm-btn" onclick="connectDevice('hrm')" class="btn btn-scan" style="flex: 1;">❤️ Connect HRM</button>
+                        <button id="disconnect-hrm-btn" onclick="disconnectDevice('hrm')" class="btn btn-stop" style="flex: 1;" disabled>Disconnect</button>
+                    </div>
+                </div>
+
+                <!-- Zwift Click -->
+                <div class="device-card training-card" id="zwift-device-card">
+                    <div class="device-header">
+                        <div class="device-icon" style="background: linear-gradient(45deg, #28a745, #20c997); font-size: 1.5rem;">⚡</div>
+                        <div>
+                            <div class="device-title">Zwift Click</div>
+                            <div class="device-status">
+                                <span class="status-indicator" id="zwift-status-indicator" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #6c757d; margin-right: 8px;"></span>
+                                <span id="zwift-connection-status" class="device-status-disconnected">Not Connected</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                                <span id="zwift-device-name">No device detected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button id="connect-zwift-btn" onclick="connectDevice('zwift-click')" class="btn btn-scan" style="flex: 1;">⚡ Connect Click</button>
+                        <button id="disconnect-zwift-btn" onclick="disconnectDevice('zwift-click')" class="btn btn-stop" style="flex: 1;" disabled>Disconnect</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Log -->
+            <div style="background: #2d3748; color: #e2e8f0; border: 2px solid #4a5568; padding: 20px; height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85rem; border-radius: 8px; margin-top: 20px;">
+                <div id="device-connection-log">Device connection log will appear here...</div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">📊 Training History</h2>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button onclick="syncWithStrava()" class="strava-orange" style="color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    🔄 Sync with Strava
+                </button>
+                <button onclick="exportData()" style="background: #17a2b8; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    📤 Export Data
+                </button>
+                <button onclick="viewStats()" style="background: #6f42c1; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    📈 View Stats
+                </button>
+            </div>
+
+            <!-- Session Statistics -->
+            <div class="metric-grid" style="margin-bottom: 30px;">
+                <div class="metric training-card">
+                    <div class="metric-value" style="color: #28a745; font-size: 2rem;">15</div>
+                    <div class="metric-label">Sessions This Month</div>
+                </div>
+                <div class="metric training-card">
+                    <div class="metric-value" style="color: #e74c3c; font-size: 2rem;">245</div>
+                    <div class="metric-label">Avg Power (W)</div>
+                </div>
+                <div class="metric training-card">
+                    <div class="metric-value" style="color: #1abc9c; font-size: 2rem;">287</div>
+                    <div class="metric-label">Total Distance (km)</div>
+                </div>
+                <div class="metric training-card">
+                    <div class="metric-value" style="color: #f39c12; font-size: 2rem;">18:45</div>
+                    <div class="metric-label">Total Time (hrs)</div>
+                </div>
+            </div>
+
+            <!-- Recent Sessions -->
+            <h3 style="color: #2c3e50; margin-bottom: 15px;">Recent Sessions</h3>
+            <div id="session-history">
+                <div class="session-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="color: #155724; margin: 0;">⚡ Interval Training</h4>
+                            <p style="color: #666; margin: 5px 0;">45 min • 280W avg • 162 BPM avg</p>
+                            <small style="color: #999;">Yesterday, 6:30 PM</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">18.5 km</div>
+                            <button onclick="viewSession('session1')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 5px;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="session-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="color: #155724; margin: 0;">🚴 Endurance Ride</h4>
+                            <p style="color: #666; margin: 5px 0;">90 min • 220W avg • 148 BPM avg</p>
+                            <small style="color: #999;">Monday, 7:00 AM</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">42.1 km</div>
+                            <button onclick="viewSession('session2')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 5px;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="session-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="color: #155724; margin: 0;">🧘 Recovery Ride</h4>
+                            <p style="color: #666; margin: 5px 0;">30 min • 150W avg • 125 BPM avg</p>
+                            <small style="color: #999;">Sunday, 10:00 AM</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #28a745;">12.3 km</div>
+                            <button onclick="viewSession('session3')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 5px;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profile-tab" class="tab-content">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">👤 Profile Settings</h2>
+            
+            <!-- Firebase Auth Status -->
+            <div class="session-card">
+                <h3 style="color: #155724; margin-bottom: 15px;">🔐 Account Status</h3>
+                <div id="auth-status" style="font-size: 1.1rem; color: #28a745; margin-bottom: 15px;">
+                    Not signed in
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button id="sign-in-btn" onclick="signIn()" style="background: #4285f4; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        Sign In with Google
+                    </button>
+                    <button id="sign-out-btn" onclick="signOut()" style="background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;" disabled>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="session-card">
+                <h3 style="color: #155724; margin-bottom: 15px;">📝 Athlete Profile</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Age</label>
+                        <input type="number" id="user-age" placeholder="Enter your age" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Weight (kg)</label>
+                        <input type="number" id="user-weight" placeholder="Enter your weight" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Max HR (BPM)</label>
+                        <input type="number" id="user-max-hr" placeholder="Enter max heart rate" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">FTP (W)</label>
+                        <input type="number" id="user-ftp" placeholder="Functional Threshold Power" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                </div>
+                <button onclick="saveProfile()" style="background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px;">
+                    💾 Save Profile
+                </button>
+            </div>
+
+            <!-- Strava Integration -->
+            <div class="session-card">
+                <h3 style="color: #155724; margin-bottom: 15px;">🔗 Integrations</h3>
+                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="https://developers.strava.com/images/powered-by-strava-logo.png" alt="Strava" style="height: 30px;">
+                        <span id="strava-status" style="color: #666;">Not connected</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button id="connect-strava-btn" onclick="connectStrava()" class="strava-orange" style="color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        Connect to Strava
+                    </button>
+                    <button id="disconnect-strava-btn" onclick="disconnectStrava()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;" disabled>
+                        Disconnect Strava
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+
+    <!-- Main Application JavaScript -->
+    <script src="js/training-app.js"></script>
+    <script src="js/device-manager.js"></script>
+    <script src="js/session-manager.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/strava-integration.js"></script>
+</body>
+</html>
