@@ -215,8 +215,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-scan" id="pair-zwift-btn" onclick="pairDevice('zwift-click')" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🎮 Auto-Pair Click</button>
-                    <button class="btn btn-stop" id="disconnect-zwift-btn" onclick="disconnectDevice('zwift-click')" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
+                    <button class="btn btn-scan" id="pair-zwift-btn" onclick="pairSimpleZwiftClick()" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🎮 Pair Real Click</button>
+                    <button class="btn btn-stop" id="disconnect-zwift-btn" onclick="disconnectSimpleZwiftClick()" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
                 </div>
 
                 <div id="zwift-last-update" style="text-align: center; font-size: 0.85rem; color: #155724; margin-top: 12px; font-weight: bold;">
@@ -964,5 +964,8 @@
             }
         }, 5000);
     </script>
+    
+    <!-- Load Simple Zwift Click Handler with Cycling Resistance System -->
+    <script src="js/simple-zwift-click.js"></script>
 </body>
 </html>
