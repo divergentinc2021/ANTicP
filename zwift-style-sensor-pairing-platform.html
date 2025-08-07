@@ -797,7 +797,7 @@
 
             async pairResistance() {
                 try {
-                    this.log('🎚️ Pairing Controllable Trainer...');
+                    this.log('🎚️ 🚴 🔄 Pairing Smart Trainer (Resistance + Speed + Cadence)...');
                     this.updateSensorCard('resistance', 'connecting');
                     
                     const device = await navigator.bluetooth.requestDevice({
@@ -813,7 +813,29 @@
 
                     const server = await device.gatt.connect();
                     const fitnessService = await server.getPrimaryService('00001826-0000-1000-8000-00805f9b34fb');
+                    
+                    // Get control characteristic for resistance
                     const controlChar = await fitnessService.getCharacteristic('00002ad9-0000-1000-8000-00805f9b34fb'); // Fitness Machine Control Point
+                    
+                    // 🚀 NEW: Get Indoor Bike Data characteristic for speed/cadence from FTMS
+                    try {
+                        const indoorBikeDataChar = await fitnessService.getCharacteristic('00002ad2-0000-1000-8000-00805f9b34fb'); // Indoor Bike Data
+                        this.log('🎯 🎯 🎯 FOUND INDOOR BIKE DATA CHARACTERISTIC - EXTRACTING SPEED/CADENCE 🎯 🎯 🎯');
+                        
+                        await indoorBikeDataChar.startNotifications();
+                        indoorBikeDataChar.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handleFTMSIndoorBikeData(event.target.value);
+                        });
+                        
+                        // Mark speed and cadence as connected since we're getting them from FTMS
+                        this.updateSensorCard('speed', 'connected', `${device.name} (FTMS)`);
+                        this.updateSensorCard('cadence', 'connected', `${device.name} (FTMS)`);
+                        this.log('✅ 🚴 Speed source via FTMS: ' + device.name);
+                        this.log('✅ 🔄 Cadence source via FTMS: ' + device.name);
+                        
+                    } catch (indoorBikeError) {
+                        this.log(`⚠️ Indoor Bike Data not available: ${indoorBikeError.message}`);
+                    }
                     
                     this.sensorConnections.resistance = { 
                         device, server, service: fitnessService, controlChar 
@@ -821,7 +843,7 @@
                     
                     this.updateSensorCard('resistance', 'connected', device.name);
                     this.log(`✅ Controllable trainer paired: ${device.name}`);
-                    this.showNotification('success', `Controllable trainer paired: ${device.name}`);
+                    this.showNotification('success', `Smart trainer paired: ${device.name} (Resistance + Speed + Cadence)`);
                     
                 } catch (error) {
                     this.updateSensorCard('resistance', 'error');
