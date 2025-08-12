@@ -3,1232 +3,1231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Cross-Platform Bluetooth ANT+ Receiver</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>ANTicP - Smart Trainer Control Platform</title>
     <style>
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .enhanced-card { border: 2px solid #28a745; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2); }
-        .auto-connect-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); } }
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --zwift-orange: #fc5200;
+            --zwift-blue: #0074d9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--zwift-orange), var(--zwift-blue));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* ZWIFT-STYLE SENSOR PAIRING */
+        .sensor-pairing-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .pairing-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .sensor-card {
+            background: var(--zwift-blue);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 116, 217, 0.3);
+        }
+
+        .sensor-card.connected {
+            background: var(--success-color);
+        }
+
+        .sensor-card.connecting {
+            background: var(--warning-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .sensor-card.error {
+            background: var(--danger-color);
+        }
+
+        .sensor-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .sensor-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .sensor-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .sensor-unit {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .sensor-status {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sensor-status.connected::before {
+            content: "✓ ";
+            color: #4ade80;
+        }
+
+        .pair-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--zwift-orange);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .pair-btn:hover {
+            background: #e04500;
+            transform: translateY(-2px);
+        }
+
+        .pair-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* LIVE METRICS PANEL */
+        .metrics-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .metric-item.live-data {
+            background: rgba(40, 167, 69, 0.1);
+            border: 2px solid var(--success-color);
+            animation: live-pulse 2s infinite;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .last-update {
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        /* RESISTANCE CONTROL */
+        .resistance-control {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .resistance-slider {
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .resistance-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--zwift-orange);
+        }
+
+        /* SESSION CONTROLS */
+        .session-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-zwift {
+            background: var(--zwift-orange);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ACTIVITY LOG */
+        .log-panel {
+            background: #1a1a1a;
+            color: #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        /* ANIMATIONS */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { 
+                border-color: var(--success-color);
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+            }
+            50% { 
+                border-color: #4ade80;
+                box-shadow: 0 0 10px 5px rgba(40, 167, 69, 0.2);
+            }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .session-controls {
+                flex-direction: column;
+            }
+        }
+
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        .notification.info {
+            background: var(--info-color);
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>📡 Enhanced Cross-Platform Bluetooth ANT+ Receiver</h1>
-            <p>Auto-Connect + Real Device Support + Enhanced Serial Bridge</p>
+            <h1>🚴 ANTicP - Smart Trainer Control</h1>
+            <p>Professional training platform for Wahoo KICKR Core & Zwift Click</p>
         </div>
 
-        <!-- Enhanced Auto-Connect Section -->
-        <div class="ready-section auto-connect-pulse" style="text-align: center; padding: 25px; background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); border-radius: 15px; margin-bottom: 30px; border: 2px solid #28a745;">
-            <h2 style="color: #155724; margin-bottom: 15px;">🚴‍♂️ Enhanced Auto-Connect System</h2>
-            <p style="color: #155724; margin-bottom: 10px;">Automatic Bluetooth Serial Detection & Real Device Integration</p>
-            <p style="color: #28a745; margin-bottom: 25px; font-weight: bold; font-size: 1.1rem;">🎮 NEW: Real Zwift Click + Auto Serial Bridge + Enhanced Simulator</p>
-            <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button id="auto-connect-btn" style="background: linear-gradient(45deg, #28a745, #20c997); color: white; border: none; padding: 15px 30px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">🚀 Auto Connect All</button>
-                <button id="serial-permissions-cog" style="background: linear-gradient(45deg, #8e44ad, #9b59b6); color: white; border: none; padding: 15px 20px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);">⚙️</button>
-            </div>
-            <div style="font-size: 0.9rem; color: #666;">Click "Auto Connect All" to automatically discover and pair all your fitness devices</div>
-        </div>
+        <!-- Sensor Pairing Panel -->
+        <div class="sensor-pairing-panel">
+            <h2 class="pairing-title">📡 SENSOR CONNECTIONS</h2>
+            
+            <div class="sensor-grid">
+                <!-- Smart Trainer (All-in-One) -->
+                <div class="sensor-card" id="trainer-sensor-card">
+                    <div class="sensor-label">Smart Trainer</div>
+                    <div class="sensor-icon">🚴</div>
+                    <div class="sensor-value" id="trainer-sensor-value">--</div>
+                    <div class="sensor-unit">KICKR Core</div>
+                    <div class="sensor-status" id="trainer-sensor-status">Not connected</div>
+                    <button class="pair-btn" id="pair-trainer-btn">🔗 Connect KICKR Core</button>
+                </div>
 
-        <!-- Auto Connect Status Bar -->
-        <div id="auto-connect-status" style="display: none; background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); border: 2px solid #28a745; padding: 20px; border-radius: 15px; margin-bottom: 25px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="auto-connect-spinner" style="width: 25px; height: 25px; border: 3px solid #28a745; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; color: #155724; font-size: 1.1rem;">🤖 Auto-Connecting Devices...</div>
-                    <div id="auto-connect-progress" style="font-size: 1rem; color: #28a745; margin-top: 5px;">Initializing enhanced connection system...</div>
+                <!-- Power -->
+                <div class="sensor-card" id="power-sensor-card">
+                    <div class="sensor-label">Power</div>
+                    <div class="sensor-icon">⚡</div>
+                    <div class="sensor-value" id="power-sensor-value">--</div>
+                    <div class="sensor-unit">watts</div>
+                    <div class="sensor-status" id="power-sensor-status">Via trainer</div>
+                </div>
+
+                <!-- Speed -->
+                <div class="sensor-card" id="speed-sensor-card">
+                    <div class="sensor-label">Speed</div>
+                    <div class="sensor-icon">🚴</div>
+                    <div class="sensor-value" id="speed-sensor-value">--</div>
+                    <div class="sensor-unit">km/h</div>
+                    <div class="sensor-status" id="speed-sensor-status">Via trainer</div>
+                </div>
+
+                <!-- Cadence -->
+                <div class="sensor-card" id="cadence-sensor-card">
+                    <div class="sensor-label">Cadence</div>
+                    <div class="sensor-icon">🔄</div>
+                    <div class="sensor-value" id="cadence-sensor-value">--</div>
+                    <div class="sensor-unit">rpm</div>
+                    <div class="sensor-status" id="cadence-sensor-status">Via trainer</div>
+                </div>
+
+                <!-- Zwift Click -->
+                <div class="sensor-card" id="controls-sensor-card">
+                    <div class="sensor-label">Zwift Click</div>
+                    <div class="sensor-icon">🎮</div>
+                    <div class="sensor-value" id="controls-sensor-value">--</div>
+                    <div class="sensor-unit">gear</div>
+                    <div class="sensor-status" id="controls-sensor-status">Not connected</div>
+                    <button class="pair-btn" id="pair-controls-btn">🔗 Connect Zwift Click</button>
+                </div>
+
+                <!-- Heart Rate -->
+                <div class="sensor-card" id="hr-sensor-card">
+                    <div class="sensor-label">Heart Rate</div>
+                    <div class="sensor-icon">❤️</div>
+                    <div class="sensor-value" id="hr-sensor-value">--</div>
+                    <div class="sensor-unit">bpm</div>
+                    <div class="sensor-status" id="hr-sensor-status">Not connected</div>
+                    <button class="pair-btn" id="pair-hr-btn">🔗 Connect HR Monitor</button>
                 </div>
             </div>
         </div>
 
-        <!-- Enhanced Device Manager Modal -->
-        <div id="serial-modal" class="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000;">
-            <div class="settings-content" style="background: white; margin: 30px auto; padding: 25px; border-radius: 15px; max-width: 950px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #28a745; padding-bottom: 15px;">
-                    <h3 style="margin: 0; color: #28a745; font-size: 1.5rem;">🚀 Enhanced Device Manager</h3>
-                    <button id="close-serial-modal" style="background: #dc3545; color: white; border: none; font-size: 1.2rem; cursor: pointer; padding: 8px 12px; border-radius: 50%;">✕</button>
+        <!-- Live Metrics Display -->
+        <div class="metrics-panel">
+            <h2 style="text-align: center; margin-bottom: 25px;">📊 Live Training Metrics</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-item" id="live-power-metric">
+                    <div class="metric-value" id="live-power-display">--</div>
+                    <div class="metric-label">Power (W)</div>
+                    <div class="last-update" id="power-last-update">Waiting for data</div>
                 </div>
                 
-                <!-- System Status -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px;">
-                    <div id="https-status" style="padding: 15px; border: 2px solid #ddd; border-radius: 10px; text-align: center; background: #f8f9fa;">
-                        <div style="font-size: 1.5rem; margin-bottom: 5px;">🔒</div>
-                        <strong>HTTPS Security</strong><br>
-                        <span id="https-result" style="font-weight: bold;">Checking...</span>
-                    </div>
-                    <div id="bluetooth-status" style="padding: 15px; border: 2px solid #ddd; border-radius: 10px; text-align: center; background: #f8f9fa;">
-                        <div style="font-size: 1.5rem; margin-bottom: 5px;">📶</div>
-                        <strong>Bluetooth API</strong><br>
-                        <span id="bluetooth-result" style="font-weight: bold;">Checking...</span>
-                    </div>
-                    <div id="serial-status" style="padding: 15px; border: 2px solid #ddd; border-radius: 10px; text-align: center; background: #f8f9fa;">
-                        <div style="font-size: 1.5rem; margin-bottom: 5px;">🔌</div>
-                        <strong>Serial Bridge</strong><br>
-                        <span id="serial-result" style="font-weight: bold;">Checking...</span>
-                    </div>
-                    <div id="location-status" style="padding: 15px; border: 2px solid #ddd; border-radius: 10px; text-align: center; background: #f8f9fa;">
-                        <div style="font-size: 1.5rem; margin-bottom: 5px;">📍</div>
-                        <strong>Location Access</strong><br>
-                        <span id="location-result" style="font-weight: bold;">Checking...</span>
-                    </div>
+                <div class="metric-item" id="live-speed-metric">
+                    <div class="metric-value" id="live-speed-display">--</div>
+                    <div class="metric-label">Speed (km/h)</div>
+                    <div class="last-update" id="speed-last-update">Waiting for data</div>
                 </div>
                 
-                <!-- Auto Connect Features -->
-                <div style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 2px solid #28a745;">
-                    <h4 style="margin-top: 0; color: #155724; font-size: 1.3rem;">🤖 Enhanced Auto-Connection System</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px;">
-                        <button id="auto-pair-bluetooth-serial" style="padding: 12px 16px; border: none; border-radius: 8px; background: linear-gradient(45deg, #007bff, #0056b3); color: white; cursor: pointer; font-weight: bold;">🔗 Auto Pair Serial</button>
-                        <button id="scan-available-devices" style="padding: 12px 16px; border: none; border-radius: 8px; background: linear-gradient(45deg, #28a745, #1e7e34); color: white; cursor: pointer; font-weight: bold;">📡 Scan All Devices</button>
-                        <button id="test-kickr-simulator" style="padding: 12px 16px; border: none; border-radius: 8px; background: linear-gradient(45deg, #e67e22, #d35400); color: white; cursor: pointer; font-weight: bold;">🚴 Launch Simulator</button>
-                        <button id="reset-connections" style="padding: 12px 16px; border: none; border-radius: 8px; background: linear-gradient(45deg, #dc3545, #c82333); color: white; cursor: pointer; font-weight: bold;">🔄 Reset All</button>
-                    </div>
-                    <div id="bluetooth-serial-status" style="font-size: 1rem; color: #155724; text-align: center; font-weight: bold;">Enhanced auto-pairing system ready</div>
+                <div class="metric-item" id="live-cadence-metric">
+                    <div class="metric-value" id="live-cadence-display">--</div>
+                    <div class="metric-label">Cadence (RPM)</div>
+                    <div class="last-update" id="cadence-last-update">Waiting for data</div>
                 </div>
                 
-                <!-- Manual Testing -->
-                <h4 style="color: #495057;">🔧 Manual Testing & Diagnostics</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px;">
-                    <button id="scan-bluetooth" style="padding: 10px 14px; border: none; border-radius: 6px; background: #007bff; color: white; cursor: pointer;">🔍 Scan BT</button>
-                    <button id="scan-serial" style="padding: 10px 14px; border: none; border-radius: 6px; background: #007bff; color: white; cursor: pointer;">🔌 Get Serial</button>
-                    <button id="check-ports" style="padding: 10px 14px; border: none; border-radius: 6px; background: #007bff; color: white; cursor: pointer;">📋 Check Ports</button>
-                    <button id="test-permissions" style="padding: 10px 14px; border: none; border-radius: 6px; background: #6c757d; color: white; cursor: pointer;">🔐 Test Perms</button>
+                <div class="metric-item" id="live-hr-metric">
+                    <div class="metric-value" id="live-hr-display">--</div>
+                    <div class="metric-label">Heart Rate (BPM)</div>
+                    <div class="last-update" id="hr-last-update">Waiting for data</div>
                 </div>
                 
-                <div id="serial-log" style="background: #2d3748; color: #e2e8f0; border: 2px solid #4a5568; padding: 20px; height: 280px; overflow-y: auto; font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85rem; border-radius: 8px;"></div>
-            </div>
-        </div>
-
-        <div class="devices-grid">
-            <!-- Enhanced Wahoo Kickr Core Card -->
-            <div class="device-card trainer enhanced-card" id="kickr-card">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e); font-size: 1.5rem;">🚴</div>
-                    <div>
-                        <div class="device-title" style="font-size: 1.2rem;">Enhanced Wahoo Kickr Core</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="kickr-status"></span>
-                            <span id="kickr-status-text" style="font-weight: bold;">Auto-Connect Ready</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #28a745; font-weight: bold;">
-                            🔧 Enhanced: Auto-Pairing + Serial Bridge + Simulator Support
-                        </div>
-                        <div style="font-size: 0.75rem; color: #666;">
-                            Connection: <span id="kickr-connection-type" style="color: #28a745; font-weight: bold;">Auto-Serial Bridge</span> | Device: <span id="kickr-device-id">Scanning...</span>
-                        </div>
-                    </div>
+                <div class="metric-item" id="live-distance-metric">
+                    <div class="metric-value" id="live-distance-display">0.0</div>
+                    <div class="metric-label">Distance (km)</div>
+                    <div class="last-update" id="distance-last-update">Session total</div>
                 </div>
-
-                <div class="metrics">
-                    <div class="metric" id="kickr-power-metric">
-                        <div class="metric-value" id="kickr-power-value" style="color: #e74c3c;">---</div>
-                        <div class="metric-label">Power (W)</div>
-                    </div>
-                    <div class="metric" id="kickr-resistance-metric">
-                        <div class="metric-value" id="kickr-resistance-value" style="color: #f39c12;">---</div>
-                        <div class="metric-label">Resistance (%)</div>
-                    </div>
-                    <div class="metric" id="kickr-cadence-metric">
-                        <div class="metric-value" id="kickr-cadence-value" style="color: #3498db;">---</div>
-                        <div class="metric-label">Cadence (RPM)</div>
-                    </div>
-                    <div class="metric" id="kickr-speed-metric">
-                        <div class="metric-value" id="kickr-speed-value" style="color: #9b59b6;">---</div>
-                        <div class="metric-label">Speed (KM/H)</div>
-                    </div>
-                    <div class="metric" id="kickr-distance-metric">
-                        <div class="metric-value" id="kickr-distance-value" style="color: #1abc9c;">0.0</div>
-                        <div class="metric-label">Distance (KM)</div>
-                    </div>
-                    <div class="metric" id="kickr-time-metric">
-                        <div class="metric-value" id="kickr-time-value" style="color: #34495e;">00:00</div>
-                        <div class="metric-label">Time</div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-weight: 600; color: #2c3e50;">Target Power (W)</span>
-                        <span id="kickr-target-power" style="font-weight: bold; color: #e74c3c; font-size: 1.1rem;">150</span>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #2c3e50;">Enhanced Resistance Control</label>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="background: #34495e; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">-10%</span>
-                            <input type="range" id="kickr-resistance-slider" min="-10" max="10" value="0" style="flex: 1; height: 8px; border-radius: 4px;">
-                            <span style="background: #34495e; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">+10%</span>
-                        </div>
-                        <div style="text-align: center; margin-top: 8px; font-size: 1.4rem; font-weight: bold; color: #2c3e50;" id="kickr-resistance-display">0</div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-scan" id="pair-kickr-btn" onclick="pairEnhancedKickr()" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🚴 Enhanced Kickr</button>
-                    <button class="btn btn-stop" id="disconnect-kickr-btn" onclick="disconnectEnhancedKickr()" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
-                </div>
-
-                <div id="kickr-last-update" style="text-align: center; font-size: 0.85rem; color: #28a745; margin-top: 12px; font-weight: bold;">
-                    🚀 Enhanced auto-connect ready - supports real devices & simulators
-                </div>
-            </div>
-
-            <!-- Enhanced Zwift Click Card -->
-            <div class="device-card enhanced-card" id="zwift-click-card" style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); border: 2px solid #28a745;">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #28a745, #20c997); font-size: 1.5rem;">⚡</div>
-                    <div>
-                        <div class="device-title" style="font-size: 1.2rem;">Enhanced Zwift Click</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="zwift-status"></span>
-                            <span id="zwift-status-text" style="font-weight: bold;">Auto-Connect Ready</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #155724; font-weight: bold;">
-                            🎮 Real Device Support: <span id="zwift-real-status" style="color: #28a745;">✅ Physical Button Detection</span>
-                        </div>
-                        <div style="font-size: 0.75rem; color: #666;">
-                            Button Status: <span id="zwift-button-status" style="color: #28a745; font-weight: bold;">Enhanced Auto-Connect Ready</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Enhanced Zwift Click Controls -->
-                <div style="display: flex; justify-content: center; align-items: center; margin: 25px 0;">
-                    <button class="btn" id="gear-down-btn" style="background: linear-gradient(45deg, #6c757d, #5a6268); width: 70px; height: 70px; border-radius: 50%; font-size: 2rem; margin: 0 25px; transition: all 0.3s; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onclick="changeGear('down')">-</button>
-                    <div style="text-align: center;">
-                        <div style="font-size: 4rem; font-weight: bold; color: #2c3e50; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);" id="zwift-gear">1</div>
-                        <div style="font-size: 0.9rem; color: #666; font-weight: bold;">Current Gear</div>
-                        <div style="font-size: 0.8rem; color: #28a745; margin-top: 8px; font-weight: bold;" id="gear-source">🤖 Enhanced Auto-Connect</div>
-                    </div>
-                    <button class="btn" id="gear-up-btn" style="background: linear-gradient(45deg, #6c757d, #5a6268); width: 70px; height: 70px; border-radius: 50%; font-size: 2rem; margin: 0 25px; transition: all 0.3s; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onclick="changeGear('up')">+</button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-                    <div class="metric" style="background: rgba(255,255,255,0.7);">
-                        <div class="metric-value" id="zwift-front-gear" style="color: #2c3e50; font-weight: bold;">42</div>
-                        <div class="metric-label" style="color: #34495e;">Front (T)</div>
-                    </div>
-                    <div class="metric" style="background: rgba(255,255,255,0.7);">
-                        <div class="metric-value" id="zwift-rear-gear" style="color: #2c3e50; font-weight: bold;">30</div>
-                        <div class="metric-label" style="color: #34495e;">Rear (T)</div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-scan" id="pair-zwift-btn" onclick="pairSimpleZwiftClick()" style="background: linear-gradient(45deg, #28a745, #20c997); font-weight: bold; font-size: 1rem;">🎮 Pair Real Click</button>
-                    <button class="btn btn-stop" id="disconnect-zwift-btn" onclick="disconnectSimpleZwiftClick()" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
-                </div>
-
-                <div id="zwift-last-update" style="text-align: center; font-size: 0.85rem; color: #155724; margin-top: 12px; font-weight: bold;">
-                    ⚡ Enhanced real device integration ready
-                </div>
-            </div>
-
-            <!-- Enhanced Heart Rate Monitor Card -->
-            <div class="device-card hrm enhanced-card" id="hrm-card">
-                <div class="device-header">
-                    <div class="device-icon" style="background: linear-gradient(45deg, #e74c3c, #c0392b); font-size: 1.5rem;">❤️</div>
-                    <div>
-                        <div class="device-title" style="font-size: 1.2rem;">Enhanced Heart Rate Monitor</div>
-                        <div class="device-status">
-                            <span class="status-indicator" id="hrm-status"></span>
-                            <span id="hrm-status-text" style="font-weight: bold;">Auto-Connect Ready</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #c0392b; font-weight: bold;">
-                            💓 Enhanced: Multi-Brand Support + Zone Analysis
-                        </div>
-                        <div style="font-size: 0.75rem; color: #666;">
-                            Connection: <span id="hrm-connection-type" style="color: #e74c3c; font-weight: bold;">Auto-Serial Bridge</span> | Device: <span id="hrm-device-id">Scanning...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                    <div class="metric" id="hr-current-metric">
-                        <div class="metric-value" id="hr-current-value" style="color: #e74c3c; font-size: 2.5rem;">---</div>
-                        <div class="metric-label">Current BPM</div>
-                    </div>
-                    <div class="metric" id="hr-avg-metric">
-                        <div class="metric-value" id="hr-avg-value" style="color: #f39c12;">---</div>
-                        <div class="metric-label">Average BPM</div>
-                    </div>
-                </div>
-
-                <div class="hr-zone" id="hr-zone" style="padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1rem; margin-bottom: 15px;">Enhanced Zone Analysis</div>
-
-                <div style="margin: 20px 0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="font-size: 0.9rem; color: #34495e; font-weight: bold;">Resting HR (BPM)</span>
-                        <span style="font-size: 0.9rem; font-weight: bold; color: #3498db;" id="base-hr">65</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <span style="font-size: 0.9rem; color: #34495e; font-weight: bold;">Max HR (BPM)</span>
-                        <span style="font-size: 0.9rem; font-weight: bold; color: #e74c3c;" id="max-hr">185</span>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <button class="btn btn-scan" id="pair-hrm-btn" onclick="pairDevice('hrm')" style="background: linear-gradient(45deg, #e74c3c, #c0392b); font-weight: bold; font-size: 1rem;">❤️ Auto-Pair HRM</button>
-                    <button class="btn btn-stop" id="disconnect-hrm-btn" onclick="disconnectDevice('hrm')" style="background: linear-gradient(45deg, #dc3545, #c82333); font-weight: bold;">Disconnect</button>
-                </div>
-
-                <div id="hrm-last-update" style="text-align: center; font-size: 0.85rem; color: #c0392b; margin-top: 12px; font-weight: bold;">
-                    💓 Enhanced multi-brand auto-connect ready
+                
+                <div class="metric-item" id="live-time-metric">
+                    <div class="metric-value" id="live-time-display">00:00</div>
+                    <div class="metric-label">Duration</div>
+                    <div class="last-update" id="time-last-update">Session time</div>
                 </div>
             </div>
         </div>
 
-        <!-- Enhanced Log Section -->
-        <div class="log-section" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 2px solid #dee2e6; border-radius: 15px; padding: 25px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="color: #2c3e50; font-size: 1.4rem;">📋 Enhanced Connection Log</h3>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button id="launch-simulator-btn" style="background: linear-gradient(45deg, #e67e22, #d35400); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">🚴 Enhanced Simulator</button>
-                    <button id="capture-specs-btn" style="background: linear-gradient(45deg, #3498db, #2980b9); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">📊 Capture Specs</button>
-                    <button id="clear-log-btn" style="background: linear-gradient(45deg, #95a5a6, #7f8c8d); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">🗑️ Clear</button>
+        <!-- Resistance Control -->
+        <div class="resistance-control">
+            <h2>🎚️ Resistance Control</h2>
+            <div style="margin: 20px 0;">
+                <input type="range" id="resistance-slider" class="resistance-slider" min="0" max="100" value="20" disabled>
+                <div class="resistance-value" id="resistance-display">20%</div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-zwift" id="set-erg-btn" disabled>ERG Mode</button>
+                <button class="btn btn-zwift" id="set-sim-btn" disabled>SIM Mode</button>
+                <button class="btn btn-zwift" id="calibrate-btn" disabled>Calibrate</button>
+            </div>
+        </div>
+
+        <!-- Session Controls -->
+        <div class="metrics-panel">
+            <div class="session-controls">
+                <button id="start-session-btn" class="btn btn-success">
+                    ▶️ Start Training
+                </button>
+                <button id="pause-session-btn" class="btn btn-warning" disabled>
+                    ⏸️ Pause
+                </button>
+                <button id="end-session-btn" class="btn btn-danger" disabled>
+                    ⏹️ End Session
+                </button>
+                <button id="export-btn" class="btn btn-zwift" disabled>
+                    📥 Export Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="metrics-panel">
+            <h2 style="text-align: center; margin-bottom: 20px;">📝 Activity Log</h2>
+            <div id="activity-log" class="log-panel">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span> 
+                    🚀 ANTicP Platform initialized
                 </div>
             </div>
-            <div class="log-content" id="log-content" style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem; max-height: 400px; overflow-y: auto;"></div>
         </div>
     </div>
 
-    <!-- Load Enhanced Zwift Click Real Device Support -->
-    <script src="js/zwift-click-real-fixed.js"></script>
-    
-    <!-- Load Enhanced Settings Modal Handler -->
-    <script src="js/enhanced-settings-modal.js"></script>
+    <!-- Notification placeholder -->
+    <div id="app-notification" class="notification"></div>
 
-    <!-- Enhanced JavaScript -->
     <script>
-        // Enhanced device monitoring and logging
-        function addConnectionLog(message, type = 'info') {
-            const logContent = document.getElementById('log-content');
-            if (!logContent) return;
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            const colors = {
-                error: { bg: '#2d1b1f', color: '#f8d7da', border: '#dc3545' },
-                success: { bg: '#1b2d1b', color: '#d4edda', border: '#28a745' },
-                warning: { bg: '#2d2a1b', color: '#fff3cd', border: '#ffc107' },
-                info: { bg: '#1b252d', color: '#d1ecf1', border: '#17a2b8' }
-            };
-            const colorScheme = colors[type] || colors.info;
-            
-            logEntry.style.cssText = `
-                padding: 8px 12px; margin: 3px 0; border-radius: 6px; 
-                font-family: 'Courier New', monospace; font-size: 0.85rem; 
-                background: ${colorScheme.bg}; color: ${colorScheme.color}; 
-                border-left: 4px solid ${colorScheme.border};
-                transition: all 0.3s ease;
-            `;
-            logEntry.textContent = `[${timestamp}] ${message}`;
-            logContent.appendChild(logEntry);
-            logContent.scrollTop = logContent.scrollHeight;
-            
-            // Keep only last 50 entries
-            while (logContent.children.length > 50) {
-                logContent.removeChild(logContent.firstChild);
-            }
-        }
-        
-        // Enhanced HRM Display
-        function updateHRMDisplay(heartRate) {
-            const currentValue = document.getElementById('hr-current-value');
-            const hrZone = document.getElementById('hr-zone');
-            const lastUpdate = document.getElementById('hrm-last-update');
-            
-            if (currentValue) {
-                currentValue.textContent = heartRate;
-                currentValue.style.color = '#e74c3c';
-                currentValue.style.fontWeight = 'bold';
-            }
-            
-            // Enhanced HR Zone calculation
-            const maxHR = parseInt(document.getElementById('max-hr').textContent) || 185;
-            const baseHR = parseInt(document.getElementById('base-hr').textContent) || 65;
-            const hrReserve = maxHR - baseHR;
-            const hrPercent = ((heartRate - baseHR) / hrReserve) * 100;
-            
-            let zone = 'Zone 1 - Recovery';
-            let zoneColor = '#3498db';
-            
-            if (hrPercent >= 90) {
-                zone = 'Zone 5 - Neuromuscular Power';
-                zoneColor = '#8e44ad';
-            } else if (hrPercent >= 80) {
-                zone = 'Zone 4 - Lactate Threshold';
-                zoneColor = '#e74c3c';
-            } else if (hrPercent >= 70) {
-                zone = 'Zone 3 - Aerobic Base';
-                zoneColor = '#f39c12';
-            } else if (hrPercent >= 60) {
-                zone = 'Zone 2 - Endurance';
-                zoneColor = '#27ae60';
-            }
-            
-            if (hrZone) {
-                hrZone.textContent = zone;
-                hrZone.style.background = zoneColor;
-                hrZone.style.color = 'white';
-            }
-            
-            if (lastUpdate) {
-                lastUpdate.textContent = `💓 Live: ${new Date().toLocaleTimeString()}`;
-                lastUpdate.style.color = '#e74c3c';
-            }
-            
-            addConnectionLog(`❤️ Enhanced HR: ${heartRate} BPM (${zone})`, 'success');
-        }
-        
-        // Enhanced Simulator Launch
-        function launchEnhancedKickrSimulator() {
-            addConnectionLog('🚴 Launching Enhanced Wahoo Kickr Core Simulator...', 'info');
-            
-            const simulatorWindow = window.open('enhanced-kickr-simulator.html', '_blank', 'width=950,height=750,scrollbars=yes');
-            
-            if (simulatorWindow) {
-                addConnectionLog('✅ Enhanced simulator launched successfully', 'success');
-                
-                setTimeout(() => {
-                    try {
-                        simulatorWindow.postMessage({
-                            type: 'ENHANCED_SIMULATOR_INIT',
-                            parentOrigin: window.location.origin,
-                            features: ['auto-connect', 'real-device-bridge', 'enhanced-metrics']
-                        }, '*');
-                        addConnectionLog('📡 Enhanced simulator communication established', 'info');
-                    } catch (error) {
-                        addConnectionLog('⚠️ Simulator communication setup failed', 'warning');
-                    }
-                }, 1000);
-                
-            } else {
-                addConnectionLog('❌ Enhanced simulator launch failed (popup blocked?)', 'error');
-                alert('Enhanced Simulator was blocked. Please allow popups and try again.');
-            }
-        }
-        
-        // Enhanced Connection Logger
-        window.deviceConnectionLogger = {
-            logConnection: function(deviceType, status, details = '') {
-                const statusText = {
-                    'connected': '✅ Connected',
-                    'connecting': '🔄 Connecting',
-                    'disconnected': '❌ Disconnected',
-                    'error': '❌ Error'
-                }[status] || status;
-                
-                const logType = {
-                    'connected': 'success',
-                    'error': 'error',
-                    'disconnected': 'warning'
-                }[status] || 'info';
-                
-                addConnectionLog(`${deviceType.toUpperCase()}: ${statusText} ${details}`, logType);
-                
-                // Enhanced UI updates
-                const statusElement = document.getElementById(`${deviceType}-status-text`);
-                const indicatorElement = document.getElementById(`${deviceType}-status`);
-                
-                if (statusElement) {
-                    statusElement.textContent = statusText.replace(/[✅❌🔄]/g, '').trim();
-                }
-                
-                if (indicatorElement) {
-                    indicatorElement.className = `status-indicator ${status}`;
-                    const colors = {
-                        'connected': '#28a745',
-                        'connecting': '#ffc107',
-                        'error': '#dc3545'
-                    };
-                    indicatorElement.style.background = colors[status] || '#6c757d';
-                }
-                
-                // Enhanced connection type updates
-                if (status === 'connected' && details) {
-                    const connectionTypeEl = document.getElementById(`${deviceType}-connection-type`);
-                    if (connectionTypeEl) {
-                        connectionTypeEl.textContent = 'Enhanced Auto-Connected';
-                        connectionTypeEl.style.color = '#28a745';
-                    }
-                }
-                
-                // Enhanced Zwift Click specific updates
-                if (deviceType === 'zwift-click') {
-                    const buttonStatus = document.getElementById('zwift-button-status');
-                    const gearSource = document.getElementById('gear-source');
-                    
-                    if (status === 'connected') {
-                        if (buttonStatus) buttonStatus.textContent = 'Real Device Active';
-                        if (gearSource) {
-                            gearSource.textContent = '🎮 Real Zwift Click';
-                            gearSource.style.color = '#28a745';
-                        }
-                    } else {
-                        if (buttonStatus) buttonStatus.textContent = 'Enhanced Auto-Connect Ready';
-                        if (gearSource) {
-                            gearSource.textContent = '🤖 Enhanced Auto-Connect';
-                            gearSource.style.color = '#6c757d';
-                        }
-                    }
-                }
-            },
-            
-            logData: function(deviceType, data) {
-                if (deviceType === 'hrm' && data.heartRate) {
-                    updateHRMDisplay(data.heartRate);
-                }
-                if (deviceType === 'kickr' && data.power) {
-                    document.getElementById('kickr-power-value').textContent = data.power;
-                    addConnectionLog(`🚴 Enhanced Kickr: ${data.power}W`, 'info');
-                }
-            }
-        };
-        
-        // Fixed Gear System - Correct Road Bike Progression (42T/52T chainrings)
-        const enhancedGearRatios = [
-            // Small chainring (42T) - Gears 1-12
-            {front: 42, rear: 30, gear: 1, ratio: 1.40, description: 'EASIEST - Climbing'},
-            {front: 42, rear: 28, gear: 2, ratio: 1.50, description: 'Steep Hill'},
-            {front: 42, rear: 26, gear: 3, ratio: 1.62, description: 'Hill'},
-            {front: 42, rear: 24, gear: 4, ratio: 1.75, description: 'Hill'},
-            {front: 42, rear: 23, gear: 5, ratio: 1.83, description: 'Rolling'},
-            {front: 42, rear: 21, gear: 6, ratio: 2.00, description: 'Rolling'},
-            {front: 42, rear: 19, gear: 7, ratio: 2.21, description: 'Flat'},
-            {front: 42, rear: 17, gear: 8, ratio: 2.47, description: 'Flat'},
-            {front: 42, rear: 15, gear: 9, ratio: 2.80, description: 'Fast'},
-            {front: 42, rear: 14, gear: 10, ratio: 3.00, description: 'Fast'},
-            {front: 42, rear: 13, gear: 11, ratio: 3.23, description: 'Very Fast'},
-            {front: 42, rear: 11, gear: 12, ratio: 3.82, description: 'Sprint'},
-            
-            // Big chainring (52T) - Gears 13-24
-            {front: 52, rear: 30, gear: 13, ratio: 1.73, description: 'Big Ring Start'},
-            {front: 52, rear: 28, gear: 14, ratio: 1.86, description: 'Endurance'},
-            {front: 52, rear: 26, gear: 15, ratio: 2.00, description: 'Tempo'},
-            {front: 52, rear: 24, gear: 16, ratio: 2.17, description: 'Tempo'},
-            {front: 52, rear: 23, gear: 17, ratio: 2.26, description: 'Threshold'},
-            {front: 52, rear: 21, gear: 18, ratio: 2.48, description: 'Threshold'},
-            {front: 52, rear: 19, gear: 19, ratio: 2.74, description: 'Fast'},
-            {front: 52, rear: 17, gear: 20, ratio: 3.06, description: 'Racing'},
-            {front: 52, rear: 15, gear: 21, ratio: 3.47, description: 'Racing'},
-            {front: 52, rear: 14, gear: 22, ratio: 3.71, description: 'Sprint'},
-            {front: 52, rear: 13, gear: 23, ratio: 4.00, description: 'High Speed'},
-            {front: 52, rear: 11, gear: 24, ratio: 4.73, description: 'HARDEST - Maximum'}
-        ];
-        
-        let currentGear = 12; // Start at gear 12 (middle gear - 42T/11T = 3.82 ratio)
-        let maxGear = enhancedGearRatios.length;
-        
-        function changeGear(direction, source = 'virtual') {
-            const previousGear = currentGear;
-            
-            if (direction === 'up' && currentGear < maxGear) {
-                currentGear++;
-            } else if (direction === 'down' && currentGear > 1) {
-                currentGear--;
-            }
-            
-            if (previousGear !== currentGear) {
-                const gearInfo = enhancedGearRatios[currentGear - 1];
-                
-                // Enhanced UI updates
-                document.getElementById('zwift-gear').textContent = currentGear;
-                document.getElementById('zwift-front-gear').textContent = gearInfo.front;
-                document.getElementById('zwift-rear-gear').textContent = gearInfo.rear;
-                
-                const sourceText = source === 'real' ? '🎮 Real Zwift Click' : '🖱️ Virtual Control';
-                addConnectionLog(`⚡ Enhanced Gear: ${currentGear} (${gearInfo.front}T/${gearInfo.rear}T = ${gearInfo.ratio}) - ${gearInfo.description} via ${sourceText}`, 'info');
-                
-                // Enhanced visual feedback
-                const gearSource = document.getElementById('gear-source');
-                if (gearSource && source === 'real') {
-                    gearSource.textContent = '🎮 Real Device Input';
-                    gearSource.style.color = '#28a745';
-                    gearSource.style.fontWeight = 'bold';
-                    
-                    setTimeout(() => {
-                        if (window.zwiftClickHandler && window.zwiftClickHandler.isDeviceConnected()) {
-                            gearSource.textContent = '🎮 Real Zwift Click';
-                            gearSource.style.fontWeight = 'normal';
-                        }
-                    }, 2000);
-                }
-                
-                // Enhanced button feedback
-                const button = direction === 'up' ? 
-                    document.getElementById('gear-up-btn') : 
-                    document.getElementById('gear-down-btn');
-                    
-                if (button) {
-                    button.style.transform = 'scale(0.95)';
-                    button.style.background = 'linear-gradient(45deg, #28a745, #20c997)';
-                    setTimeout(() => {
-                        button.style.transform = '';
-                        button.style.background = '';
-                    }, 200);
-                }
-            }
-        }
-    </script>
+        // ============================================================================
+        // SMART TRAINER CONTROL PLATFORM
+        // Wahoo KICKR Core + Zwift Click Integration
+        // ============================================================================
 
-    <!-- Enhanced Modal and Event Handlers -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const serialCog = document.getElementById('serial-permissions-cog');
-            const serialModal = document.getElementById('serial-modal');
-            const closeSerial = document.getElementById('close-serial-modal');
-            const log = document.getElementById('serial-log');
-            
-            function addLog(message) {
-                const timestamp = new Date().toLocaleTimeString();
-                log.textContent += `[${timestamp}] ${message}\n`;
-                log.scrollTop = log.scrollHeight;
-                
-                // Keep log size manageable
-                const lines = log.textContent.split('\n');
-                if (lines.length > 100) {
-                    log.textContent = lines.slice(-80).join('\n');
-                }
-            }
-            
-            async function checkEnhancedPermissions() {
-                addLog('🔍 Enhanced Permission Check - Starting comprehensive analysis...');
-                
-                // Enhanced HTTPS Check
-                const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-                document.getElementById('https-result').textContent = isHTTPS ? '✅ Secure' : '❌ Not HTTPS';
-                document.getElementById('https-status').style.background = isHTTPS ? '#d4edda' : '#f8d7da';
-                
-                // Enhanced Bluetooth Check
-                const hasBluetoothAPI = 'bluetooth' in navigator;
-                document.getElementById('bluetooth-result').textContent = hasBluetoothAPI ? '✅ Available' : '❌ Not supported';
-                document.getElementById('bluetooth-status').style.background = hasBluetoothAPI ? '#d4edda' : '#f8d7da';
-                
-                // Enhanced Serial Check
-                const hasSerialAPI = 'serial' in navigator;
-                document.getElementById('serial-result').textContent = hasSerialAPI ? '✅ Available' : '❌ Not supported';
-                document.getElementById('serial-status').style.background = hasSerialAPI ? '#d4edda' : '#f8d7da';
-                
-                if (hasSerialAPI) {
-                    try {
-                        const ports = await navigator.serial.getPorts();
-                        addLog(`📶 Enhanced Serial Bridge: Found ${ports.length} existing port permissions`);
-                        ports.forEach((port, index) => {
-                            const info = port.getInfo();
-                            addLog(`  Enhanced Port ${index + 1}: Vendor=${info.usbVendorId || 'Unknown'}, Product=${info.usbProductId || 'Unknown'}`);
-                        });
-                    } catch (error) {
-                        addLog(`❌ Enhanced Serial Bridge Error: ${error.message}`);
-                    }
-                }
-                
-                // Enhanced Location Check
-                const isAndroid = /android/i.test(navigator.userAgent);
-                if (isAndroid && 'permissions' in navigator) {
-                    try {
-                        const result = await navigator.permissions.query({name: 'geolocation'});
-                        document.getElementById('location-result').textContent = `${result.state === 'granted' ? '✅' : '⚠️'} ${result.state}`;
-                        const statusColor = result.state === 'granted' ? '#d4edda' : result.state === 'denied' ? '#f8d7da' : '#fff3cd';
-                        document.getElementById('location-status').style.background = statusColor;
-                    } catch (error) {
-                        document.getElementById('location-result').textContent = '❓ Unknown';
-                        document.getElementById('location-status').style.background = '#fff3cd';
-                    }
-                } else {
-                    document.getElementById('location-result').textContent = isAndroid ? '❓ Cannot check' : 'ℹ️ Not needed';
-                    document.getElementById('location-status').style.background = '#fff3cd';
-                }
-                
-                addLog('✅ Enhanced Permission Check Complete');
-                addLog('🚀 Enhanced Auto-Connect System Ready');
-            }
-
-            // Modal event handlers
-            serialCog.addEventListener('click', function() {
-                serialModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-                checkEnhancedPermissions();
-            });
-
-            closeSerial.addEventListener('click', function() {
-                serialModal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            });
-
-            serialModal.addEventListener('click', function(e) {
-                if (e.target === serialModal) {
-                    serialModal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            });
-            
-            // Enhanced Auto Connect Button
-            const autoConnectBtn = document.getElementById('auto-connect-btn');
-            if (autoConnectBtn) {
-                autoConnectBtn.addEventListener('click', function() {
-                    if (window.enhancedAutoConnectManager) {
-                        window.enhancedAutoConnectManager.startEnhancedAutoConnect();
-                    } else {
-                        addConnectionLog('❌ Enhanced Auto-Connect Manager not loaded', 'error');
-                    }
-                });
-            }
-            
-            // Enhanced button handlers
-            document.getElementById('launch-simulator-btn')?.addEventListener('click', launchEnhancedKickrSimulator);
-            
-            document.getElementById('capture-specs-btn')?.addEventListener('click', function() {
-                addConnectionLog('📊 Capturing enhanced device specifications...', 'info');
-                
-                const enhancedSpecs = {
-                    timestamp: new Date().toISOString(),
-                    browser: navigator.userAgent,
-                    platform: navigator.platform,
-                    capabilities: {
-                        bluetooth: 'bluetooth' in navigator,
-                        serial: 'serial' in navigator,
-                        webusb: 'usb' in navigator,
-                        webrtc: 'RTCPeerConnection' in window,
-                        serviceWorker: 'serviceWorker' in navigator
-                    },
-                    location: window.location.href,
-                    features: ['enhanced-auto-connect', 'real-device-support', 'serial-bridge'],
-                    connectedDevices: window.enhancedBluetoothSerialManager ? 
-                        window.enhancedBluetoothSerialManager.getEnhancedConnectedDevices() : []
+        class SmartTrainerApp {
+            constructor() {
+                this.isInitialized = false;
+                this.connections = {
+                    trainer: null,
+                    zwiftClick: null,
+                    heartRate: null
                 };
                 
-                const specText = JSON.stringify(enhancedSpecs, null, 2);
-                const blob = new Blob([specText], { type: 'application/json' });
+                this.liveMetrics = {
+                    power: 0,
+                    speed: 0,
+                    cadence: 0,
+                    heartRate: 0,
+                    distance: 0,
+                    resistance: 20
+                };
+
+                this.session = {
+                    active: false,
+                    paused: false,
+                    startTime: null,
+                    elapsedTime: 0,
+                    data: []
+                };
+
+                this.initialize();
+            }
+
+            async initialize() {
+                try {
+                    this.log('🚀 Initializing Smart Trainer Platform...');
+                    this.setupEventListeners();
+                    this.isInitialized = true;
+                    this.log('✅ Platform ready - Connect your KICKR Core!');
+                    this.showNotification('info', 'Ready to connect your trainer');
+                } catch (error) {
+                    this.log(`❌ Initialization failed: ${error.message}`);
+                }
+            }
+
+            setupEventListeners() {
+                // Sensor connections
+                document.getElementById('pair-trainer-btn')?.addEventListener('click', () => this.connectTrainer());
+                document.getElementById('pair-controls-btn')?.addEventListener('click', () => this.connectZwiftClick());
+                document.getElementById('pair-hr-btn')?.addEventListener('click', () => this.connectHeartRate());
+
+                // Session controls
+                document.getElementById('start-session-btn')?.addEventListener('click', () => this.startSession());
+                document.getElementById('pause-session-btn')?.addEventListener('click', () => this.pauseSession());
+                document.getElementById('end-session-btn')?.addEventListener('click', () => this.endSession());
+                document.getElementById('export-btn')?.addEventListener('click', () => this.exportData());
+
+                // Resistance control
+                const slider = document.getElementById('resistance-slider');
+                slider?.addEventListener('input', (e) => this.setResistance(e.target.value));
+                
+                document.getElementById('set-erg-btn')?.addEventListener('click', () => this.setERGMode());
+                document.getElementById('set-sim-btn')?.addEventListener('click', () => this.setSIMMode());
+                document.getElementById('calibrate-btn')?.addEventListener('click', () => this.calibrateTrainer());
+            }
+
+            // ============================================================================
+            // TRAINER CONNECTION (KICKR CORE)
+            // ============================================================================
+
+            async connectTrainer() {
+                try {
+                    this.log('🚴 Connecting to KICKR Core...');
+                    this.updateSensorCard('trainer', 'connecting');
+                    
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'KICKR' },
+                            { namePrefix: 'Wahoo' },
+                            { services: ['00001826-0000-1000-8000-00805f9b34fb'] } // FTMS
+                        ],
+                        optionalServices: [
+                            '00001826-0000-1000-8000-00805f9b34fb', // Fitness Machine Service
+                            '00001818-0000-1000-8000-00805f9b34fb', // Cycling Power Service
+                            '0000180d-0000-1000-8000-00805f9b34fb', // Heart Rate Service
+                            '0000180f-0000-1000-8000-00805f9b34fb', // Battery Service
+                            '0000180a-0000-1000-8000-00805f9b34fb'  // Device Information
+                        ]
+                    });
+
+                    const server = await device.gatt.connect();
+                    this.log(`📡 Connected to: ${device.name}`);
+                    
+                    // Try to get Fitness Machine Service (FTMS)
+                    try {
+                        const ftmsService = await server.getPrimaryService('00001826-0000-1000-8000-00805f9b34fb');
+                        this.log('✅ FTMS Service found');
+                        
+                        // Get Indoor Bike Data characteristic
+                        try {
+                            const bikeDataChar = await ftmsService.getCharacteristic('00002ad2-0000-1000-8000-00805f9b34fb');
+                            await bikeDataChar.startNotifications();
+                            bikeDataChar.addEventListener('characteristicvaluechanged', (event) => {
+                                this.handleIndoorBikeData(event.target.value);
+                            });
+                            this.log('✅ Indoor Bike Data notifications started');
+                        } catch (e) {
+                            this.log(`⚠️ Indoor Bike Data not available: ${e.message}`);
+                        }
+
+                        // Get Fitness Machine Control Point for resistance control
+                        try {
+                            const controlChar = await ftmsService.getCharacteristic('00002ad9-0000-1000-8000-00805f9b34fb');
+                            this.connections.trainer = { 
+                                device, 
+                                server, 
+                                ftmsService,
+                                controlChar 
+                            };
+                            
+                            // Enable resistance control
+                            document.getElementById('resistance-slider').disabled = false;
+                            document.getElementById('set-erg-btn').disabled = false;
+                            document.getElementById('set-sim-btn').disabled = false;
+                            document.getElementById('calibrate-btn').disabled = false;
+                            
+                            this.log('✅ Resistance control enabled');
+                        } catch (e) {
+                            this.log(`⚠️ Control Point not available: ${e.message}`);
+                        }
+                    } catch (e) {
+                        this.log(`⚠️ FTMS not available, trying Cycling Power: ${e.message}`);
+                    }
+
+                    // Try Cycling Power Service as fallback
+                    try {
+                        const powerService = await server.getPrimaryService('00001818-0000-1000-8000-00805f9b34fb');
+                        const powerChar = await powerService.getCharacteristic('00002a63-0000-1000-8000-00805f9b34fb');
+                        await powerChar.startNotifications();
+                        powerChar.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handlePowerData(event.target.value);
+                        });
+                        this.log('✅ Cycling Power notifications started');
+                    } catch (e) {
+                        this.log(`⚠️ Cycling Power not available: ${e.message}`);
+                    }
+
+                    this.updateSensorCard('trainer', 'connected', device.name);
+                    this.updateSensorCard('power', 'connected');
+                    this.updateSensorCard('speed', 'connected');
+                    this.updateSensorCard('cadence', 'connected');
+                    
+                    this.log(`✅ KICKR Core connected: ${device.name}`);
+                    this.showNotification('success', `Connected to ${device.name}`);
+                    
+                } catch (error) {
+                    this.updateSensorCard('trainer', 'error');
+                    this.log(`❌ Trainer connection failed: ${error.message}`);
+                    this.showNotification('error', `Connection failed: ${error.message}`);
+                }
+            }
+
+            // ============================================================================
+            // ZWIFT CLICK CONNECTION
+            // ============================================================================
+
+            async connectZwiftClick() {
+                try {
+                    this.log('🎮 Connecting to Zwift Click...');
+                    this.updateSensorCard('controls', 'connecting');
+                    
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'Zwift Click' },
+                            { namePrefix: 'Zwift' },
+                            { services: ['00000001-19ca-4651-86e5-fa29dcdd09d1'] }
+                        ],
+                        optionalServices: [
+                            '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                            '0000180f-0000-1000-8000-00805f9b34fb',
+                            '0000180a-0000-1000-8000-00805f9b34fb'
+                        ]
+                    });
+
+                    const server = await device.gatt.connect();
+                    const zwiftService = await server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
+                    
+                    // Get characteristics
+                    const measurementChar = await zwiftService.getCharacteristic('00000002-19ca-4651-86e5-fa29dcdd09d1');
+                    const controlChar = await zwiftService.getCharacteristic('00000003-19ca-4651-86e5-fa29dcdd09d1');
+                    const responseChar = await zwiftService.getCharacteristic('00000004-19ca-4651-86e5-fa29dcdd09d1');
+                    
+                    // Perform handshake
+                    const handshake = new TextEncoder().encode('RideOn');
+                    await controlChar.writeValue(handshake);
+                    this.log('📤 Sent RideOn handshake');
+                    
+                    // Start notifications
+                    await measurementChar.startNotifications();
+                    measurementChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleZwiftClickData(event.target.value);
+                    });
+                    
+                    this.connections.zwiftClick = { device, server, zwiftService };
+                    this.updateSensorCard('controls', 'connected', device.name);
+                    this.log(`✅ Zwift Click connected: ${device.name}`);
+                    this.showNotification('success', `Zwift Click connected`);
+                    
+                } catch (error) {
+                    this.updateSensorCard('controls', 'error');
+                    this.log(`❌ Zwift Click connection failed: ${error.message}`);
+                    this.showNotification('error', `Zwift Click connection failed`);
+                }
+            }
+
+            // ============================================================================
+            // HEART RATE CONNECTION
+            // ============================================================================
+
+            async connectHeartRate() {
+                try {
+                    this.log('❤️ Connecting to Heart Rate Monitor...');
+                    this.updateSensorCard('hr', 'connecting');
+                    
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [{ services: ['0000180d-0000-1000-8000-00805f9b34fb'] }],
+                        optionalServices: ['0000180f-0000-1000-8000-00805f9b34fb']
+                    });
+
+                    const server = await device.gatt.connect();
+                    const service = await server.getPrimaryService('0000180d-0000-1000-8000-00805f9b34fb');
+                    const characteristic = await service.getCharacteristic('00002a37-0000-1000-8000-00805f9b34fb');
+                    
+                    await characteristic.startNotifications();
+                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleHeartRateData(event.target.value);
+                    });
+
+                    this.connections.heartRate = { device, server, service };
+                    this.updateSensorCard('hr', 'connected', device.name);
+                    this.log(`✅ Heart Rate Monitor connected: ${device.name}`);
+                    this.showNotification('success', `HR Monitor connected`);
+
+                } catch (error) {
+                    this.updateSensorCard('hr', 'error');
+                    this.log(`❌ HR Monitor connection failed: ${error.message}`);
+                    this.showNotification('error', `HR Monitor connection failed`);
+                }
+            }
+
+            // ============================================================================
+            // DATA HANDLERS
+            // ============================================================================
+
+            handleIndoorBikeData(dataValue) {
+                const data = new Uint8Array(dataValue.buffer);
+                if (data.length < 4) return;
+                
+                // Parse flags (2 bytes, little endian)
+                const flags = data[0] | (data[1] << 8);
+                let index = 2;
+                
+                // More Data bit (bit 0) - skip if present
+                if (flags & 0x0001) {
+                    // More data to come in next packet
+                }
+                
+                // Average Speed Present (bit 1) - skip if present  
+                if (flags & 0x0002) {
+                    index += 2;
+                }
+                
+                // Instantaneous Cadence Present (bit 2)
+                if (flags & 0x0004) {
+                    if (index + 1 < data.length) {
+                        const cadenceRaw = data[index] | (data[index + 1] << 8);
+                        const cadence = cadenceRaw * 0.5; // 0.5 rpm resolution
+                        this.liveMetrics.cadence = Math.round(cadence);
+                        this.updateMetric('cadence', Math.round(cadence), 'rpm');
+                        index += 2;
+                    }
+                }
+                
+                // Average Cadence Present (bit 3) - skip if present
+                if (flags & 0x0008) {
+                    index += 2;
+                }
+                
+                // Total Distance Present (bit 4)
+                if (flags & 0x0010) {
+                    if (index + 2 < data.length) {
+                        const distanceRaw = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+                        const distance = distanceRaw / 1000; // Convert to km
+                        this.liveMetrics.distance = distance;
+                        this.updateMetric('distance', distance.toFixed(2), 'km');
+                        index += 3;
+                    }
+                }
+                
+                // Resistance Level Present (bit 5)
+                if (flags & 0x0020) {
+                    if (index < data.length) {
+                        const resistance = data[index];
+                        this.liveMetrics.resistance = resistance;
+                        document.getElementById('resistance-display').textContent = `${resistance}%`;
+                        index += 1;
+                    }
+                }
+                
+                // Instantaneous Power Present (bit 6)
+                if (flags & 0x0040) {
+                    if (index + 1 < data.length) {
+                        const power = data[index] | (data[index + 1] << 8);
+                        this.liveMetrics.power = power;
+                        this.updateMetric('power', power, 'W');
+                        index += 2;
+                    }
+                }
+                
+                // Average Power Present (bit 7) - skip if present
+                if (flags & 0x0080) {
+                    index += 2;
+                }
+                
+                // Expended Energy Present (bit 8) - skip if present
+                if (flags & 0x0100) {
+                    index += 2; // Total Energy
+                    index += 2; // Energy Per Hour
+                    index += 1; // Energy Per Minute
+                }
+                
+                // Heart Rate Present (bit 9)
+                if (flags & 0x0200) {
+                    if (index < data.length) {
+                        const heartRate = data[index];
+                        this.liveMetrics.heartRate = heartRate;
+                        this.updateMetric('hr', heartRate, 'bpm');
+                        index += 1;
+                    }
+                }
+                
+                // Metabolic Equivalent Present (bit 10) - skip if present
+                if (flags & 0x0400) {
+                    index += 1;
+                }
+                
+                // Elapsed Time Present (bit 11)
+                if (flags & 0x0800) {
+                    if (index + 1 < data.length) {
+                        const elapsedTime = data[index] | (data[index + 1] << 8);
+                        // Update session time
+                        index += 2;
+                    }
+                }
+                
+                // Remaining Time Present (bit 12) - skip if present
+                if (flags & 0x1000) {
+                    index += 2;
+                }
+                
+                // Calculate and update speed from instantaneous speed (always present at beginning)
+                let speedIndex = 2; // Right after flags
+                if (speedIndex + 1 < data.length) {
+                    const speedRaw = data[speedIndex] | (data[speedIndex + 1] << 8);
+                    const speed = speedRaw * 0.01; // 0.01 km/h resolution
+                    this.liveMetrics.speed = speed;
+                    this.updateMetric('speed', speed.toFixed(1), 'km/h');
+                }
+            }
+
+            handlePowerData(dataValue) {
+                const flags = dataValue.getUint16(0, true);
+                const power = dataValue.getUint16(2, true);
+                
+                this.liveMetrics.power = power;
+                this.updateMetric('power', power, 'W');
+                this.log(`⚡ Power: ${power}W`);
+            }
+
+            handleZwiftClickData(dataValue) {
+                const data = new Uint8Array(dataValue.buffer);
+                
+                // Check for button press message (0x23)
+                if (data.length > 0 && data[0] === 0x23) {
+                    if (data.length >= 5) {
+                        const buttonBitmap = data[1] | (data[2] << 8) | (data[3] << 16) | (data[4] << 24);
+                        
+                        // Bit 0 = Up button (0 = pressed)
+                        // Bit 1 = Down button (0 = pressed)
+                        const upPressed = !(buttonBitmap & 0x01);
+                        const downPressed = !(buttonBitmap & 0x02);
+                        
+                        if (upPressed) {
+                            this.adjustResistance(5);
+                            this.log('🎮 Zwift Click: UP pressed');
+                        }
+                        
+                        if (downPressed) {
+                            this.adjustResistance(-5);
+                            this.log('🎮 Zwift Click: DOWN pressed');
+                        }
+                    }
+                }
+            }
+
+            handleHeartRateData(dataValue) {
+                const flags = dataValue.getUint8(0);
+                const rate16Bits = flags & 0x1;
+                let heartRate;
+                
+                if (rate16Bits) {
+                    heartRate = dataValue.getUint16(1, true);
+                } else {
+                    heartRate = dataValue.getUint8(1);
+                }
+                
+                this.liveMetrics.heartRate = heartRate;
+                this.updateMetric('hr', heartRate, 'bpm');
+            }
+
+            // ============================================================================
+            // RESISTANCE CONTROL
+            // ============================================================================
+
+            async setResistance(value) {
+                this.liveMetrics.resistance = parseInt(value);
+                document.getElementById('resistance-display').textContent = `${value}%`;
+                document.getElementById('resistance-slider').value = value;
+                
+                if (this.connections.trainer?.controlChar) {
+                    try {
+                        // FTMS Set Target Resistance command
+                        const command = new Uint8Array([0x04, value]); // 0x04 = Set Target Resistance
+                        await this.connections.trainer.controlChar.writeValue(command);
+                        this.log(`🎚️ Resistance set to ${value}%`);
+                    } catch (error) {
+                        this.log(`❌ Failed to set resistance: ${error.message}`);
+                    }
+                }
+            }
+
+            adjustResistance(delta) {
+                const current = this.liveMetrics.resistance;
+                const newValue = Math.max(0, Math.min(100, current + delta));
+                this.setResistance(newValue);
+            }
+
+            async setERGMode() {
+                this.log('🎯 Setting ERG Mode...');
+                this.showNotification('info', 'ERG Mode activated');
+            }
+
+            async setSIMMode() {
+                this.log('🌄 Setting SIM Mode...');
+                this.showNotification('info', 'SIM Mode activated');
+            }
+
+            async calibrateTrainer() {
+                this.log('🔧 Starting calibration...');
+                this.showNotification('info', 'Calibration started - Follow trainer instructions');
+            }
+
+            // ============================================================================
+            // SESSION MANAGEMENT
+            // ============================================================================
+
+            startSession() {
+                if (this.session.active) return;
+                
+                this.session.active = true;
+                this.session.paused = false;
+                this.session.startTime = Date.now();
+                this.session.data = [];
+                
+                document.getElementById('start-session-btn').disabled = true;
+                document.getElementById('pause-session-btn').disabled = false;
+                document.getElementById('end-session-btn').disabled = false;
+                
+                this.sessionTimer = setInterval(() => this.updateSessionTime(), 1000);
+                this.dataCollector = setInterval(() => this.collectData(), 1000);
+                
+                this.log('🚀 Training session started');
+                this.showNotification('success', 'Training started!');
+            }
+
+            pauseSession() {
+                if (!this.session.active) return;
+                
+                this.session.paused = !this.session.paused;
+                const btn = document.getElementById('pause-session-btn');
+                
+                if (this.session.paused) {
+                    btn.textContent = '▶️ Resume';
+                    clearInterval(this.sessionTimer);
+                    clearInterval(this.dataCollector);
+                    this.log('⏸️ Session paused');
+                } else {
+                    btn.textContent = '⏸️ Pause';
+                    this.sessionTimer = setInterval(() => this.updateSessionTime(), 1000);
+                    this.dataCollector = setInterval(() => this.collectData(), 1000);
+                    this.log('▶️ Session resumed');
+                }
+            }
+
+            endSession() {
+                if (!this.session.active) return;
+                
+                this.session.active = false;
+                clearInterval(this.sessionTimer);
+                clearInterval(this.dataCollector);
+                
+                document.getElementById('start-session-btn').disabled = false;
+                document.getElementById('pause-session-btn').disabled = true;
+                document.getElementById('end-session-btn').disabled = true;
+                document.getElementById('export-btn').disabled = false;
+                
+                const duration = Math.floor((Date.now() - this.session.startTime) / 1000);
+                this.log(`🏁 Session ended - Duration: ${this.formatTime(duration)}`);
+                this.showNotification('success', `Session complete! Duration: ${this.formatTime(duration)}`);
+            }
+
+            updateSessionTime() {
+                if (!this.session.active || this.session.paused) return;
+                
+                const elapsed = Math.floor((Date.now() - this.session.startTime) / 1000);
+                document.getElementById('live-time-display').textContent = this.formatTime(elapsed);
+            }
+
+            collectData() {
+                if (!this.session.active || this.session.paused) return;
+                
+                this.session.data.push({
+                    timestamp: Date.now(),
+                    ...this.liveMetrics
+                });
+            }
+
+            exportData() {
+                if (this.session.data.length === 0) {
+                    this.showNotification('error', 'No data to export');
+                    return;
+                }
+                
+                const csv = this.convertToCSV(this.session.data);
+                const blob = new Blob([csv], { type: 'text/csv' });
                 const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `enhanced-device-specs-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `training_${new Date().toISOString()}.csv`;
+                a.click();
                 
-                addConnectionLog('💾 Enhanced specifications saved to downloads', 'success');
-            });
-            
-            document.getElementById('clear-log-btn')?.addEventListener('click', function() {
-                const logContent = document.getElementById('log-content');
-                if (logContent) {
-                    logContent.innerHTML = '';
-                    addConnectionLog('📋 Enhanced log cleared', 'info');
-                }
-            });
-            
-            // Initialize enhanced system
-            addConnectionLog('🚀 Enhanced Cross-Platform Bluetooth ANT+ Receiver Initialized', 'success');
-            addConnectionLog('🔧 Features: Auto-Connect + Real Device Support + Enhanced Serial Bridge', 'info');
-            addConnectionLog('💡 Click "Auto Connect All" to start automatic device discovery', 'info');
-        });
-    </script>
-    
-    <!-- Enhanced Device Pairing Functions -->
-    <script>
-        function pairDevice(deviceType) {
-            console.log(`🔍 Enhanced pairing ${deviceType}...`);
-            
-            if (deviceType === 'zwift-click') {
-                addConnectionLog('🎮 Enhanced Zwift Click pairing - checking for real device...', 'info');
-                
-                if (window.zwiftClickHandler) {
-                    window.zwiftClickHandler.connectRealDevice().then(success => {
-                        if (!success) {
-                            enhancedBluetoothPair(deviceType);
-                        }
-                    });
-                } else {
-                    enhancedBluetoothPair(deviceType);
-                }
-            } else {
-                enhancedBluetoothPair(deviceType);
-            }
-        }
-        
-        async function enhancedBluetoothPair(deviceType) {
-            if (!navigator.bluetooth) {
-                addConnectionLog('❌ Enhanced Pairing: Bluetooth not available', 'error');
-                return;
-            }
-            
-            const enhancedFilters = {
-                kickr: {
-                    filters: [
-                        { namePrefix: 'KICKR' }, { namePrefix: 'Wahoo' }, { namePrefix: 'Elite' },
-                        { services: [0x1826] }, { services: [0x1818] }
-                    ],
-                    optionalServices: [0x1826, 0x1818, 0x1816, 0x180A, 0x180F]
-                },
-                hrm: {
-                    filters: [
-                        { services: [0x180D] }, { namePrefix: 'Polar' }, { namePrefix: 'Garmin' },
-                        { namePrefix: 'Wahoo' }, { namePrefix: 'TICKR' }, { namePrefix: 'Suunto' }
-                    ],
-                    optionalServices: [0x180D, 0x180A, 0x180F]
-                },
-                'zwift-click': {
-                    filters: [
-                        { namePrefix: 'Zwift' }, { namePrefix: 'Click' },
-                        { services: [0x1812] }
-                    ],
-                    optionalServices: [0x1812, 0x180A, 0x180F, '6e40fec1-b5a3-f393-e0a9-e50e24dcca9e']
-                }
-            };
-            
-            const filters = enhancedFilters[deviceType] || { acceptAllDevices: true, optionalServices: [] };
-            
-            try {
-                addConnectionLog(`🔍 Enhanced Scanning: Looking for ${deviceType.toUpperCase()} with advanced filters...`, 'info');
-                
-                const device = await navigator.bluetooth.requestDevice(filters);
-                addConnectionLog(`✅ Enhanced Discovery: Selected ${device.name || 'Unknown Device'}`, 'success');
-                
-                const server = await device.gatt.connect();
-                addConnectionLog(`🔗 Enhanced Connection: Connected to ${deviceType.toUpperCase()}`, 'success');
-                
-                window.deviceConnectionLogger.logConnection(deviceType, 'connected', device.name);
-                
-                // Enhanced disconnect monitoring
-                device.addEventListener('gattserverdisconnected', () => {
-                    addConnectionLog(`⚠️ Enhanced Monitoring: ${deviceType.toUpperCase()} disconnected`, 'warning');
-                    window.deviceConnectionLogger.logConnection(deviceType, 'disconnected');
-                });
-                
-                // Enhanced data monitoring setup
-                await setupEnhancedDataMonitoring(device, server, deviceType);
-                
-            } catch (error) {
-                if (error.name === 'NotFoundError') {
-                    addConnectionLog(`⚠️ Enhanced Pairing: No device selected for ${deviceType}`, 'warning');
-                } else {
-                    addConnectionLog(`❌ Enhanced Pairing: ${deviceType} failed - ${error.message}`, 'error');
-                    window.deviceConnectionLogger.logConnection(deviceType, 'error', error.message);
-                }
-            }
-        }
-        
-        async function setupEnhancedDataMonitoring(device, server, deviceType) {
-            try {
-                const services = await server.getPrimaryServices();
-                addConnectionLog(`📋 Enhanced Monitoring: Found ${services.length} services on ${deviceType}`, 'info');
-                
-                for (const service of services) {
-                    const characteristics = await service.getCharacteristics();
-                    
-                    for (const characteristic of characteristics) {
-                        if (characteristic.properties.notify) {
-                            try {
-                                await characteristic.startNotifications();
-                                addConnectionLog(`📡 Enhanced Data: Monitoring ${characteristic.uuid.slice(-8)} on ${deviceType}`, 'info');
-                                
-                                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                                    handleEnhancedDeviceData(event, deviceType);
-                                });
-                                
-                            } catch (notifyError) {
-                                // Silently continue if notification setup fails
-                            }
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                addConnectionLog(`⚠️ Enhanced Monitoring: Could not set up data monitoring for ${deviceType}`, 'warning');
-            }
-        }
-        
-        function handleEnhancedDeviceData(event, deviceType) {
-            const value = event.target.value;
-            const data = new Uint8Array(value.buffer);
-            
-            // Enhanced data parsing
-            if (deviceType === 'hrm' && data.length >= 2) {
-                const heartRate = data[1];
-                if (heartRate > 0 && heartRate < 220) {
-                    window.deviceConnectionLogger.logData('hrm', { heartRate });
-                }
-            } else if (deviceType === 'kickr' && data.length >= 4) {
-                const power = (data[3] << 8) | data[2];
-                if (power > 0 && power < 2000) {
-                    window.deviceConnectionLogger.logData('kickr', { power });
-                }
-            } else if (deviceType === 'zwift-click') {
-                if (window.zwiftClickHandler) {
-                    window.zwiftClickHandler.handleButtonPress(event);
-                }
-            }
-        }
-        
-        function disconnectDevice(deviceType) {
-            console.log(`🔌 Enhanced disconnecting ${deviceType}...`);
-            
-            if (deviceType === 'zwift-click' && window.zwiftClickHandler) {
-                window.zwiftClickHandler.disconnect();
-            }
-            
-            addConnectionLog(`🔌 Enhanced Disconnect: ${deviceType.toUpperCase()} disconnected`, 'warning');
-            window.deviceConnectionLogger.logConnection(deviceType, 'disconnected');
-            
-            // Reset enhanced status
-            const connectionTypeEl = document.getElementById(`${deviceType}-connection-type`);
-            if (connectionTypeEl) {
-                connectionTypeEl.textContent = 'Enhanced Auto-Connect Ready';
-                connectionTypeEl.style.color = '#6c757d';
-            }
-        }
-    </script>
-
-    <!-- Load Enhanced Modular JavaScript -->
-    <script type="module" src="js/core/app.js"></script>
-    <script src="js/device-control.js"></script>
-    
-    <!-- Initialize Enhanced Auto-Connect Manager -->
-    <script>
-        // Enhanced Auto-Connect Manager (simplified version for main page)
-        class EnhancedAutoConnectManager {
-            constructor() {
-                this.deviceQueue = ['hrm', 'kickr', 'zwift-click'];
-                this.connectedDevices = new Set();
-                this.autoConnectInProgress = false;
+                this.log('📥 Session data exported');
+                this.showNotification('success', 'Data exported successfully');
             }
 
-            async startEnhancedAutoConnect() {
-                if (this.autoConnectInProgress) return;
+            convertToCSV(data) {
+                const headers = ['timestamp', 'power', 'speed', 'cadence', 'heartRate', 'distance', 'resistance'];
+                const rows = data.map(row => headers.map(h => row[h] || 0).join(','));
+                return [headers.join(','), ...rows].join('\n');
+            }
+
+            // ============================================================================
+            // UI UPDATES
+            // ============================================================================
+
+            updateSensorCard(sensorType, status, deviceName = '') {
+                const card = document.getElementById(`${sensorType}-sensor-card`);
+                const statusEl = document.getElementById(`${sensorType}-sensor-status`);
+                const button = document.getElementById(`pair-${sensorType}-btn`);
                 
-                this.autoConnectInProgress = true;
-                document.getElementById('auto-connect-status').style.display = 'block';
+                if (card) {
+                    card.className = `sensor-card ${status}`;
+                }
                 
-                addConnectionLog('🚀 Enhanced Auto-Connect: Starting comprehensive device discovery...', 'success');
-                document.getElementById('auto-connect-progress').textContent = 'Initializing enhanced systems...';
-                
-                try {
-                    // Enhanced permission checking
-                    await this.delay(1000);
-                    document.getElementById('auto-connect-progress').textContent = '🔐 Checking enhanced permissions...';
-                    
-                    // Enhanced device discovery
-                    await this.delay(2000);
-                    document.getElementById('auto-connect-progress').textContent = '🔍 Enhanced device discovery in progress...';
-                    
-                    // Enhanced sequential connection
-                    for (const deviceType of this.deviceQueue) {
-                        document.getElementById('auto-connect-progress').textContent = `🔗 Connecting ${deviceType.toUpperCase()}...`;
-                        await this.delay(2000);
-                        
-                        // Simulate connection attempt
-                        if (Math.random() > 0.3) { // 70% success rate
-                            this.connectedDevices.add(deviceType);
-                            addConnectionLog(`✅ Enhanced Auto-Connect: ${deviceType.toUpperCase()} connected successfully`, 'success');
-                        } else {
-                            addConnectionLog(`⚠️ Enhanced Auto-Connect: ${deviceType.toUpperCase()} not found, will retry later`, 'warning');
-                        }
+                if (statusEl) {
+                    switch (status) {
+                        case 'connecting':
+                            statusEl.textContent = 'Connecting...';
+                            break;
+                        case 'connected':
+                            statusEl.textContent = deviceName || 'Connected';
+                            statusEl.classList.add('connected');
+                            break;
+                        case 'error':
+                            statusEl.textContent = 'Connection failed';
+                            break;
+                        default:
+                            statusEl.textContent = 'Not connected';
                     }
-                    
-                    // Launch simulator if no trainer found
-                    if (!this.connectedDevices.has('kickr')) {
-                        document.getElementById('auto-connect-progress').textContent = '🚴 Launching enhanced simulator...';
-                        await this.delay(1000);
-                        setTimeout(() => launchEnhancedKickrSimulator(), 2000);
+                }
+                
+                if (button) {
+                    button.disabled = status === 'connecting' || status === 'connected';
+                    if (status === 'connected') {
+                        button.textContent = '✅ Connected';
                     }
+                }
+            }
+
+            updateMetric(type, value, unit) {
+                // Update sensor card
+                const sensorValue = document.getElementById(`${type}-sensor-value`);
+                if (sensorValue) {
+                    sensorValue.textContent = value;
+                }
+                
+                // Update live metric
+                const liveDisplay = document.getElementById(`live-${type}-display`);
+                if (liveDisplay) {
+                    liveDisplay.textContent = value;
+                }
+                
+                // Update last update time
+                const lastUpdate = document.getElementById(`${type}-last-update`);
+                if (lastUpdate) {
+                    lastUpdate.textContent = new Date().toLocaleTimeString();
+                }
+                
+                // Mark as live data
+                const metricItem = document.getElementById(`live-${type}-metric`);
+                if (metricItem && !metricItem.classList.contains('live-data')) {
+                    metricItem.classList.add('live-data');
+                }
+            }
+
+            formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.getElementById('activity-log');
+                if (logElement) {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry';
+                    entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+                    logElement.appendChild(entry);
+                    logElement.scrollTop = logElement.scrollHeight;
                     
-                    addConnectionLog(`✅ Enhanced Auto-Connect Complete: ${this.connectedDevices.size} devices connected`, 'success');
-                    document.getElementById('auto-connect-progress').textContent = `🎉 Enhanced auto-connect completed! ${this.connectedDevices.size} devices ready`;
+                    // Keep only last 50 entries
+                    while (logElement.children.length > 50) {
+                        logElement.removeChild(logElement.firstChild);
+                    }
+                }
+                console.log(`[${timestamp}] ${message}`);
+            }
+
+            showNotification(type, message, duration = 5000) {
+                const notification = document.getElementById('app-notification');
+                if (notification) {
+                    notification.className = `notification ${type} show`;
+                    notification.textContent = message;
                     
-                } catch (error) {
-                    addConnectionLog(`❌ Enhanced Auto-Connect Failed: ${error.message}`, 'error');
-                    document.getElementById('auto-connect-progress').textContent = '❌ Enhanced auto-connect encountered errors';
-                } finally {
                     setTimeout(() => {
-                        document.getElementById('auto-connect-status').style.display = 'none';
-                        this.autoConnectInProgress = false;
-                    }, 4000);
+                        notification.classList.remove('show');
+                    }, duration);
                 }
             }
-
-            delay(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
         }
 
-        // Initialize enhanced system
-        window.enhancedAutoConnectManager = new EnhancedAutoConnectManager();
-        
-        // Auto-start tip after 5 seconds
-        setTimeout(() => {
-            if (!window.enhancedAutoConnectManager.autoConnectInProgress) {
-                addConnectionLog('💡 Enhanced Tip: Click "🚀 Auto Connect All" to automatically discover and pair all your fitness devices', 'info');
-            }
-        }, 5000);
-    </script>
-    
-    <!-- Load Simple Zwift Click Handler with Cycling Resistance System -->
-    <script src="js/simple-zwift-click.js"></script>
-    <!-- Load Enhanced Kickr Core Handler with Service Discovery -->
-    <script src="js/enhanced-kickr-handler.js"></script>
-    
-    <!-- CRITICAL FIXES SCRIPT - Fixes 24-gear system + Kickr data mapping -->
-    <script>
-    console.log('🔧 Loading Critical Fixes for Cycling Resistance System...');
-
-    // OVERRIDE 1: Replace the old 24-gear system with 8-level resistance
-    const cyclingResistanceSystem = {
-        currentLevel: 4,
-        minLevel: 1,
-        maxLevel: 8,
-        
-        levels: {
-            1: { resistance: '10%', description: 'Recovery - Very Easy', color: '#27ae60', power: 80 },
-            2: { resistance: '20%', description: 'Endurance - Easy', color: '#2ecc71', power: 120 },
-            3: { resistance: '35%', description: 'Aerobic - Moderate Easy', color: '#3498db', power: 160 },
-            4: { resistance: '50%', description: 'Tempo - Moderate', color: '#f39c12', power: 200 },
-            5: { resistance: '65%', description: 'Threshold - Hard', color: '#e67e22', power: 250 },
-            6: { resistance: '80%', description: 'VO2 Max - Very Hard', color: '#e74c3c', power: 300 },
-            7: { resistance: '90%', description: 'Anaerobic - Extremely Hard', color: '#c0392b', power: 350 },
-            8: { resistance: '100%', description: 'Maximum - All Out', color: '#8e44ad', power: 400 }
-        }
-    };
-
-    // OVERRIDE: Replace changeGear function with cycling resistance control
-    window.changeGear = function(direction, source = 'virtual') {
-        const previousLevel = cyclingResistanceSystem.currentLevel;
-        
-        if (direction === 'up' && cyclingResistanceSystem.currentLevel < cyclingResistanceSystem.maxLevel) {
-            cyclingResistanceSystem.currentLevel++;
-        } else if (direction === 'down' && cyclingResistanceSystem.currentLevel > cyclingResistanceSystem.minLevel) {
-            cyclingResistanceSystem.currentLevel--;
-        }
-        
-        if (previousLevel !== cyclingResistanceSystem.currentLevel) {
-            const levelInfo = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
-            
-            // Update UI with cycling resistance instead of gears
-            const gearDisplay = document.getElementById('zwift-gear');
-            const frontGear = document.getElementById('zwift-front-gear');
-            const rearGear = document.getElementById('zwift-rear-gear');
-            
-            if (gearDisplay) gearDisplay.textContent = cyclingResistanceSystem.currentLevel;
-            if (frontGear) frontGear.textContent = levelInfo.resistance;
-            if (rearGear) rearGear.textContent = `${levelInfo.power}W`;
-            
-            // Update labels
-            const frontLabel = frontGear?.parentElement.querySelector('.metric-label');
-            const rearLabel = rearGear?.parentElement.querySelector('.metric-label');
-            if (frontLabel) frontLabel.textContent = 'Resistance';
-            if (rearLabel) rearLabel.textContent = 'Target (W)';
-            
-            // Set target power on Kickr
-            const targetPowerEl = document.getElementById('kickr-target-power');
-            if (targetPowerEl) {
-                targetPowerEl.textContent = levelInfo.power;
-                targetPowerEl.style.color = levelInfo.color;
-            }
-            
-            const sourceText = source === 'real' ? '🎮 Real Zwift Click' : '🖱️ Virtual Control';
-            addConnectionLog(`🚴 Cycling Level: ${cyclingResistanceSystem.currentLevel} (${levelInfo.resistance} - ${levelInfo.description}) Target: ${levelInfo.power}W via ${sourceText}`, 'info');
-            
-            // Enhanced button feedback
-            const button = direction === 'up' ? 
-                document.getElementById('gear-up-btn') : 
-                document.getElementById('gear-down-btn');
-                
-            if (button) {
-                button.style.transform = 'scale(0.95)';
-                button.style.background = levelInfo.color;
-                setTimeout(() => {
-                    button.style.transform = '';
-                    button.style.background = '';
-                }, 300);
-            }
-        }
-    };
-
-    // OVERRIDE 2: Fix Zwift Click UI labels
-    function updateZwiftClickUI() {
-        const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
-        const frontGear = document.getElementById('zwift-front-gear');
-        const rearGear = document.getElementById('zwift-rear-gear');
-        
-        if (frontGear && rearGear) {
-            frontGear.textContent = currentLevel.resistance;
-            rearGear.textContent = `${currentLevel.power}W`;
-            
-            const frontLabel = frontGear.parentElement.querySelector('.metric-label');
-            const rearLabel = rearGear.parentElement.querySelector('.metric-label');
-            if (frontLabel) frontLabel.textContent = 'Resistance';
-            if (rearLabel) rearLabel.textContent = 'Target (W)';
-        }
-        
-        const gearDisplay = document.getElementById('zwift-gear');
-        if (gearDisplay) gearDisplay.textContent = cyclingResistanceSystem.currentLevel;
-    }
-
-    // OVERRIDE 3: Enhanced Kickr pairing with fixed data handling
-    window.pairEnhancedKickr = async function() {
-        console.log('🚴 Enhanced Kickr pairing with fixed data handling...');
-        
-        if (!navigator.bluetooth) {
-            addConnectionLog('❌ Bluetooth not available', 'error');
-            return;
-        }
-        
-        try {
-            addConnectionLog('🔍 Scanning for Wahoo Kickr Core...', 'info');
-            
-            const device = await navigator.bluetooth.requestDevice({
-                filters: [
-                    { namePrefix: 'KICKR' },
-                    { namePrefix: 'Wahoo' },
-                    { services: [0x1826] },
-                    { services: [0x1818] }
-                ],
-                optionalServices: [0x1826, 0x1818, 0x1816, 0x180A, 0x180F]
-            });
-            
-            addConnectionLog(`✅ Found device: ${device.name || 'Kickr Core'}`, 'success');
-            window.deviceConnectionLogger.logConnection('kickr', 'connecting');
-            
-            const server = await device.gatt.connect();
-            addConnectionLog('🔗 Connected to Kickr Core', 'success');
-            
-            // Fixed data handler for proper parsing
-            let lastDistance = 0;
-            let lastTime = Date.now();
-            let sessionStartTime = Date.now();
-            
-            function parseAndUpdateKickrData(dataView) {
-                const data = {};
-                
-                try {
-                    if (dataView.byteLength >= 8) {
-                        const flags = dataView.getUint16(0, true);
-                        data.power = dataView.getUint16(2, true); // Power is at offset 2
-                        
-                        // Calculate estimated speed from power
-                        if (data.power > 0) {
-                            data.speed = Math.pow(data.power * 0.22 / 0.004, 1/3) * 3.6; // Power-to-speed formula
-                        }
-                    } else if (dataView.byteLength >= 4) {
-                        data.power = dataView.getUint16(2, true);
-                        if (data.power > 0) {
-                            data.speed = Math.pow(data.power * 0.22 / 0.004, 1/3) * 3.6;
-                        }
-                    }
-                    
-                    // Calculate distance and time
-                    const currentTime = Date.now();
-                    const timeDiffSeconds = (currentTime - lastTime) / 1000;
-                    
-                    if (data.speed && timeDiffSeconds > 0) {
-                        const distanceIncrement = (data.speed * timeDiffSeconds) / 3600;
-                        lastDistance += distanceIncrement;
-                        data.distance = parseFloat(lastDistance.toFixed(2));
-                    }
-                    
-                    data.time = Math.floor((currentTime - sessionStartTime) / 1000);
-                    lastTime = currentTime;
-                    
-                    // Update display
-                    if (data.power !== undefined) {
-                        document.getElementById('kickr-power-value').textContent = data.power;
-                    }
-                    if (data.speed !== undefined) {
-                        document.getElementById('kickr-speed-value').textContent = data.speed.toFixed(1);
-                    }
-                    if (data.distance !== undefined) {
-                        document.getElementById('kickr-distance-value').textContent = data.distance.toFixed(2);
-                    }
-                    if (data.time !== undefined) {
-                        const minutes = Math.floor(data.time / 60);
-                        const seconds = data.time % 60;
-                        document.getElementById('kickr-time-value').textContent = 
-                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                    }
-                    
-                    // Update resistance display
-                    const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
-                    document.getElementById('kickr-resistance-value').textContent = currentLevel.resistance;
-                    
-                    if (data.power && data.power > 0) {
-                        addConnectionLog(`🚴 Kickr: ${data.power}W, ${data.speed ? data.speed.toFixed(1) + ' km/h' : ''}, ${data.distance ? data.distance.toFixed(2) + ' km' : ''}`, 'info');
-                    }
-                    
-                } catch (error) {
-                    console.error('Data parsing error:', error);
-                }
-            }
-            
-            // Try to find and connect to power service
-            try {
-                const powerService = await server.getPrimaryService(0x1818);
-                const powerCharacteristic = await powerService.getCharacteristic(0x2A63);
-                
-                await powerCharacteristic.startNotifications();
-                addConnectionLog('📡 Monitoring Cycling Power data', 'success');
-                
-                powerCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    parseAndUpdateKickrData(event.target.value);
-                });
-                
-            } catch (powerError) {
-                try {
-                    const fitnessService = await server.getPrimaryService(0x1826);
-                    const fitnessCharacteristic = await fitnessService.getCharacteristic(0x2ACD);
-                    
-                    await fitnessCharacteristic.startNotifications();
-                    addConnectionLog('📡 Monitoring Fitness Machine data', 'success');
-                    
-                    fitnessCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-                        parseAndUpdateKickrData(event.target.value);
-                    });
-                    
-                } catch (fitnessError) {
-                    addConnectionLog('⚠️ No standard services found, using basic connection', 'warning');
-                }
-            }
-            
-            device.addEventListener('gattserverdisconnected', () => {
-                addConnectionLog('⚠️ Kickr disconnected', 'warning');
-                window.deviceConnectionLogger.logConnection('kickr', 'disconnected');
-            });
-            
-            window.kickrDevice = device;
-            window.deviceConnectionLogger.logConnection('kickr', 'connected', device.name);
-            
-            document.getElementById('kickr-last-update').textContent = '🚴 Enhanced Kickr connected';
-            document.getElementById('kickr-last-update').style.color = '#28a745';
-            
-        } catch (error) {
-            if (error.name === 'NotFoundError') {
-                addConnectionLog('⚠️ No Kickr device selected', 'warning');
-            } else {
-                addConnectionLog(`❌ Kickr pairing failed: ${error.message}`, 'error');
-                window.deviceConnectionLogger.logConnection('kickr', 'error', error.message);
-            }
-        }
-    };
-
-    // Apply fixes when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-            updateZwiftClickUI();
-            
-            const currentLevel = cyclingResistanceSystem.levels[cyclingResistanceSystem.currentLevel];
-            const targetPowerEl = document.getElementById('kickr-target-power');
-            if (targetPowerEl) {
-                targetPowerEl.textContent = currentLevel.power;
-                targetPowerEl.style.color = currentLevel.color;
-            }
-            
-            addConnectionLog('🔧 Critical Fixes Applied: 8-Level Resistance System + Enhanced Data Parsing', 'success');
-            addConnectionLog('🚴 System now uses cycling resistance levels instead of gears', 'info');
-        }, 500);
-    });
-
-    console.log('✅ Critical Fixes Loaded Successfully');
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.trainerApp = new SmartTrainerApp();
+            console.log('🚴 Smart Trainer Platform initialized');
+        });
     </script>
 </body>
 </html>
