@@ -1,0 +1,109 @@
+name: Quick Android Build
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+
+jobs:
+  quick-android-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: ☕ Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 📦 Quick Setup
+      run: |
+        # Create minimal package.json if it doesn't exist
+        if [ ! -f package.json ]; then
+          echo '{
+            "name": "anticip-trainer",
+            "version": "1.0.0",
+            "description": "ANTicP Training Platform"
+          }' > package.json
+        fi
+        
+        # Install Capacitor
+        npm install @capacitor/core @capacitor/android @capacitor/cli
+        npm install @capacitor-community/bluetooth-le
+
+    - name: 🔨 Initialize Android Project
+      run: |
+        npx cap init "ANTicP Trainer" com.anticip.trainer --web-dir=.
+        npx cap add android
+
+    - name: 📝 Fix Android Manifest
+      run: |
+        # Add permissions to AndroidManifest.xml
+        sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\
+        <uses-permission android:name="android.permission.BLUETOOTH" />\
+        <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\
+        <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\
+        <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\
+        <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' \
+        android/app/src/main/AndroidManifest.xml
+
+    - name: 🔄 Copy Web Files
+      run: |
+        # Ensure index.html exists
+        if [ ! -f index.html ]; then
+          if [ -f index-advanced-zones.html ]; then
+            cp index-advanced-zones.html index.html
+          elif [ -f index-fixed-v2.html ]; then
+            cp index-fixed-v2.html index.html
+          fi
+        fi
+        
+        # Sync with Android
+        npx cap sync android
+
+    - name: 🏗️ Build APK
+      run: |
+        cd android
+        chmod +x ./gradlew
+        if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          ./gradlew assembleRelease
+        else
+          ./gradlew assembleDebug
+        fi
+
+    - name: 📤 Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: anticip-${{ github.event.inputs.build_type }}.apk
+        path: |
+          android/app/build/outputs/apk/debug/app-debug.apk
+          android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+    - name: 📊 Build Summary
+      run: |
+        echo "## 📱 Build Complete!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Details:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Type:** ${{ github.event.inputs.build_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package:** com.anticip.trainer" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📥 Installation:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download the APK from artifacts above" >> $GITHUB_STEP_SUMMARY
+        echo "2. Transfer to your Android device" >> $GITHUB_STEP_SUMMARY
+        echo "3. Enable 'Install from unknown sources'" >> $GITHUB_STEP_SUMMARY
+        echo "4. Open the APK to install" >> $GITHUB_STEP_SUMMARY
