@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwift Click - Complete Byte Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #fc5200;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #e04800;
+        }
+        .instructions {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .byte-analysis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .byte-box {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+        }
+        .byte-box.different {
+            background: #ffeb3b;
+            border-color: #ffc107;
+            font-weight: bold;
+        }
+        .byte-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .byte-value {
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            margin: 5px 0;
+        }
+        .pattern-list {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .pattern-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .pattern-up {
+            border-left: 5px solid #28a745;
+        }
+        .pattern-down {
+            border-left: 5px solid #007bff;
+        }
+        .log {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        h3 {
+            margin-top: 30px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Zwift Click - Complete Byte Analysis</h1>
+        
+        <div class="instructions">
+            <strong>📋 Instructions to identify your buttons:</strong>
+            <ol>
+                <li>Connect your Zwift Click</li>
+                <li>Press the TOP/RIGHT button 3 times slowly</li>
+                <li>Press the BOTTOM/LEFT button 3 times slowly</li>
+                <li>Watch which bytes change between buttons!</li>
+                <li>The yellow highlighted bytes are the ones that differ</li>
+            </ol>
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="connect-btn">Connect Zwift Click</button>
+            <button id="clear-btn">Clear Data</button>
+            <button id="mark-btn" style="background: #6c757d;">Mark Button Type</button>
+        </div>
+
+        <h3>🔍 Last Message - Byte Analysis:</h3>
+        <div id="byte-analysis" class="byte-analysis">
+            <div class="byte-box">
+                <div class="byte-label">Waiting...</div>
+                <div class="byte-value">--</div>
+            </div>
+        </div>
+
+        <h3>📊 Unique Patterns Detected:</h3>
+        <div id="pattern-list" class="pattern-list">
+            <div>No patterns yet - press buttons after connecting</div>
+        </div>
+
+        <h3>🎯 Button Detection Summary:</h3>
+        <div id="detection-summary" style="padding: 15px; background: #d4edda; border-radius: 5px; margin: 20px 0;">
+            Waiting for data...
+        </div>
+
+        <h3>📝 Raw Data Log:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        class ZwiftClickAnalyzer {
+            constructor() {
+                this.patterns = new Map();
+                this.lastData = null;
+                this.messageCount = 0;
+                this.currentMarkType = 'UP';
+                this.byteStats = Array(10).fill(null).map(() => new Set());
+                
+                this.setupEventListeners();
+                this.log('🚀 Zwift Click Byte Analyzer Ready');
+            }
+            
+            setupEventListeners() {
+                document.getElementById('connect-btn').addEventListener('click', () => this.connect());
+                document.getElementById('clear-btn').addEventListener('click', () => this.clearData());
+                document.getElementById('mark-btn').addEventListener('click', () => this.toggleMarkType());
+            }
+            
+            toggleMarkType() {
+                this.currentMarkType = this.currentMarkType === 'UP' ? 'DOWN' : 'UP';
+                const btn = document.getElementById('mark-btn');
+                btn.textContent = `Marking as: ${this.currentMarkType}`;
+                btn.style.background = this.currentMarkType === 'UP' ? '#28a745' : '#007bff';
+                this.log(`📍 Now marking presses as: ${this.currentMarkType} button`);
+            }
+            
+            async connect() {
+                try {
+                    this.log('🔍 Searching for Zwift Click...');
+                    
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'Zwift Click' },
+                            { namePrefix: 'CLICK' }
+                        ],
+                        optionalServices: [
+                            '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                            '0000180f-0000-1000-8000-00805f9b34fb'
+                        ]
+                    });
+                    
+                    this.log(`📱 Found: ${device.name}`);
+                    
+                    const server = await device.gatt.connect();
+                    const service = await server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
+                    
+                    const measurementChar = await service.getCharacteristic('00000002-19ca-4651-86e5-fa29dcdd09d1');
+                    const controlChar = await service.getCharacteristic('00000003-19ca-4651-86e5-fa29dcdd09d1');
+                    const responseChar = await service.getCharacteristic('00000004-19ca-4651-86e5-fa29dcdd09d1');
+                    
+                    await measurementChar.startNotifications();
+                    measurementChar.addEventListener('characteristicvaluechanged', (event) => {
+                        this.handleData(event.target.value);
+                    });
+                    
+                    await responseChar.startNotifications();
+                    
+                    const handshake = new TextEncoder().encode('RideOn');
+                    await controlChar.writeValue(handshake);
+                    
+                    this.log('✅ Connected! Now press each button 3 times slowly');
+                    this.log('🎯 Press TOP/RIGHT button 3 times, then BOTTOM/LEFT button 3 times');
+                    
+                } catch (error) {
+                    this.log(`❌ Failed: ${error.message}`);
+                }
+            }
+            
+            handleData(dataValue) {
+                const data = new Uint8Array(dataValue.buffer);
+                
+                // Only process button messages (0x37)
+                if (data[0] === 0x37 && data.length >= 5) {
+                    const stateByte = data[2];
+                    
+                    // Only process button press (0x00)
+                    if (stateByte === 0x00) {
+                        this.messageCount++;
+                        const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                        const pattern = hexString;
+                        
+                        // Track which bytes we've seen for each position
+                        data.forEach((byte, index) => {
+                            this.byteStats[index].add(byte);
+                        });
+                        
+                        // Store pattern with button type
+                        if (!this.patterns.has(pattern)) {
+                            this.patterns.set(pattern, {
+                                type: this.currentMarkType,
+                                count: 1,
+                                data: data
+                            });
+                        } else {
+                            this.patterns.get(pattern).count++;
+                        }
+                        
+                        // Update byte analysis display
+                        this.updateByteAnalysis(data);
+                        
+                        // Update pattern list
+                        this.updatePatternList();
+                        
+                        // Analyze differences
+                        this.analyzeButtonDifferences();
+                        
+                        // Log the press
+                        this.log(`#${this.messageCount} [${this.currentMarkType}]: ${hexString}`);
+                        
+                        this.lastData = data;
+                    }
+                }
+            }
+            
+            updateByteAnalysis(data) {
+                const container = document.getElementById('byte-analysis');
+                container.innerHTML = '';
+                
+                data.forEach((byte, index) => {
+                    const box = document.createElement('div');
+                    box.className = 'byte-box';
+                    
+                    // Check if this byte varies (has multiple values)
+                    if (this.byteStats[index].size > 1) {
+                        box.classList.add('different');
+                    }
+                    
+                    box.innerHTML = `
+                        <div class="byte-label">Byte ${index}</div>
+                        <div class="byte-value">0x${byte.toString(16).padStart(2, '0')}</div>
+                        <div style="font-size: 10px; color: #666;">
+                            ${this.byteStats[index].size > 1 ? `(${this.byteStats[index].size} values)` : ''}
+                        </div>
+                    `;
+                    container.appendChild(box);
+                });
+            }
+            
+            updatePatternList() {
+                const container = document.getElementById('pattern-list');
+                container.innerHTML = '';
+                
+                const upPatterns = [];
+                const downPatterns = [];
+                
+                this.patterns.forEach((info, pattern) => {
+                    if (info.type === 'UP') {
+                        upPatterns.push({ pattern, count: info.count });
+                    } else {
+                        downPatterns.push({ pattern, count: info.count });
+                    }
+                });
+                
+                if (upPatterns.length > 0) {
+                    container.innerHTML += '<strong>UP Button Patterns:</strong>';
+                    upPatterns.forEach(p => {
+                        container.innerHTML += `<div class="pattern-item pattern-up">${p.pattern} (×${p.count})</div>`;
+                    });
+                }
+                
+                if (downPatterns.length > 0) {
+                    container.innerHTML += '<strong>DOWN Button Patterns:</strong>';
+                    downPatterns.forEach(p => {
+                        container.innerHTML += `<div class="pattern-item pattern-down">${p.pattern} (×${p.count})</div>`;
+                    });
+                }
+            }
+            
+            analyzeButtonDifferences() {
+                const upPatterns = [];
+                const downPatterns = [];
+                
+                this.patterns.forEach((info, pattern) => {
+                    if (info.type === 'UP') {
+                        upPatterns.push(info.data);
+                    } else {
+                        downPatterns.push(info.data);
+                    }
+                });
+                
+                if (upPatterns.length > 0 && downPatterns.length > 0) {
+                    // Find which bytes differ
+                    const differingBytes = [];
+                    
+                    for (let i = 0; i < Math.min(upPatterns[0].length, downPatterns[0].length); i++) {
+                        const upValues = new Set(upPatterns.map(p => p[i]));
+                        const downValues = new Set(downPatterns.map(p => p[i]));
+                        
+                        // Check if this byte position has different values for UP vs DOWN
+                        const upOnly = [...upValues].filter(v => ![...downValues].includes(v));
+                        const downOnly = [...downValues].filter(v => ![...upValues].includes(v));
+                        
+                        if (upOnly.length > 0 || downOnly.length > 0) {
+                            differingBytes.push({
+                                position: i,
+                                upValues: [...upValues].map(v => '0x' + v.toString(16).padStart(2, '0')),
+                                downValues: [...downValues].map(v => '0x' + v.toString(16).padStart(2, '0'))
+                            });
+                        }
+                    }
+                    
+                    // Update summary
+                    const summary = document.getElementById('detection-summary');
+                    if (differingBytes.length > 0) {
+                        let html = '<strong>✅ Button Detection Found!</strong><br>';
+                        html += 'The following bytes differ between buttons:<br><br>';
+                        
+                        differingBytes.forEach(diff => {
+                            html += `<strong>Byte ${diff.position}:</strong><br>`;
+                            html += `  UP button = ${diff.upValues.join(', ')}<br>`;
+                            html += `  DOWN button = ${diff.downValues.join(', ')}<br><br>`;
+                        });
+                        
+                        summary.innerHTML = html;
+                        summary.style.background = '#d4edda';
+                    } else {
+                        summary.innerHTML = '⚠️ Both buttons send identical data! Will need to use alternating logic.';
+                        summary.style.background = '#f8d7da';
+                    }
+                }
+            }
+            
+            clearData() {
+                this.patterns.clear();
+                this.lastData = null;
+                this.messageCount = 0;
+                this.byteStats = Array(10).fill(null).map(() => new Set());
+                document.getElementById('byte-analysis').innerHTML = '<div class="byte-box"><div class="byte-label">Waiting...</div><div class="byte-value">--</div></div>';
+                document.getElementById('pattern-list').innerHTML = '<div>No patterns yet</div>';
+                document.getElementById('detection-summary').innerHTML = 'Waiting for data...';
+                document.getElementById('log').innerHTML = '';
+                this.log('🧹 Data cleared - ready for new test');
+            }
+            
+            log(message) {
+                const logElement = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.textContent = `[${timestamp}] ${message}`;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new ZwiftClickAnalyzer();
+        });
+    </script>
+</body>
+</html>
