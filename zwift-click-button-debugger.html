@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwift Click Button Pattern Debugger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        .pattern-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .pattern-item {
+            padding: 12px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+        .pattern-item.up {
+            border-left-color: #48bb78;
+        }
+        .pattern-item.down {
+            border-left-color: #4299e1;
+        }
+        .pattern-item.unknown {
+            border-left-color: #ed8936;
+        }
+        .byte-display {
+            font-size: 14px;
+            color: #2d3748;
+        }
+        .button-label {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .button-label.up {
+            background: #48bb78;
+            color: white;
+        }
+        .button-label.down {
+            background: #4299e1;
+            color: white;
+        }
+        .button-label.unknown {
+            background: #ed8936;
+            color: white;
+        }
+        .log-area {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .instructions {
+            background: #bee3f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #90cdf4;
+        }
+        .gear-display {
+            text-align: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Zwift Click Button Pattern Debugger</h1>
+        
+        <div class="status disconnected" id="status">
+            Not Connected
+        </div>
+
+        <div class="instructions">
+            <strong>📋 How to identify your button patterns:</strong>
+            <ol>
+                <li>Click "Connect Zwift Click" and select your device</li>
+                <li>Press the <strong>UP/PLUS</strong> button 3 times slowly</li>
+                <li>Click "Mark Previous as UP"</li>
+                <li>Press the <strong>DOWN/MINUS</strong> button 3 times slowly</li>
+                <li>Click "Mark Previous as DOWN"</li>
+                <li>The patterns will be saved and buttons will work!</li>
+            </ol>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="debugger.connect()">🔗 Connect Zwift Click</button>
+            <button class="btn-success" onclick="debugger.markAsUp()">⬆️ Mark Previous as UP</button>
+            <button class="btn-success" onclick="debugger.markAsDown()">⬇️ Mark Previous as DOWN</button>
+            <button class="btn-danger" onclick="debugger.clearPatterns()">🗑️ Clear Patterns</button>
+            <button class="btn-primary" onclick="debugger.exportPatterns()">📥 Export Patterns</button>
+        </div>
+
+        <div class="gear-display" id="gear-display">
+            Gear: --/24
+        </div>
+
+        <div class="pattern-section">
+            <h3>🎯 Detected Patterns</h3>
+            <div id="pattern-list">
+                <div style="color: #718096; text-align: center; padding: 20px;">
+                    No patterns detected yet. Connect and press buttons!
+                </div>
+            </div>
+        </div>
+
+        <div class="pattern-section">
+            <h3>✅ Learned Button Patterns</h3>
+            <div id="learned-patterns">
+                <div style="color: #718096; text-align: center; padding: 20px;">
+                    No patterns learned yet.
+                </div>
+            </div>
+        </div>
+
+        <div class="log-area" id="log">
+            Ready to debug Zwift Click buttons...
+        </div>
+    </div>
+
+    <script>
+        class ZwiftClickDebugger {
+            constructor() {
+                this.device = null;
+                this.server = null;
+                this.patterns = [];
+                this.lastPattern = null;
+                this.learnedPatterns = {
+                    up: null,
+                    down: null
+                };
+                this.currentGear = 12;
+                this.maxGears = 24;
+                
+                // Load saved patterns from localStorage
+                this.loadPatterns();
+            }
+            
+            log(message) {
+                const logEl = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                logEl.innerHTML += `[${timestamp}] ${message}\n`;
+                logEl.scrollTop = logEl.scrollHeight;
+                console.log(message);
+            }
+            
+            async connect() {
+                try {
+                    this.log('🔍 Searching for Zwift Click...');
+                    
+                    this.device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'Zwift Click' },
+                            { namePrefix: 'CLICK' },
+                            { namePrefix: 'Click' }
+                        ],
+                        optionalServices: [
+                            '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                            0x180F
+                        ]
+                    });
+                    
+                    this.log(`✅ Found: ${this.device.name}`);
+                    
+                    this.server = await this.device.gatt.connect();
+                    this.log('✅ Connected to GATT server');
+                    
+                    const service = await this.server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
+                    this.log('✅ Got Zwift service');
+                    
+                    const characteristics = await service.getCharacteristics();
+                    this.log(`📋 Found ${characteristics.length} characteristics`);
+                    
+                    // Listen on all notify characteristics
+                    for (const char of characteristics) {
+                        if (char.properties.notify) {
+                            await char.startNotifications();
+                            char.addEventListener('characteristicvaluechanged', (event) => {
+                                this.handleData(event);
+                            });
+                            this.log(`🔔 Listening on ${char.uuid.slice(-4)}...`);
+                        }
+                    }
+                    
+                    // Update status
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('status').textContent = `Connected to ${this.device.name}`;
+                    
+                    this.log('🎮 Ready! Press buttons to see patterns.');
+                    
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`);
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').textContent = 'Connection Failed';
+                }
+            }
+            
+            handleData(event) {
+                const data = new Uint8Array(event.target.value.buffer);
+                const hexString = Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
+                
+                // Don't log every message to reduce noise
+                this.lastPattern = hexString;
+                
+                // Check if this is a learned pattern
+                let buttonType = 'unknown';
+                if (this.learnedPatterns.up === hexString) {
+                    buttonType = 'up';
+                    this.handleGearChange('up');
+                } else if (this.learnedPatterns.down === hexString) {
+                    buttonType = 'down';
+                    this.handleGearChange('down');
+                }
+                
+                // Add to patterns list if new
+                if (!this.patterns.some(p => p.hex === hexString)) {
+                    this.patterns.push({
+                        hex: hexString,
+                        type: buttonType,
+                        count: 1,
+                        timestamp: Date.now()
+                    });
+                    this.updatePatternDisplay();
+                    this.log(`New pattern: ${hexString}`);
+                } else {
+                    // Increment count
+                    const pattern = this.patterns.find(p => p.hex === hexString);
+                    pattern.count++;
+                    pattern.timestamp = Date.now();
+                    this.updatePatternDisplay();
+                }
+            }
+            
+            handleGearChange(direction) {
+                if (direction === 'up' && this.currentGear < this.maxGears) {
+                    this.currentGear++;
+                } else if (direction === 'down' && this.currentGear > 1) {
+                    this.currentGear--;
+                }
+                
+                document.getElementById('gear-display').textContent = `Gear: ${this.currentGear}/${this.maxGears}`;
+                this.log(`⚙️ Gear ${direction} → ${this.currentGear}/${this.maxGears}`);
+            }
+            
+            markAsUp() {
+                if (this.lastPattern) {
+                    this.learnedPatterns.up = this.lastPattern;
+                    const pattern = this.patterns.find(p => p.hex === this.lastPattern);
+                    if (pattern) pattern.type = 'up';
+                    this.updatePatternDisplay();
+                    this.savePatterns();
+                    this.log(`✅ Marked "${this.lastPattern}" as UP button`);
+                } else {
+                    this.log('⚠️ No recent pattern to mark');
+                }
+            }
+            
+            markAsDown() {
+                if (this.lastPattern) {
+                    this.learnedPatterns.down = this.lastPattern;
+                    const pattern = this.patterns.find(p => p.hex === this.lastPattern);
+                    if (pattern) pattern.type = 'down';
+                    this.updatePatternDisplay();
+                    this.savePatterns();
+                    this.log(`✅ Marked "${this.lastPattern}" as DOWN button`);
+                } else {
+                    this.log('⚠️ No recent pattern to mark');
+                }
+            }
+            
+            updatePatternDisplay() {
+                // Update detected patterns
+                const patternList = document.getElementById('pattern-list');
+                if (this.patterns.length === 0) {
+                    patternList.innerHTML = '<div style="color: #718096; text-align: center; padding: 20px;">No patterns detected yet.</div>';
+                } else {
+                    patternList.innerHTML = this.patterns
+                        .sort((a, b) => b.timestamp - a.timestamp)
+                        .map(p => `
+                            <div class="pattern-item ${p.type}">
+                                <span class="byte-display">${p.hex}</span>
+                                <span>
+                                    <span class="button-label ${p.type}">${p.type}</span>
+                                    <span style="margin-left: 10px; color: #718096;">×${p.count}</span>
+                                </span>
+                            </div>
+                        `).join('');
+                }
+                
+                // Update learned patterns
+                const learnedDiv = document.getElementById('learned-patterns');
+                const learned = [];
+                if (this.learnedPatterns.up) {
+                    learned.push(`
+                        <div class="pattern-item up">
+                            <span class="byte-display">${this.learnedPatterns.up}</span>
+                            <span class="button-label up">UP BUTTON</span>
+                        </div>
+                    `);
+                }
+                if (this.learnedPatterns.down) {
+                    learned.push(`
+                        <div class="pattern-item down">
+                            <span class="byte-display">${this.learnedPatterns.down}</span>
+                            <span class="button-label down">DOWN BUTTON</span>
+                        </div>
+                    `);
+                }
+                
+                if (learned.length > 0) {
+                    learnedDiv.innerHTML = learned.join('');
+                } else {
+                    learnedDiv.innerHTML = '<div style="color: #718096; text-align: center; padding: 20px;">No patterns learned yet.</div>';
+                }
+            }
+            
+            clearPatterns() {
+                this.patterns = [];
+                this.learnedPatterns = { up: null, down: null };
+                this.lastPattern = null;
+                this.updatePatternDisplay();
+                localStorage.removeItem('zwiftClickPatterns');
+                this.log('🗑️ Cleared all patterns');
+            }
+            
+            savePatterns() {
+                localStorage.setItem('zwiftClickPatterns', JSON.stringify(this.learnedPatterns));
+            }
+            
+            loadPatterns() {
+                const saved = localStorage.getItem('zwiftClickPatterns');
+                if (saved) {
+                    this.learnedPatterns = JSON.parse(saved);
+                    this.log('📂 Loaded saved patterns');
+                    this.updatePatternDisplay();
+                }
+            }
+            
+            exportPatterns() {
+                const exportData = {
+                    learnedPatterns: this.learnedPatterns,
+                    allPatterns: this.patterns,
+                    deviceName: this.device?.name || 'Unknown',
+                    timestamp: new Date().toISOString()
+                };
+                
+                const json = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'zwift-click-patterns.json';
+                a.click();
+                
+                this.log('📥 Exported patterns to file');
+            }
+        }
+        
+        // Create global instance
+        const debugger = new ZwiftClickDebugger();
+    </script>
+</body>
+</html>
