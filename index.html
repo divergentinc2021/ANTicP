@@ -925,72 +925,55 @@
                 }
             }
 
-            handleZwiftClickData(dataValue) {
-                const data = new Uint8Array(dataValue.buffer);
-                
-                // Message type 0x37 is the button state message
-                if (data[0] === 0x37 && data.length >= 5) {
-                    const currentTime = Date.now();
-                    
-                    // Extract button information
-                    const stateByte = data[2];     // 0x00 = pressed, 0x01 = released
-                    const byte3 = data[3];         // Usually 0x10
-                    const byte4 = data[4];         // Helps identify which button
-                    
-                    // Debug logging if enabled
-                    if (this.buttonState.debugMode) {
-                        const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                        console.log(`Zwift Click data: ${hexString}`);
-                    }
-                    
-                    // Only process button press, not release
-                    if (stateByte === 0x00) {
-                        // Debounce - prevent multiple triggers
-                        if (currentTime - this.buttonState.lastMessageTime < 250) return;
-                        this.buttonState.lastMessageTime = currentTime;
-                        
-                        // Determine which button based on byte pattern
-                        // From your logs: "37 08 00 10 01" vs "37 08 00 10 00"
-                        let isUpButton = false;
-                        let isDownButton = false;
-                        
-                        if (byte3 === 0x10) {
-                            if (byte4 === 0x01) {
-                                isUpButton = true;
-                            } else if (byte4 === 0x00) {
-                                isDownButton = true;
-                            }
-                        }
-                        
-                        // Fallback if pattern not recognized
-                        if (!isUpButton && !isDownButton) {
-                            const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                            this.log(`🔍 Unknown button pattern: ${hexString}`);
-                            
-                            // Use alternating logic as fallback
-                            if (this.buttonState.lastButtonPressed === 'up') {
-                                isDownButton = true;
-                            } else {
-                                isUpButton = true;
-                            }
-                        }
-                        
-                        // Handle the button press
-                        if (isUpButton) {
-                            this.handleUpButton();
-                            this.buttonState.lastButtonPressed = 'up';
-                        } else if (isDownButton) {
-                            this.handleDownButton();
-                            this.buttonState.lastButtonPressed = 'down';
-                        }
-                        
-                        this.buttonState.pressed = true;
-                    } else if (stateByte === 0x01) {
-                        // Button released
-                        this.buttonState.pressed = false;
-                    }
-                }
+           handleZwiftClickData(dataValue) {
+    const data = new Uint8Array(dataValue.buffer);
+    
+    // Debug logging if enabled
+    if (this.buttonState.debugMode) {
+        const hexString = Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
+        console.log(`Zwift Click data: ${hexString}`);
+    }
+    
+    // Check for the 0x37 message type (button state message)
+    if (data.length >= 5 && data[0] === 0x37) {
+        const currentTime = Date.now();
+        
+        // Extract button state information
+        const stateByte = data[2];  // 0x00 = pressed, 0x01 = released
+        const buttonId = data[4];   // 0x01 = UP, 0x00 = DOWN
+        
+        // Handle UP button on PRESS (normal behavior)
+        if (stateByte === 0x00 && buttonId === 0x01) {
+            // Debounce - prevent multiple triggers
+            if (currentTime - this.buttonState.lastMessageTime < 200) return;
+            this.buttonState.lastMessageTime = currentTime;
+            
+            this.handleUpButton();
+            this.log('🎮 UP button pressed');
+        }
+        
+        // SPECIAL HANDLING: DOWN button on RELEASE
+        // Your Zwift Click DOWN button only sends RELEASE events
+        // but no PRESS events, so we detect it on the first RELEASE
+        if (stateByte === 0x01 && buttonId === 0x00) {
+            // Initialize if needed
+            if (!this.buttonState.lastDownReleaseTime) {
+                this.buttonState.lastDownReleaseTime = 0;
             }
+            
+            // Check if this is a new button press (500ms gap)
+            if (currentTime - this.buttonState.lastDownReleaseTime > 500) {
+                // Trigger DOWN button action
+                this.handleDownButton();
+                this.log('🎮 DOWN button detected (via release)');
+            }
+            this.buttonState.lastDownReleaseTime = currentTime;
+        }
+    } else if (data.length === 3 && data[0] === 0x19) {
+        // Keepalive message - ignore
+        return;
+    }
+}
 
             handleUpButton() {
                 // UP Button behavior depends on mode
