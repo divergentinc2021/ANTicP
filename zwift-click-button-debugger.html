@@ -170,11 +170,11 @@
         </div>
 
         <div class="button-group">
-            <button class="btn-primary" onclick="debugger.connect()">🔗 Connect Zwift Click</button>
-            <button class="btn-success" onclick="debugger.markAsUp()">⬆️ Mark Previous as UP</button>
-            <button class="btn-success" onclick="debugger.markAsDown()">⬇️ Mark Previous as DOWN</button>
-            <button class="btn-danger" onclick="debugger.clearPatterns()">🗑️ Clear Patterns</button>
-            <button class="btn-primary" onclick="debugger.exportPatterns()">📥 Export Patterns</button>
+            <button class="btn-primary" onclick="zwiftDebugger.connect()">🔗 Connect Zwift Click</button>
+            <button class="btn-success" onclick="zwiftDebugger.markAsUp()">⬆️ Mark Previous as UP</button>
+            <button class="btn-success" onclick="zwiftDebugger.markAsDown()">⬇️ Mark Previous as DOWN</button>
+            <button class="btn-danger" onclick="zwiftDebugger.clearPatterns()">🗑️ Clear Patterns</button>
+            <button class="btn-primary" onclick="zwiftDebugger.exportPatterns()">📥 Export Patterns</button>
         </div>
 
         <div class="gear-display" id="gear-display">
@@ -442,8 +442,8 @@
             }
         }
         
-        // Create global instance
-        const debugger = new ZwiftClickDebugger();
+        // Create global instance - changed from 'debugger' to 'zwiftDebugger' to avoid reserved keyword conflict
+        const zwiftDebugger = new ZwiftClickDebugger();
     </script>
 </body>
 </html>
