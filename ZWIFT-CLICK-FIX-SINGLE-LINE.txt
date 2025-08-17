@@ -1,0 +1,20 @@
+// ZWIFT CLICK FIX INSTRUCTIONS FOR index.html
+// ================================================
+// The current index.html has ONE CRITICAL ISSUE in the connectZwiftClick() method:
+// It's using writeValue() instead of writeValueWithoutResponse() for the handshake
+
+// FIND THIS LINE (around line 911):
+await controlChar.writeValue(handshake);
+
+// REPLACE WITH:
+await controlChar.writeValueWithoutResponse(handshake);
+
+// That's the ONLY change needed! The button detection code is already correct.
+
+// The working handshake sequence should be:
+// 1. Get the control characteristic (00000003-19ca-4651-86e5-fa29dcdd09d1)
+// 2. Check it has writeWithoutResponse property (not write)
+// 3. Send "RideOn" using writeValueWithoutResponse()
+// 4. Optionally send additional init commands
+
+// After this fix, the Zwift Click will work properly!

@@ -909,7 +909,7 @@
                     
                     // Send handshake
                     const handshake = new TextEncoder().encode('RideOn');
-                    await controlChar.writeValue(handshake);
+                    await controlChar.writeValueWithoutResponse(handshake);
                     
                     this.connections.zwiftClick = { device, server, service };
                     document.getElementById('zwiftclick-card').classList.remove('connecting');
