@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwift Click Button Debugger V3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        .pattern-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .pattern-item {
+            padding: 12px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+        .pattern-item.up {
+            border-left-color: #48bb78;
+        }
+        .pattern-item.down {
+            border-left-color: #4299e1;
+        }
+        .pattern-item.unknown {
+            border-left-color: #ed8936;
+        }
+        .byte-display {
+            font-size: 14px;
+            color: #2d3748;
+        }
+        .button-label {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .button-label.up {
+            background: #48bb78;
+            color: white;
+        }
+        .button-label.down {
+            background: #4299e1;
+            color: white;
+        }
+        .button-label.unknown {
+            background: #ed8936;
+            color: white;
+        }
+        .log-area {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .instructions {
+            background: #bee3f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #90cdf4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Zwift Click Button Debugger V3</h1>
+        
+        <div class="status disconnected" id="status">
+            Not Connected
+        </div>
+
+        <div class="instructions">
+            <strong>📋 Instructions:</strong>
+            <ol>
+                <li>Press any button on your Zwift Click to wake it (LED should pulse blue)</li>
+                <li>Click "Connect Zwift Click" within 60 seconds</li>
+                <li>Select your device from the list</li>
+                <li>Wait for connection and handshake</li>
+                <li>Press buttons to see the data patterns</li>
+            </ol>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="zwiftDebugger.connect()">🔗 Connect Zwift Click</button>
+            <button class="btn-success" onclick="zwiftDebugger.sendHandshakes()">🤝 Send Handshakes</button>
+            <button class="btn-danger" onclick="zwiftDebugger.disconnect()">🔌 Disconnect</button>
+            <button class="btn-danger" onclick="zwiftDebugger.clearLog()">🗑️ Clear Log</button>
+        </div>
+
+        <div class="pattern-section">
+            <h3>📊 Connection Details</h3>
+            <div id="connection-details" style="font-family: monospace; color: #4a5568;">
+                Not connected
+            </div>
+        </div>
+
+        <div class="pattern-section">
+            <h3>🎯 Detected Button Patterns</h3>
+            <div id="pattern-list">
+                <div style="color: #718096; text-align: center; padding: 20px;">
+                    No patterns detected yet. Connect and press buttons!
+                </div>
+            </div>
+        </div>
+
+        <div class="log-area" id="log">
+            Ready to debug Zwift Click buttons...
+        </div>
+    </div>
+
+    <script>
+        class ZwiftClickDebugger {
+            constructor() {
+                this.device = null;
+                this.server = null;
+                this.service = null;
+                this.measurementChar = null;
+                this.controlChar = null;
+                this.responseChar = null;
+                this.char5 = null;
+                this.char6 = null;
+                this.patterns = new Map();
+                this.messageCount = 0;
+            }
+            
+            log(message, type = 'info') {
+                const logEl = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                const icons = {
+                    'info': 'ℹ️',
+                    'success': '✅',
+                    'error': '❌',
+                    'warning': '⚠️',
+                    'data': '📦'
+                };
+                const icon = icons[type] || '';
+                const logMessage = `[${timestamp}] ${icon} ${message}`;
+                logEl.innerHTML += logMessage + '\n';
+                logEl.scrollTop = logEl.scrollHeight;
+                console.log(logMessage);
+            }
+            
+            clearLog() {
+                document.getElementById('log').innerHTML = 'Log cleared. Ready...\n';
+                this.log('Log cleared', 'info');
+            }
+            
+            async connect() {
+                try {
+                    this.log('Searching for Zwift Click devices...', 'info');
+                    this.log('Make sure LED is pulsing blue (press button to wake)', 'warning');
+                    
+                    // Request the device
+                    this.device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'Zwift Click' },
+                            { namePrefix: 'CLICK' },
+                            { name: 'CLICK' }
+                        ],
+                        optionalServices: [
+                            '00000001-19ca-4651-86e5-fa29dcdd09d1',  // Zwift Click service
+                            '0000180f-0000-1000-8000-00805f9b34fb'   // Battery service
+                        ]
+                    });
+                    
+                    this.log(`Found device: ${this.device.name}`, 'success');
+                    
+                    // Connect to GATT
+                    this.log('Connecting to GATT server...', 'info');
+                    this.server = await this.device.gatt.connect();
+                    this.log('Connected to GATT server', 'success');
+                    
+                    // Get the Zwift Click service
+                    this.log('Getting Zwift Click service...', 'info');
+                    this.service = await this.server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
+                    this.log('Got Zwift Click service', 'success');
+                    
+                    // Get all characteristics and log them properly
+                    const allChars = await this.service.getCharacteristics();
+                    this.log(`Found ${allChars.length} characteristics:`, 'info');
+                    
+                    for (const char of allChars) {
+                        const uuid = char.uuid;
+                        const props = [];
+                        if (char.properties.read) props.push('read');
+                        if (char.properties.write) props.push('write');
+                        if (char.properties.writeWithoutResponse) props.push('writeNoResp');
+                        if (char.properties.notify) props.push('notify');
+                        if (char.properties.indicate) props.push('indicate');
+                        
+                        this.log(`  ${uuid}: [${props.join(', ')}]`, 'info');
+                        
+                        // Identify characteristics based on full UUID
+                        if (uuid === '00000002-19ca-4651-86e5-fa29dcdd09d1') {
+                            this.measurementChar = char;
+                            this.log('  ^ This is the MEASUREMENT characteristic', 'success');
+                        } else if (uuid === '00000003-19ca-4651-86e5-fa29dcdd09d1') {
+                            this.controlChar = char;
+                            this.log('  ^ This is the CONTROL characteristic', 'success');
+                        } else if (uuid === '00000004-19ca-4651-86e5-fa29dcdd09d1') {
+                            this.responseChar = char;
+                            this.log('  ^ This is the RESPONSE characteristic', 'success');
+                        } else if (uuid === '00000005-19ca-4651-86e5-fa29dcdd09d1') {
+                            this.char5 = char;
+                            this.log('  ^ This is characteristic 0005', 'info');
+                        } else if (uuid === '00000006-19ca-4651-86e5-fa29dcdd09d1') {
+                            this.char6 = char;
+                            this.log('  ^ This is characteristic 0006', 'info');
+                        }
+                    }
+                    
+                    // Setup notifications on ALL notify/indicate characteristics
+                    if (this.measurementChar && this.measurementChar.properties.notify) {
+                        this.log('Setting up notifications on measurement characteristic...', 'info');
+                        await this.measurementChar.startNotifications();
+                        this.measurementChar.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handleData(event.target.value, 'MEASUREMENT');
+                        });
+                        this.log('Notifications enabled on measurement characteristic', 'success');
+                    }
+                    
+                    if (this.responseChar && this.responseChar.properties.indicate) {
+                        this.log('Setting up indications on response characteristic...', 'info');
+                        await this.responseChar.startNotifications();
+                        this.responseChar.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handleData(event.target.value, 'RESPONSE');
+                        });
+                        this.log('Indications enabled on response characteristic', 'success');
+                    }
+                    
+                    if (this.char5 && this.char5.properties.notify) {
+                        this.log('Setting up notifications on characteristic 0005...', 'info');
+                        await this.char5.startNotifications();
+                        this.char5.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handleData(event.target.value, 'CHAR5');
+                        });
+                        this.log('Notifications enabled on characteristic 0005', 'success');
+                    }
+                    
+                    if (this.char6 && this.char6.properties.indicate) {
+                        this.log('Setting up indications on characteristic 0006...', 'info');
+                        await this.char6.startNotifications();
+                        this.char6.addEventListener('characteristicvaluechanged', (event) => {
+                            this.handleData(event.target.value, 'CHAR6');
+                        });
+                        this.log('Indications enabled on characteristic 0006', 'success');
+                    }
+                    
+                    // Try to read battery level
+                    try {
+                        const batteryService = await this.server.getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb');
+                        const batteryChar = await batteryService.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb');
+                        const batteryValue = await batteryChar.readValue();
+                        const batteryLevel = batteryValue.getUint8(0);
+                        this.log(`Battery level: ${batteryLevel}%`, 'success');
+                    } catch (e) {
+                        this.log('Could not read battery level', 'warning');
+                    }
+                    
+                    // Update UI
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('status').textContent = `Connected to ${this.device.name}`;
+                    
+                    // Update connection details
+                    document.getElementById('connection-details').innerHTML = `
+                        <div>Device: ${this.device.name}</div>
+                        <div>Service UUID: 00000001-19ca-4651-86e5-fa29dcdd09d1</div>
+                        <div>Measurement (0002): ${this.measurementChar ? '✅ Notify' : '❌'}</div>
+                        <div>Control (0003): ${this.controlChar ? '✅ WriteNoResp' : '❌'}</div>
+                        <div>Response (0004): ${this.responseChar ? '✅ Indicate' : '❌'}</div>
+                        <div>Char 0005: ${this.char5 ? '✅ Notify' : '❌'}</div>
+                        <div>Char 0006: ${this.char6 ? '✅ Read/Write/Indicate' : '❌'}</div>
+                    `;
+                    
+                    this.log('========================================', 'info');
+                    this.log('Connected! Now sending handshakes...', 'success');
+                    this.log('========================================', 'info');
+                    
+                    // Automatically send handshakes
+                    await this.sendHandshakes();
+                    
+                } catch (error) {
+                    this.log(`Connection failed: ${error.message}`, 'error');
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').textContent = 'Connection Failed';
+                }
+            }
+            
+            async sendHandshakes() {
+                this.log('Starting handshake sequence...', 'info');
+                
+                // Send handshakes to CONTROL characteristic (writeWithoutResponse)
+                if (this.controlChar && this.controlChar.properties.writeWithoutResponse) {
+                    const handshakes = [
+                        { data: 'RideOn', name: 'RideOn text', encode: true },
+                        { data: [0x52, 0x69, 0x64, 0x65, 0x4F, 0x6E], name: 'RideOn hex' },
+                        { data: [0x00], name: 'Wake signal' },
+                        { data: [0x01], name: 'Init signal' },
+                        { data: [0x10], name: 'Start signal' },
+                        { data: [0x00, 0x01], name: 'Init sequence' },
+                        { data: [0x01, 0x00], name: 'Alt init' },
+                        { data: [0x37], name: 'Button query' }
+                    ];
+                    
+                    for (const hs of handshakes) {
+                        try {
+                            let data;
+                            if (hs.encode) {
+                                data = new TextEncoder().encode(hs.data);
+                            } else {
+                                data = new Uint8Array(hs.data);
+                            }
+                            
+                            await this.controlChar.writeValueWithoutResponse(data);
+                            this.log(`Sent to CONTROL: ${hs.name} = ${this.arrayToHex(data)}`, 'success');
+                            await this.delay(200);
+                        } catch (e) {
+                            this.log(`Failed ${hs.name}: ${e.message}`, 'warning');
+                        }
+                    }
+                }
+                
+                // Also try writing to characteristic 0006 if it has write capability
+                if (this.char6 && (this.char6.properties.write || this.char6.properties.writeWithoutResponse)) {
+                    this.log('Trying handshakes on characteristic 0006...', 'info');
+                    
+                    try {
+                        const rideOn = new TextEncoder().encode('RideOn');
+                        if (this.char6.properties.writeWithoutResponse) {
+                            await this.char6.writeValueWithoutResponse(rideOn);
+                        } else {
+                            await this.char6.writeValue(rideOn);
+                        }
+                        this.log('Sent RideOn to char 0006', 'success');
+                    } catch (e) {
+                        this.log(`Char 0006 write failed: ${e.message}`, 'warning');
+                    }
+                }
+                
+                // Try reading from readable characteristics
+                if (this.responseChar && this.responseChar.properties.read) {
+                    try {
+                        const value = await this.responseChar.readValue();
+                        const data = new Uint8Array(value.buffer);
+                        this.log(`Read from RESPONSE: ${this.arrayToHex(data)}`, 'info');
+                    } catch (e) {
+                        this.log(`Could not read RESPONSE: ${e.message}`, 'warning');
+                    }
+                }
+                
+                if (this.char6 && this.char6.properties.read) {
+                    try {
+                        const value = await this.char6.readValue();
+                        const data = new Uint8Array(value.buffer);
+                        this.log(`Read from CHAR6: ${this.arrayToHex(data)}`, 'info');
+                    } catch (e) {
+                        this.log(`Could not read CHAR6: ${e.message}`, 'warning');
+                    }
+                }
+                
+                this.log('========================================', 'info');
+                this.log('Handshake sequence complete!', 'success');
+                this.log('NOW PRESS BUTTONS ON YOUR ZWIFT CLICK!', 'success');
+                this.log('========================================', 'info');
+            }
+            
+            async disconnect() {
+                if (this.server && this.server.connected) {
+                    await this.server.disconnect();
+                    this.log('Disconnected from device', 'success');
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').textContent = 'Disconnected';
+                    document.getElementById('connection-details').innerHTML = 'Not connected';
+                    this.patterns.clear();
+                    this.updatePatternDisplay();
+                }
+            }
+            
+            handleData(dataValue, source) {
+                const data = new Uint8Array(dataValue.buffer);
+                const hexString = this.arrayToHex(data);
+                
+                this.messageCount++;
+                this.log(`${source} #${this.messageCount}: ${hexString}`, 'data');
+                
+                // Try to decode the message
+                this.decodeMessage(data, source);
+                
+                // Track pattern
+                this.trackPattern(hexString, source, data);
+            }
+            
+            decodeMessage(data, source) {
+                // Try different decodings
+                if (data.length >= 5 && data[0] === 0x37) {
+                    // Standard button message format
+                    const stateByte = data[2];
+                    const buttonId = data[4];
+                    const state = stateByte === 0x00 ? 'PRESSED' : stateByte === 0x01 ? 'RELEASED' : 'UNKNOWN';
+                    const button = buttonId === 0x00 ? 'DOWN/MINUS' : buttonId === 0x01 ? 'UP/PLUS' : `UNKNOWN(0x${buttonId.toString(16)})`;
+                    
+                    this.log(`  → Button ${button} ${state}`, 'success');
+                } else if (data.length === 2) {
+                    // Simple 2-byte message
+                    this.log(`  → Short message: byte0=0x${data[0].toString(16)}, byte1=0x${data[1].toString(16)}`, 'info');
+                } else if (data.length === 1) {
+                    // Single byte message  
+                    this.log(`  → Single byte: 0x${data[0].toString(16)} (${data[0]})`, 'info');
+                } else {
+                    // Try to find patterns
+                    let decoded = '  → Bytes: ';
+                    for (let i = 0; i < Math.min(data.length, 10); i++) {
+                        decoded += `[${i}]=0x${data[i].toString(16)} `;
+                    }
+                    this.log(decoded, 'info');
+                    
+                    // Check for text
+                    try {
+                        const text = new TextDecoder().decode(data);
+                        if (text.match(/^[\x20-\x7E]+$/)) {
+                            this.log(`  → Text: "${text}"`, 'info');
+                        }
+                    } catch (e) {}
+                }
+            }
+            
+            trackPattern(hexString, source, data) {
+                const key = `${source}:${hexString}`;
+                
+                if (!this.patterns.has(key)) {
+                    this.patterns.set(key, {
+                        hex: hexString,
+                        source: source,
+                        count: 1,
+                        firstSeen: Date.now(),
+                        lastSeen: Date.now(),
+                        data: data
+                    });
+                } else {
+                    const pattern = this.patterns.get(key);
+                    pattern.count++;
+                    pattern.lastSeen = Date.now();
+                }
+                
+                this.updatePatternDisplay();
+            }
+            
+            updatePatternDisplay() {
+                const patternList = document.getElementById('pattern-list');
+                
+                if (this.patterns.size === 0) {
+                    patternList.innerHTML = '<div style="color: #718096; text-align: center; padding: 20px;">No patterns detected yet.</div>';
+                    return;
+                }
+                
+                // Convert Map to array and sort by last seen
+                const sortedPatterns = Array.from(this.patterns.values())
+                    .sort((a, b) => b.lastSeen - a.lastSeen);
+                
+                patternList.innerHTML = sortedPatterns.map(p => {
+                    // Try to identify pattern type
+                    let type = 'unknown';
+                    let label = p.source;
+                    
+                    if (p.data && p.data.length >= 5 && p.data[0] === 0x37) {
+                        const buttonId = p.data[4];
+                        const state = p.data[2] === 0x00 ? 'PRESS' : 'RELEASE';
+                        if (buttonId === 0x00) {
+                            type = 'down';
+                            label = `DOWN ${state}`;
+                        } else if (buttonId === 0x01) {
+                            type = 'up';
+                            label = `UP ${state}`;
+                        }
+                    }
+                    
+                    return `
+                        <div class="pattern-item ${type}">
+                            <span class="byte-display">${p.hex}</span>
+                            <span>
+                                <span class="button-label ${type}">${label}</span>
+                                <span style="margin-left: 10px; color: #718096;">
+                                    × ${p.count}
+                                </span>
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            arrayToHex(array) {
+                return Array.from(array).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
+            }
+            
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Create global instance
+        const zwiftDebugger = new ZwiftClickDebugger();
+        
+        // Add keyboard shortcut for clearing log
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'c' && e.ctrlKey) {
+                zwiftDebugger.clearLog();
+            }
+        });
+    </script>
+</body>
+</html>
