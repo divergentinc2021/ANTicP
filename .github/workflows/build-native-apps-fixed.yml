@@ -1,0 +1,408 @@
+name: Build Native Apps
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  # Build Android APK
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: ☕ Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 🤖 Setup Android SDK
+      uses: android-actions/setup-android@v2
+
+    - name: 📦 Install dependencies
+      run: |
+        # Install npm dependencies
+        npm install
+        
+        # Install Capacitor globally
+        npm install -g @capacitor/cli
+        
+        # Ensure all Capacitor dependencies are installed
+        npm install @capacitor/core @capacitor/android --save
+        npm install @capacitor-community/bluetooth-le --save
+
+    - name: 🔨 Initialize or Update Capacitor
+      run: |
+        # Check if Capacitor is already initialized
+        if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+          echo "Initializing Capacitor..."
+          npx cap init "ANTicP Trainer" com.anticip.trainer --web-dir=.
+        else
+          echo "Capacitor already initialized"
+        fi
+        
+        # Add Android platform if not already added
+        if [ ! -d android ]; then
+          npx cap add android
+        fi
+
+    - name: 📝 Configure Android permissions
+      run: |
+        # Update AndroidManifest.xml with proper permissions
+        MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+        
+        # Check if permissions already exist before adding
+        if ! grep -q "BLUETOOTH_SCAN" "$MANIFEST_PATH"; then
+          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\
+          <uses-permission android:name="android.permission.BLUETOOTH" />\
+          <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\
+          <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\
+          <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\
+          <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\
+          <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' \
+          "$MANIFEST_PATH"
+        fi
+
+    - name: 🔄 Sync Capacitor
+      run: |
+        # Ensure index.html exists
+        if [ ! -f index.html ]; then
+          echo "Creating index.html from available files..."
+          if [ -f integrated-training-platform.html ]; then
+            cp integrated-training-platform.html index.html
+          elif [ -f index-advanced-zones.html ]; then
+            cp index-advanced-zones.html index.html
+          else
+            echo "Error: No suitable HTML file found to use as index.html"
+            exit 1
+          fi
+        fi
+        
+        npx cap sync android
+
+    - name: 🏗️ Build Android Debug APK
+      run: |
+        cd android
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
+
+    - name: 📤 Upload Android APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-apk-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+
+    - name: 🏗️ Build Android Release APK (unsigned)
+      run: |
+        cd android
+        ./gradlew assembleRelease
+      continue-on-error: true  # Release build might fail without signing config
+
+    - name: 📤 Upload Android Release APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-apk-release-unsigned
+        path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+      if: success()
+
+  # Build iOS (requires macOS runner)
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: 📦 Install dependencies
+      run: |
+        # Install npm dependencies
+        npm install
+        
+        # Install Capacitor globally
+        npm install -g @capacitor/cli
+        
+        # Ensure all Capacitor dependencies are installed
+        npm install @capacitor/core @capacitor/ios --save
+        npm install @capacitor-community/bluetooth-le --save
+
+    - name: 🔨 Initialize or Update Capacitor
+      run: |
+        # Check if Capacitor is already initialized
+        if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+          echo "Initializing Capacitor..."
+          npx cap init "ANTicP Trainer" com.anticip.trainer --web-dir=.
+        else
+          echo "Capacitor already initialized"
+        fi
+        
+        # Add iOS platform if not already added
+        if [ ! -d ios ]; then
+          npx cap add ios
+        fi
+
+    - name: 📝 Configure iOS permissions
+      run: |
+        PLIST_PATH="ios/App/App/Info.plist"
+        
+        # Add Bluetooth permissions if they don't exist
+        /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'This app needs Bluetooth to connect to your KICKR trainer and Zwift Click'" "$PLIST_PATH" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Add :NSBluetoothPeripheralUsageDescription string 'This app needs Bluetooth to connect to training equipment'" "$PLIST_PATH" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'This app needs location access to scan for Bluetooth devices'" "$PLIST_PATH" 2>/dev/null || true
+
+    - name: 🔄 Sync Capacitor
+      run: |
+        # Ensure index.html exists
+        if [ ! -f index.html ]; then
+          echo "Creating index.html from available files..."
+          if [ -f integrated-training-platform.html ]; then
+            cp integrated-training-platform.html index.html
+          elif [ -f index-advanced-zones.html ]; then
+            cp index-advanced-zones.html index.html
+          else
+            echo "Error: No suitable HTML file found to use as index.html"
+            exit 1
+          fi
+        fi
+        
+        npx cap sync ios
+
+    - name: 📱 Install CocoaPods
+      run: |
+        cd ios/App
+        pod install
+
+    - name: 🏗️ Build iOS App (Archive)
+      run: |
+        cd ios/App
+        xcodebuild -workspace App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -archivePath build/ANTicP.xcarchive \
+          -allowProvisioningUpdates \
+          archive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+      continue-on-error: true  # iOS build might fail without proper signing
+
+    - name: 📤 Upload iOS Build
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-app-archive
+        path: ios/App/build/
+      if: success()
+
+  # Build Web App as PWA
+  build-pwa:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: 🎨 Create PWA icons
+      run: |
+        # Create placeholder icons
+        mkdir -p pwa
+        
+        # Create actual PNG files instead of SVG with wrong extension
+        cat > pwa/icon-192.svg << 'EOF'
+        <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192">
+          <rect width="192" height="192" fill="#fc5200"/>
+          <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="100">🚴</text>
+        </svg>
+        EOF
+        
+        cat > pwa/icon-512.svg << 'EOF'
+        <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+          <rect width="512" height="512" fill="#fc5200"/>
+          <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="250">🚴</text>
+        </svg>
+        EOF
+        
+        # If ImageMagick is available, convert to PNG
+        if command -v convert &> /dev/null; then
+          convert pwa/icon-192.svg pwa/icon-192.png
+          convert pwa/icon-512.svg pwa/icon-512.png
+        else
+          # Rename SVG files as fallback
+          mv pwa/icon-192.svg pwa/icon-192.png
+          mv pwa/icon-512.svg pwa/icon-512.png
+        fi
+
+    - name: 📦 Create service worker
+      run: |
+        cat > sw.js << 'EOF'
+        const CACHE_NAME = 'anticip-v1';
+        const urlsToCache = [
+          '/',
+          '/index.html',
+          '/manifest.json',
+          '/icon-192.png',
+          '/icon-512.png',
+          '/css/styles.css',
+          '/js/app.js'
+        ];
+
+        self.addEventListener('install', event => {
+          event.waitUntil(
+            caches.open(CACHE_NAME)
+              .then(cache => cache.addAll(urlsToCache))
+          );
+        });
+
+        self.addEventListener('fetch', event => {
+          event.respondWith(
+            caches.match(event.request)
+              .then(response => response || fetch(event.request))
+          );
+        });
+
+        self.addEventListener('activate', event => {
+          event.waitUntil(
+            caches.keys().then(cacheNames => {
+              return Promise.all(
+                cacheNames.map(cacheName => {
+                  if (cacheName !== CACHE_NAME) {
+                    return caches.delete(cacheName);
+                  }
+                })
+              );
+            })
+          );
+        });
+        EOF
+
+    - name: 📝 Prepare HTML files for PWA
+      run: |
+        # Select the main HTML file
+        if [ -f integrated-training-platform.html ]; then
+          cp integrated-training-platform.html index.html
+        elif [ -f index-advanced-zones.html ]; then
+          cp index-advanced-zones.html index.html
+        elif [ ! -f index.html ]; then
+          echo "Error: No suitable HTML file found"
+          exit 1
+        fi
+        
+        # Add PWA support to HTML files
+        for file in *.html; do
+          if [ -f "$file" ]; then
+            # Add manifest and meta tags before </head>
+            sed -i 's|</head>|    <link rel="manifest" href="/manifest.json">\n    <meta name="theme-color" content="#fc5200">\n    <link rel="apple-touch-icon" href="/icon-192.png">\n</head>|' "$file"
+            
+            # Add service worker registration before </body>
+            sed -i 's|</body>|    <script>\n    if ("serviceWorker" in navigator) {\n        navigator.serviceWorker.register("/sw.js");\n    }\n    </script>\n</body>|' "$file"
+          fi
+        done
+
+    - name: 📦 Package PWA
+      run: |
+        mkdir -p dist
+        
+        # Copy all HTML files
+        cp *.html dist/ 2>/dev/null || true
+        
+        # Copy manifest
+        cp manifest.json dist/ 2>/dev/null || echo '{"name":"ANTicP Trainer","short_name":"ANTicP","start_url":"/","display":"standalone","theme_color":"#fc5200","background_color":"#ffffff","icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png"}]}' > dist/manifest.json
+        
+        # Copy icons
+        cp pwa/icon-*.png dist/ 2>/dev/null || true
+        
+        # Copy service worker
+        cp sw.js dist/
+        
+        # Copy assets
+        cp -r css dist/ 2>/dev/null || true
+        cp -r js dist/ 2>/dev/null || true
+        cp -r pages dist/ 2>/dev/null || true
+
+    - name: 📤 Upload PWA
+      uses: actions/upload-artifact@v3
+      with:
+        name: pwa-app
+        path: dist/
+
+    - name: 🚀 Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+
+  # Create Release
+  create-release:
+    needs: [build-android, build-pwa]  # Removed build-ios dependency as it might fail
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+    - name: 📥 Download artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: 📅 Get current date
+      id: date
+      run: echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+    - name: 🏷️ Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.date.outputs.date }}
+        release_name: ANTicP Release ${{ steps.date.outputs.date }}
+        body: |
+          ## 🚴 ANTicP Training Platform
+          
+          ### 📱 Downloads:
+          - **Android:** Download the APK file and install on your device
+          - **Web PWA:** Visit the GitHub Pages site
+          
+          ### 🔧 Installation:
+          
+          **Android:**
+          1. Download `anticip-debug.apk`
+          2. Enable "Install from unknown sources" in settings
+          3. Open the APK file to install
+          
+          ### ✨ Features:
+          - Zone-based training (8 zones)
+          - Zwift Click button controls
+          - Interval training support
+          - Live metrics display
+          - Session recording & export
+        draft: false
+        prerelease: false
+
+    - name: 📤 Upload Android APK to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./android-apk-debug/app-debug.apk
+        asset_name: anticip-debug.apk
+        asset_content_type: application/vnd.android.package-archive
+      continue-on-error: true
