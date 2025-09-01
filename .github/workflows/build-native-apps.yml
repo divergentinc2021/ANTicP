@@ -26,43 +26,40 @@ jobs:
         java-version: '17'
     - name: Build Android
       run: |
-        set +e  # Don't exit on error
-        
         # Create package.json
         echo '{"name":"anticip","version":"1.0.0"}' > package.json
         
         # Install dependencies
-        npm install @capacitor/core @capacitor/android @capacitor/cli || true
+        npm install @capacitor/core @capacitor/android @capacitor/cli
         
-        # Create index.html if missing
+        # Ensure we have an HTML file
         if [ ! -f index.html ]; then
-          cp integrated-training-platform.html index.html 2>/dev/null || \
-          cp index-advanced-zones.html index.html 2>/dev/null || \
-          echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > index.html
+          if [ -f integrated-training-platform.html ]; then
+            cp integrated-training-platform.html index.html
+          else
+            echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ANTicP</title></head><body><h1>ANTicP Trainer</h1></body></html>' > index.html
+          fi
         fi
         
         # Initialize Capacitor
-        npx cap init "ANTicP" com.anticip.trainer --web-dir=. || true
-        npx cap add android || true
+        npx cap init "ANTicP" com.anticip.trainer --web-dir=.
+        npx cap add android
+        npx cap sync android
         
-        # Sync files
-        npx cap sync android || true
+        # Build APK
+        cd android
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
         
-        # Try to build
-        if [ -d android ]; then
-          cd android
-          chmod +x ./gradlew || true
-          ./gradlew assembleDebug || true
-          find . -name "*.apk" 2>/dev/null || true
-        fi
-        
-        exit 0  # Always exit successfully
+        # Find and display APK
+        echo "Looking for APK..."
+        find . -name "*.apk" -type f
         
     - uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: android-output
-        path: android/
+        name: android-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
 
   build-ios:
     runs-on: macos-15
@@ -73,29 +70,22 @@ jobs:
         node-version: '18'
     - name: Build iOS
       run: |
-        set +e  # Don't exit on error
-        
-        # Create package.json
+        set +e
         echo '{"name":"anticip","version":"1.0.0"}' > package.json
-        
-        # Install dependencies
         npm install @capacitor/core @capacitor/ios @capacitor/cli || true
         
-        # Create index.html if missing
         if [ ! -f index.html ]; then
-          cp integrated-training-platform.html index.html 2>/dev/null || \
-          cp index-advanced-zones.html index.html 2>/dev/null || \
-          echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > index.html
+          if [ -f integrated-training-platform.html ]; then
+            cp integrated-training-platform.html index.html
+          else
+            echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > index.html
+          fi
         fi
         
-        # Initialize Capacitor
         npx cap init "ANTicP" com.anticip.trainer --web-dir=. || true
         npx cap add ios || true
-        
-        # Sync files
         npx cap sync ios || true
         
-        # Install pods and build
         if [ -d ios/App ]; then
           cd ios/App
           pod install || true
@@ -107,10 +97,8 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO || true
-          ls -la build/ 2>/dev/null || true
         fi
-        
-        exit 0  # Always exit successfully
+        exit 0
         
     - uses: actions/upload-artifact@v4
       if: always()
