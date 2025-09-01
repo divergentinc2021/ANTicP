@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Gym Zone Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        .form-section, .users-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .form-section h2, .users-section h2 {
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .zone-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .zone-display h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .zone-table {
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .zone-table th,
+        .zone-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .zone-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 500;
+        }
+
+        .zone-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .users-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .users-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .users-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #218838;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .photo-upload {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .photo-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px auto;
+            overflow: hidden;
+            border: 3px solid #667eea;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-upload-btn {
+            display: block;
+            width: 150px;
+            margin: 0 auto;
+            padding: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        #photoInput {
+            display: none;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Dashboard - Gym Zone Manager</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2 id="formTitle">Create New User</h2>
+                <form id="userForm">
+                    <input type="hidden" id="editUserId">
+                    
+                    <div class="photo-upload">
+                        <div class="photo-preview" id="photoPreview">
+                            <span>No Photo</span>
+                        </div>
+                        <input type="file" id="photoInput" accept="image/*">
+                        <button type="button" class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
+                            Upload Photo
+                        </button>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name *</label>
+                            <input type="text" id="firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name *</label>
+                            <input type="text" id="lastName" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="username">Username *</label>
+                        <input type="text" id="username" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthdate">Birthdate</label>
+                            <input type="date" id="birthdate">
+                        </div>
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender">
+                                <option value="">Select</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="height">Height (cm)</label>
+                            <input type="number" id="height" min="100" max="250">
+                        </div>
+                        <div class="form-group">
+                            <label for="weight">Weight (kg)</label>
+                            <input type="number" id="weight" min="30" max="300" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ftp">FTP (watts) *</label>
+                            <input type="number" id="ftp" min="50" max="500" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="maxHeartRate">Max Heart Rate *</label>
+                            <input type="number" id="maxHeartRate" min="100" max="220" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="restingHeartRate">Resting HR</label>
+                            <input type="number" id="restingHeartRate" min="30" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="lactateThreshold">Lactate Threshold HR</label>
+                            <input type="number" id="lactateThreshold" min="100" max="200">
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="country">Country</label>
+                        <select id="country">
+                            <option value="">Select Country</option>
+                            <option value="US">United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="AU">Australia</option>
+                            <option value="MU">Mauritius</option>
+                            <option value="FR">France</option>
+                            <option value="DE">Germany</option>
+                            <option value="IT">Italy</option>
+                            <option value="ES">Spain</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="BE">Belgium</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="zone-display">
+                        <h3>Calculated Zones</h3>
+                        <div id="zonePreview"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="submitBtn">Create User</button>
+                </form>
+            </div>
+
+            <div class="users-section">
+                <h2>Manage Users</h2>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search users by name, username, or email...">
+                </div>
+                <div id="usersList">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>FTP</th>
+                                <th>Max HR</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <script src="../js/firebase-config.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html>
