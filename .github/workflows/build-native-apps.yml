@@ -48,10 +48,10 @@ jobs:
         # Try to build
         cd android
         chmod +x ./gradlew
-        ./gradlew assembleDebug || echo "Build failed, checking structure..."
+        ./gradlew assembleDebug || true
         
         # Check what was created
-        find . -name "*.apk" 2>/dev/null || echo "No APK found"
+        find . -name "*.apk" 2>/dev/null || true
         
     - uses: actions/upload-artifact@v4
       if: always()
@@ -89,7 +89,7 @@ jobs:
         
         # Install pods
         cd ios/App
-        pod install || echo "Pod install failed"
+        pod install || true
         
         # Try to build
         xcodebuild -workspace App.xcworkspace \
@@ -99,10 +99,10 @@ jobs:
           archive \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO || echo "Build failed"
+          CODE_SIGNING_ALLOWED=NO || true
         
         # Check what was created
-        ls -la build/ 2>/dev/null || echo "No build dir"
+        ls -la build/ 2>/dev/null || true
         
     - uses: actions/upload-artifact@v4
       if: always()
