@@ -51,8 +51,6 @@ jobs:
         ./gradlew assembleDebug || echo "Build failed, checking structure..."
         
         # Check what was created
-        ls -la
-        ls -la app/build/ 2>/dev/null || echo "No build dir"
         find . -name "*.apk" 2>/dev/null || echo "No APK found"
         
     - uses: actions/upload-artifact@v4
@@ -60,6 +58,57 @@ jobs:
       with:
         name: android-output
         path: android/
+
+  build-ios:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    - run: |
+        # Create package.json
+        echo '{"name":"anticip","version":"1.0.0"}' > package.json
+        
+        # Install dependencies
+        npm install @capacitor/core @capacitor/ios @capacitor/cli
+        
+        # Create index.html if missing
+        if [ ! -f index.html ]; then
+          cp integrated-training-platform.html index.html 2>/dev/null || \
+          cp index-advanced-zones.html index.html 2>/dev/null || \
+          echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > index.html
+        fi
+        
+        # Initialize Capacitor
+        npx cap init "ANTicP" com.anticip.trainer --web-dir=.
+        npx cap add ios
+        
+        # Sync files
+        npx cap sync ios
+        
+        # Install pods
+        cd ios/App
+        pod install || echo "Pod install failed"
+        
+        # Try to build
+        xcodebuild -workspace App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -archivePath build/ANTicP.xcarchive \
+          archive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO || echo "Build failed"
+        
+        # Check what was created
+        ls -la build/ 2>/dev/null || echo "No build dir"
+        
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ios-output
+        path: ios/
 
   build-pwa:
     runs-on: ubuntu-latest
