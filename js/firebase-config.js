@@ -1,445 +1,109 @@
-// Firebase Configuration and Manager
-// Professional Firebase integration for cycling training app
+// Firebase configuration
+// IMPORTANT: Replace these values with your actual Firebase project configuration
+// Get these from Firebase Console > Project Settings > Your apps > Web app
+const firebaseConfig = {
+  apiKey: "AIzaSyBfxSIng1612n0vHHwJq1_eAr8gCtyjMs4",
+  authDomain: "grannygearindoortraining.firebaseapp.com",
+  databaseURL: "https://grannygearindoortraining-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "grannygearindoortraining",
+  storageBucket: "grannygearindoortraining.firebasestorage.app",
+  messagingSenderId: "991408564365",
+  appId: "1:991408564365:web:8adc32967da8aa8d419ac4",
+  measurementId: "G-MJE6NXW1MZ"
+};
 
-class FirebaseManager {
-    constructor() {
-        this.app = null;
-        this.auth = null;
-        this.db = null;
-        this.currentUser = null;
-        this.initialized = false;
-    }
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
-    async initialize() {
-        if (this.initialized) return;
+// Initialize services
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-        try {
-            // Firebase configuration (replace with your config)
-            const firebaseConfig = {
-                apiKey: "your-api-key",
-                authDomain: "cycletracker-pro.firebaseapp.com",
-                projectId: "cycletracker-pro",
-                storageBucket: "cycletracker-pro.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "your-app-id"
-            };
+// Zone calculation functions
+function calculatePowerZones(ftp) {
+    return [
+        { zone: 1, name: 'Active Recovery', min: 0, max: Math.round(ftp * 0.54), percentage: '0-54%' },
+        { zone: 2, name: 'Endurance', min: Math.round(ftp * 0.55), max: Math.round(ftp * 0.74), percentage: '55-74%' },
+        { zone: 3, name: 'Tempo', min: Math.round(ftp * 0.75), max: Math.round(ftp * 0.89), percentage: '75-89%' },
+        { zone: 4, name: 'Threshold', min: Math.round(ftp * 0.90), max: Math.round(ftp * 1.04), percentage: '90-104%' },
+        { zone: 5, name: 'VO2Max', min: Math.round(ftp * 1.05), max: Math.round(ftp * 1.19), percentage: '105-119%' },
+        { zone: 6, name: 'Anaerobic', min: Math.round(ftp * 1.20), max: Math.round(ftp * 1.49), percentage: '120-149%' },
+        { zone: 7, name: 'Neuromuscular', min: Math.round(ftp * 1.50), max: '+', percentage: '150%+' }
+    ];
+}
 
-            // Initialize Firebase
-            this.app = firebase.initializeApp(firebaseConfig);
-            this.auth = firebase.auth();
-            this.db = firebase.firestore();
+function calculateHeartRateZones(maxHR) {
+    return [
+        { zone: 1, name: 'Active Recovery', min: 0, max: Math.round(maxHR * 0.59), percentage: '0-59%' },
+        { zone: 2, name: 'Endurance', min: Math.round(maxHR * 0.60), max: Math.round(maxHR * 0.69), percentage: '60-69%' },
+        { zone: 3, name: 'Tempo', min: Math.round(maxHR * 0.70), max: Math.round(maxHR * 0.79), percentage: '70-79%' },
+        { zone: 4, name: 'Threshold', min: Math.round(maxHR * 0.80), max: Math.round(maxHR * 0.89), percentage: '80-89%' },
+        { zone: 5, name: 'VO2Max', min: Math.round(maxHR * 0.90), max: '+', percentage: '90%+' }
+    ];
+}
 
-            // Set up auth state listener
-            this.auth.onAuthStateChanged((user) => {
-                this.currentUser = user;
-                console.log('Auth state changed:', user ? user.email : 'Not signed in');
-            });
-
-            this.initialized = true;
-            console.log('🔥 Firebase initialized successfully');
-
-        } catch (error) {
-            console.error('❌ Firebase initialization failed:', error);
-            // Initialize with mock data for demo
-            this.initializeMockMode();
-        }
-    }
-
-    initializeMockMode() {
-        console.log('🔧 Initializing mock mode for demo');
-        this.initialized = true;
-        this.currentUser = { uid: 'demo-user', email: 'demo@example.com' };
-    }
-
-    // Authentication
-    async signIn() {
-        try {
-            if (!firebase.auth) {
-                // Mock sign in for demo
-                this.currentUser = { uid: 'demo-user', email: 'demo@example.com' };
-                return this.currentUser;
-            }
-
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.addScope('email');
-            provider.addScope('profile');
-            
-            const result = await this.auth.signInWithPopup(provider);
-            this.currentUser = result.user;
-            
-            // Create or update user profile
-            await this.createUserProfile(result.user);
-            
-            console.log('✅ Signed in successfully:', result.user.email);
-            return result.user;
-            
-        } catch (error) {
-            console.error('❌ Sign in failed:', error);
-            throw error;
-        }
-    }
-
-    async signOut() {
-        try {
-            if (this.auth) {
-                await this.auth.signOut();
-            }
-            this.currentUser = null;
-            console.log('👋 Signed out successfully');
-        } catch (error) {
-            console.error('❌ Sign out failed:', error);
-            throw error;
-        }
-    }
-
-    isSignedIn() {
-        return !!this.currentUser;
-    }
-
-    getCurrentUserId() {
-        return this.currentUser ? this.currentUser.uid : null;
-    }
-
-    // User Profile Management
-    async createUserProfile(user) {
-        try {
-            if (!this.db) {
-                console.log('Demo mode - would create user profile');
-                return;
-            }
-
-            const userRef = this.db.collection('users').doc(user.uid);
-            const userDoc = await userRef.get();
-            
-            if (!userDoc.exists) {
-                const profileData = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName || '',
-                    photoURL: user.photoURL || '',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    
-                    // Athlete data
-                    age: null,
-                    weight: null,
-                    height: null,
-                    gender: null,
-                    ftp: null,
-                    maxHeartRate: null,
-                    restingHeartRate: null,
-                    
-                    // Preferences
-                    units: 'metric',
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    
-                    // Integrations
-                    strava: {
-                        connected: false,
-                        athleteId: null,
-                        accessToken: null,
-                        refreshToken: null,
-                        expiresAt: null
-                    },
-                    
-                    // Stats
-                    totalSessions: 0,
-                    totalDistance: 0,
-                    totalTime: 0,
-                    totalEnergy: 0
-                };
-                
-                await userRef.set(profileData);
-                console.log('✅ User profile created');
-            }
-            
-        } catch (error) {
-            console.error('❌ Failed to create user profile:', error);
-        }
-    }
-
-    async getUserProfile(userId = null) {
-        try {
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) throw new Error('No user ID provided');
-
-            if (!this.db) {
-                // Return mock profile for demo
-                return {
-                    age: 30,
-                    weight: 75,
-                    maxHeartRate: 185,
-                    ftp: 250,
-                    units: 'metric'
-                };
-            }
-
-            const userDoc = await this.db.collection('users').doc(uid).get();
-            return userDoc.exists ? userDoc.data() : null;
-            
-        } catch (error) {
-            console.error('❌ Failed to get user profile:', error);
-            return null;
-        }
-    }
-
-    async saveUserProfile(profileData, userId = null) {
-        try {
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) throw new Error('No user ID provided');
-
-            if (!this.db) {
-                console.log('Demo mode - would save profile:', profileData);
-                return;
-            }
-
-            const updateData = {
-                ...profileData,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await this.db.collection('users').doc(uid).update(updateData);
-            console.log('✅ User profile saved');
-            
-        } catch (error) {
-            console.error('❌ Failed to save user profile:', error);
-            throw error;
-        }
-    }
-
-    // Session Management
-    async saveSession(sessionData, userId = null) {
-        try {
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) throw new Error('No user ID provided');
-
-            if (!this.db) {
-                console.log('Demo mode - would save session:', sessionData.id);
-                return sessionData.id;
-            }
-
-            const sessionDoc = {
-                ...sessionData,
-                userId: uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                year: new Date(sessionData.startTime).getFullYear(),
-                month: new Date(sessionData.startTime).getMonth() + 1,
-                day: new Date(sessionData.startTime).getDate()
-            };
-
-            const sessionRef = await this.db.collection('sessions').add(sessionDoc);
-            await this.updateUserStats(uid, sessionData);
-            
-            console.log('✅ Session saved:', sessionRef.id);
-            return sessionRef.id;
-            
-        } catch (error) {
-            console.error('❌ Failed to save session:', error);
-            throw error;
-        }
-    }
-
-    async getSessionHistory(userId = null, limit = 50) {
-        try {
-            if (!this.db) {
-                // Return mock sessions for demo
-                return [
-                    {
-                        id: 'session1',
-                        type: 'Interval Training',
-                        duration: 45,
-                        distance: 18.5,
-                        avgPower: 280,
-                        avgHR: 162,
-                        startTime: new Date(Date.now() - 86400000).toISOString() // Yesterday
-                    },
-                    {
-                        id: 'session2', 
-                        type: 'Endurance Ride',
-                        duration: 90,
-                        distance: 42.1,
-                        avgPower: 220,
-                        avgHR: 148,
-                        startTime: new Date(Date.now() - 172800000).toISOString() // 2 days ago
-                    }
-                ];
-            }
-
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) return [];
-
-            const sessionsQuery = this.db.collection('sessions')
-                .where('userId', '==', uid)
-                .orderBy('startTime', 'desc')
-                .limit(limit);
-
-            const snapshot = await sessionsQuery.get();
-            const sessions = [];
-            snapshot.forEach(doc => {
-                sessions.push({ id: doc.id, ...doc.data() });
-            });
-            
-            return sessions;
-            
-        } catch (error) {
-            console.error('❌ Failed to get session history:', error);
-            return [];
-        }
-    }
-
-    async getRecentSessions(days = 7, userId = null) {
-        try {
-            if (!this.db) {
-                return []; // Mock return for demo
-            }
-
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) return [];
-
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - days);
-
-            const sessionsQuery = this.db.collection('sessions')
-                .where('userId', '==', uid)
-                .where('startTime', '>=', cutoffDate.toISOString())
-                .orderBy('startTime', 'desc');
-
-            const snapshot = await sessionsQuery.get();
-            const sessions = [];
-            snapshot.forEach(doc => {
-                sessions.push({ id: doc.id, ...doc.data() });
-            });
-            
-            return sessions;
-            
-        } catch (error) {
-            console.error('❌ Failed to get recent sessions:', error);
-            return [];
-        }
-    }
-
-    async getAllSessions(userId = null) {
-        return this.getSessionHistory(userId, 1000);
-    }
-
-    async getSession(sessionId) {
-        try {
-            if (!this.db) {
-                return { id: sessionId, type: 'Demo Session' };
-            }
-
-            const sessionDoc = await this.db.collection('sessions').doc(sessionId).get();
-            return sessionDoc.exists ? { id: sessionDoc.id, ...sessionDoc.data() } : null;
-            
-        } catch (error) {
-            console.error('❌ Failed to get session:', error);
-            return null;
-        }
-    }
-
-    async updateUserStats(userId, sessionData) {
-        if (!this.db) return;
-
-        try {
-            const userRef = this.db.collection('users').doc(userId);
-            await userRef.update({
-                totalSessions: firebase.firestore.FieldValue.increment(1),
-                totalDistance: firebase.firestore.FieldValue.increment(sessionData.metrics.distance || 0),
-                totalTime: firebase.firestore.FieldValue.increment(sessionData.metrics.duration || 0),
-                totalEnergy: firebase.firestore.FieldValue.increment(sessionData.metrics.totalEnergy || 0),
-                lastActivityAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-        } catch (error) {
-            console.error('❌ Failed to update user stats:', error);
-        }
-    }
-
-    // Strava Integration
-    async saveStravaTokens(tokens, userId = null) {
-        try {
-            if (!this.db) {
-                console.log('Demo mode - would save Strava tokens');
-                return;
-            }
-
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) throw new Error('No user ID provided');
-
-            const updateData = {
-                'strava.connected': true,
-                'strava.athleteId': tokens.athleteId,
-                'strava.accessToken': tokens.accessToken,
-                'strava.refreshToken': tokens.refreshToken,
-                'strava.expiresAt': tokens.expiresAt,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await this.db.collection('users').doc(uid).update(updateData);
-            console.log('✅ Strava tokens saved');
-            
-        } catch (error) {
-            console.error('❌ Failed to save Strava tokens:', error);
-            throw error;
-        }
-    }
-
-    async getStravaTokens(userId = null) {
-        try {
-            const profile = await this.getUserProfile(userId);
-            return profile?.strava || { connected: false };
-            
-        } catch (error) {
-            console.error('❌ Failed to get Strava tokens:', error);
-            return { connected: false };
-        }
-    }
-
-    async removeStravaTokens(userId = null) {
-        try {
-            if (!this.db) {
-                console.log('Demo mode - would remove Strava tokens');
-                return;
-            }
-
-            const uid = userId || this.getCurrentUserId();
-            if (!uid) throw new Error('No user ID provided');
-
-            const updateData = {
-                'strava.connected': false,
-                'strava.athleteId': null,
-                'strava.accessToken': null,
-                'strava.refreshToken': null,
-                'strava.expiresAt': null,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await this.db.collection('users').doc(uid).update(updateData);
-            console.log('✅ Strava tokens removed');
-            
-        } catch (error) {
-            console.error('❌ Failed to remove Strava tokens:', error);
-            throw error;
-        }
-    }
-
-    async updateSessionWithStravaId(sessionId, stravaId) {
-        try {
-            if (!this.db) {
-                console.log('Demo mode - would update session with Strava ID');
-                return;
-            }
-
-            await this.db.collection('sessions').doc(sessionId).update({
-                stravaId: stravaId,
-                stravaUploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log('✅ Session updated with Strava ID:', stravaId);
-            
-        } catch (error) {
-            console.error('❌ Failed to update session with Strava ID:', error);
-            throw error;
-        }
+// Utility functions
+function showAlert(message, type = 'success') {
+    const alertBox = document.getElementById('alertBox');
+    if (alertBox) {
+        alertBox.textContent = message;
+        alertBox.className = `alert ${type} show`;
+        setTimeout(() => {
+            alertBox.classList.remove('show');
+        }, 5000);
     }
 }
+
+function formatDate(date) {
+    if (!date) return '-';
+    if (date.toDate) date = date.toDate();
+    return date.toLocaleDateString();
+}
+
+function calculateAge(birthdate) {
+    if (!birthdate) return '-';
+    if (birthdate.toDate) birthdate = birthdate.toDate();
+    const today = new Date();
+    let age = today.getFullYear() - birthdate.getFullYear();
+    const monthDiff = today.getMonth() - birthdate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+// Check authentication state
+function checkAuth(requiredRole = null) {
+    return new Promise((resolve, reject) => {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                if (requiredRole) {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists && userDoc.data().role === requiredRole) {
+                        resolve(user);
+                    } else {
+                        reject('Insufficient permissions');
+                    }
+                } else {
+                    resolve(user);
+                }
+            } else {
+                reject('Not authenticated');
+            }
+        });
+    });
+}
+
+// Export for use in other scripts
+window.firebaseServices = {
+    auth,
+    db,
+    storage,
+    calculatePowerZones,
+    calculateHeartRateZones,
+    showAlert,
+    formatDate,
+    calculateAge,
+    checkAuth
+};

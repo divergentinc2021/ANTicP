@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup First Admin - Gym Zone Manager</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .setup-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .success-actions {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .success-actions h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        .success-actions p {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading .spinner {
+            display: block;
+        }
+        .loading .btn-text {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <h1>🏋️ Admin Setup</h1>
+        <p class="subtitle">Create your first admin account to manage the gym system</p>
+        
+        <form id="setupForm">
+            <div class="form-group">
+                <label for="email">Admin Email *</label>
+                <input type="email" id="email" required placeholder="admin@yourgym.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password * (min 6 characters)</label>
+                <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Username * (for quick login)</label>
+                <input type="text" id="username" required placeholder="admin">
+            </div>
+            
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" required placeholder="John">
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" required placeholder="Doe">
+            </div>
+            
+            <button type="submit" id="submitBtn">
+                <span class="btn-text">Create Admin Account</span>
+                <div class="spinner"></div>
+            </button>
+        </form>
+        
+        <div id="message" class="message"></div>
+        
+        <div id="successActions" class="success-actions">
+            <h3>✅ Admin Account Created!</h3>
+            <p>Your admin account has been set up successfully.</p>
+            <p><strong>Email:</strong> <span id="createdEmail"></span></p>
+            <p><strong>Username:</strong> <span id="createdUsername"></span></p>
+            <div class="action-buttons">
+                <button onclick="goToLogin()">Go to Login</button>
+                <button onclick="goToAdmin()">Go to Admin Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    <script>
+        const { auth, db, calculatePowerZones, calculateHeartRateZones } = window.firebaseServices;
+        
+        document.getElementById('setupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            
+            const adminData = {
+                email: document.getElementById('email').value.toLowerCase().trim(),
+                password: document.getElementById('password').value,
+                username: document.getElementById('username').value.toLowerCase().trim(),
+                firstName: document.getElementById('firstName').value.trim(),
+                lastName: document.getElementById('lastName').value.trim()
+            };
+            
+            try {
+                // Create auth user
+                const userCredential = await auth.createUserWithEmailAndPassword(
+                    adminData.email,
+                    adminData.password
+                );
+                
+                const uid = userCredential.user.uid;
+                
+                // Default FTP and Max HR for admin
+                const defaultFTP = 250;
+                const defaultMaxHR = 180;
+                
+                // Create Firestore document
+                await db.collection('users').doc(uid).set({
+                    email: adminData.email,
+                    username: adminData.username,
+                    firstName: adminData.firstName,
+                    lastName: adminData.lastName,
+                    role: 'admin',
+                    ftp: defaultFTP,
+                    maxHeartRate: defaultMaxHR,
+                    powerZones: calculatePowerZones(defaultFTP),
+                    heartRateZones: calculateHeartRateZones(defaultMaxHR),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Create username mapping
+                await db.collection('usernames').doc(adminData.username).set({
+                    uid: uid,
+                    email: adminData.email
+                });
+                
+                // Success
+                messageDiv.className = 'message success';
+                messageDiv.textContent = 'Admin account created successfully!';
+                
+                document.getElementById('createdEmail').textContent = adminData.email;
+                document.getElementById('createdUsername').textContent = adminData.username;
+                document.getElementById('successActions').style.display = 'block';
+                document.getElementById('setupForm').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Setup error:', error);
+                messageDiv.className = 'message error';
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    messageDiv.textContent = 'This email is already registered.';
+                } else if (error.code === 'auth/weak-password') {
+                    messageDiv.textContent = 'Password should be at least 6 characters.';
+                } else if (error.code === 'auth/invalid-email') {
+                    messageDiv.textContent = 'Please enter a valid email address.';
+                } else {
+                    messageDiv.textContent = 'Error: ' + error.message;
+                }
+                
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+            }
+        });
+        
+        function goToLogin() {
+            window.location.href = 'pages/login.html';
+        }
+        
+        function goToAdmin() {
+            window.location.href = 'pages/admin.html';
+        }
+    </script>
+</body>
+</html>
