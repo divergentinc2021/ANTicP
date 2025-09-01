@@ -24,103 +24,77 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-    - name: Build Android
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Build Android APK
       run: |
-        # Create package.json
-        echo '{"name":"anticip","version":"1.0.0"}' > package.json
+        # Create minimal package.json
+        cat > package.json << 'EOF'
+        {
+          "name": "anticip",
+          "version": "1.0.0",
+          "dependencies": {
+            "@capacitor/core": "^5.0.0",
+            "@capacitor/android": "^5.0.0"
+          },
+          "devDependencies": {
+            "@capacitor/cli": "^5.0.0"
+          }
+        }
+        EOF
         
         # Install dependencies
-        npm install @capacitor/core @capacitor/android @capacitor/cli
+        npm install
         
-        # List available HTML files
-        echo "Available HTML files:"
-        ls -la *.html || echo "No HTML files found"
+        # Create capacitor.config.json
+        cat > capacitor.config.json << 'EOF'
+        {
+          "appId": "com.anticip.trainer",
+          "appName": "ANTicP",
+          "webDir": ".",
+          "server": {
+            "androidScheme": "https"
+          }
+        }
+        EOF
         
-        # Ensure we have an HTML file
+        # Ensure index.html exists
         if [ ! -f index.html ]; then
-          if [ -f integrated-training-platform.html ]; then
-            echo "Using integrated-training-platform.html"
-            cp integrated-training-platform.html index.html
-          elif [ -f integrated-training-platform-fixed.html ]; then
-            echo "Using integrated-training-platform-fixed.html"
-            cp integrated-training-platform-fixed.html index.html
-          else
-            echo "Creating basic index.html"
-            echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ANTicP</title></head><body><h1>ANTicP Trainer</h1></body></html>' > index.html
-          fi
+          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ANTicP</title></head><body><h1>ANTicP Trainer</h1></body></html>' > index.html
         fi
         
-        # Initialize Capacitor
-        npx cap init "ANTicP" com.anticip.trainer --web-dir=.
+        # Add Android platform
         npx cap add android
-        npx cap sync android
         
-        # Check Android project structure
-        echo "Android project structure:"
-        ls -la android/
+        # Copy web assets to Android
+        npx cap copy android
         
-        # Build APK with info
+        # Update Android project
+        npx cap update android
+        
+        # Build the APK
         cd android
         chmod +x ./gradlew
-        echo "Starting Gradle build..."
-        ./gradlew assembleDebug --info
+        ./gradlew clean
+        ./gradlew assembleDebug --stacktrace
         
-        # Find and display APK
-        echo "Build complete. Looking for APK..."
-        find . -name "*.apk" -type f
-        
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: android-build-output
-        path: |
-          android/app/build/
-          android/build/
-
-  build-ios:
-    runs-on: macos-15
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-    - name: Build iOS
-      run: |
-        set +e
-        echo '{"name":"anticip","version":"1.0.0"}' > package.json
-        npm install @capacitor/core @capacitor/ios @capacitor/cli || true
-        
-        if [ ! -f index.html ]; then
-          if [ -f integrated-training-platform.html ]; then
-            cp integrated-training-platform.html index.html
-          else
-            echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > index.html
-          fi
+        # Verify APK was created
+        APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+        if [ -f "$APK_PATH" ]; then
+          echo "✅ APK built successfully at: $APK_PATH"
+          ls -lh "$APK_PATH"
+        else
+          echo "❌ APK not found at expected location"
+          find . -name "*.apk" -type f
         fi
         
-        npx cap init "ANTicP" com.anticip.trainer --web-dir=. || true
-        npx cap add ios || true
-        npx cap sync ios || true
-        
-        if [ -d ios/App ]; then
-          cd ios/App
-          pod install || true
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/ANTicP.xcarchive \
-            archive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO || true
-        fi
-        exit 0
-        
-    - uses: actions/upload-artifact@v4
-      if: always()
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
       with:
-        name: ios-output
-        path: ios/
+        name: android-debug-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
 
   build-pwa:
     runs-on: ubuntu-latest
