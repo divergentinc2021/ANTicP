@@ -32,11 +32,20 @@ jobs:
         # Install dependencies
         npm install @capacitor/core @capacitor/android @capacitor/cli
         
+        # List available HTML files
+        echo "Available HTML files:"
+        ls -la *.html || echo "No HTML files found"
+        
         # Ensure we have an HTML file
         if [ ! -f index.html ]; then
           if [ -f integrated-training-platform.html ]; then
+            echo "Using integrated-training-platform.html"
             cp integrated-training-platform.html index.html
+          elif [ -f integrated-training-platform-fixed.html ]; then
+            echo "Using integrated-training-platform-fixed.html"
+            cp integrated-training-platform-fixed.html index.html
           else
+            echo "Creating basic index.html"
             echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ANTicP</title></head><body><h1>ANTicP Trainer</h1></body></html>' > index.html
           fi
         fi
@@ -46,20 +55,27 @@ jobs:
         npx cap add android
         npx cap sync android
         
-        # Build APK
+        # Check Android project structure
+        echo "Android project structure:"
+        ls -la android/
+        
+        # Build APK with info
         cd android
         chmod +x ./gradlew
-        ./gradlew assembleDebug
+        echo "Starting Gradle build..."
+        ./gradlew assembleDebug --info
         
         # Find and display APK
-        echo "Looking for APK..."
+        echo "Build complete. Looking for APK..."
         find . -name "*.apk" -type f
         
     - uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: android-apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
-        if-no-files-found: error
+        name: android-build-output
+        path: |
+          android/app/build/
+          android/build/
 
   build-ios:
     runs-on: macos-15
