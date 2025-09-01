@@ -1,4 +1,4 @@
-name: Build Apps
+name: Build PWA
 
 on:
   push:
@@ -13,104 +13,28 @@ permissions:
   id-token: write
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-    - uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    
-    - name: Build Android APK
-      run: |
-        # Create minimal package.json
-        cat > package.json << 'EOF'
-        {
-          "name": "anticip",
-          "version": "1.0.0",
-          "dependencies": {
-            "@capacitor/core": "^5.0.0",
-            "@capacitor/android": "^5.0.0"
-          },
-          "devDependencies": {
-            "@capacitor/cli": "^5.0.0"
-          }
-        }
-        EOF
-        
-        # Install dependencies
-        npm install
-        
-        # Create capacitor.config.json
-        cat > capacitor.config.json << 'EOF'
-        {
-          "appId": "com.anticip.trainer",
-          "appName": "ANTicP",
-          "webDir": ".",
-          "server": {
-            "androidScheme": "https"
-          }
-        }
-        EOF
-        
-        # Ensure index.html exists
-        if [ ! -f index.html ]; then
-          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ANTicP</title></head><body><h1>ANTicP Trainer</h1></body></html>' > index.html
-        fi
-        
-        # Add Android platform
-        npx cap add android
-        
-        # Copy web assets to Android
-        npx cap copy android
-        
-        # Update Android project
-        npx cap update android
-        
-        # Build the APK
-        cd android
-        chmod +x ./gradlew
-        ./gradlew clean
-        ./gradlew assembleDebug --stacktrace
-        
-        # Verify APK was created
-        APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
-        if [ -f "$APK_PATH" ]; then
-          echo "✅ APK built successfully at: $APK_PATH"
-          ls -lh "$APK_PATH"
-        else
-          echo "❌ APK not found at expected location"
-          find . -name "*.apk" -type f
-        fi
-        
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: android-debug-apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
-        if-no-files-found: error
-
   build-pwa:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - run: |
+    
+    - name: Prepare PWA files
+      run: |
         mkdir -p dist
         cp *.html dist/ 2>/dev/null || echo '<!DOCTYPE html><html><body>ANTicP</body></html>' > dist/index.html
         cp manifest.json dist/ 2>/dev/null || echo '{"name":"ANTicP","short_name":"ANTicP","start_url":"/"}' > dist/manifest.json
         cp -r css dist/ 2>/dev/null || true
         cp -r js dist/ 2>/dev/null || true
-    - uses: actions/upload-artifact@v4
+        cp -r pages dist/ 2>/dev/null || true
+        
+    - name: Upload PWA artifact
+      uses: actions/upload-artifact@v4
       with:
         name: pwa
         path: dist/
-    - uses: peaceiris/actions-gh-pages@v4
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
       if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
