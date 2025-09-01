@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwift Click DOWN Button Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        #log {
+            background: #000;
+            padding: 15px;
+            border: 1px solid #0f0;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+        .press { color: #ff0; font-weight: bold; }
+        .release { color: #888; }
+        .up { background: rgba(0, 255, 0, 0.2); }
+        .down { background: rgba(255, 0, 0, 0.2); }
+    </style>
+</head>
+<body>
+    <h1>Zwift Click DOWN Button Tester</h1>
+    <button onclick="connect()">Connect Zwift Click</button>
+    <button onclick="clearLog()">Clear Log</button>
+    <div id="log"></div>
+
+    <script>
+        let measurementChar = null;
+        let controlChar = null;
+        
+        function log(msg, className = '') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            if (className) entry.className = className;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('Log cleared');
+        }
+        
+        async function connect() {
+            try {
+                log('Searching for Zwift Click...');
+                
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'Zwift Click' },
+                        { namePrefix: 'CLICK' },
+                        { name: 'CLICK' }
+                    ],
+                    optionalServices: [
+                        '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                        '0000180f-0000-1000-8000-00805f9b34fb'
+                    ]
+                });
+                
+                log(`Found: ${device.name}`);
+                const server = await device.gatt.connect();
+                log('Connected to GATT');
+                
+                const service = await server.getPrimaryService('00000001-19ca-4651-86e5-fa29dcdd09d1');
+                log('Got service');
+                
+                // Get all characteristics
+                const allChars = await service.getCharacteristics();
+                log(`Found ${allChars.length} characteristics`);
+                
+                for (const char of allChars) {
+                    const uuid = char.uuid;
+                    if (uuid === '00000002-19ca-4651-86e5-fa29dcdd09d1') {
+                        measurementChar = char;
+                        log('Found measurement char');
+                    } else if (uuid === '00000003-19ca-4651-86e5-fa29dcdd09d1') {
+                        controlChar = char;
+                        log('Found control char');
+                    }
+                }
+                
+                // Setup notifications
+                if (measurementChar) {
+                    await measurementChar.startNotifications();
+                    measurementChar.addEventListener('characteristicvaluechanged', handleData);
+                    log('Notifications enabled');
+                }
+                
+                // Send ALL handshakes
+                if (controlChar) {
+                    log('Sending handshakes...');
+                    
+                    // RideOn
+                    const rideOn = new TextEncoder().encode('RideOn');
+                    await controlChar.writeValueWithoutResponse(rideOn);
+                    log('Sent: RideOn');
+                    await delay(200);
+                    
+                    // All init sequences from v3
+                    const sequences = [
+                        [0x00],
+                        [0x01], 
+                        [0x10],
+                        [0x00, 0x01],
+                        [0x01, 0x00],
+                        [0x37]
+                    ];
+                    
+                    for (const seq of sequences) {
+                        try {
+                            await controlChar.writeValueWithoutResponse(new Uint8Array(seq));
+                            log(`Sent: 0x${seq.map(b => b.toString(16)).join(' 0x')}`);
+                            await delay(200);
+                        } catch (e) {
+                            log(`Failed: ${e.message}`);
+                        }
+                    }
+                }
+                
+                log('=================================');
+                log('READY! Press buttons now!');
+                log('Focus on the DOWN button');
+                log('=================================');
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+        
+        function handleData(event) {
+            const data = new Uint8Array(event.target.value.buffer);
+            const hex = Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
+            
+            // Always log raw data
+            log(`RAW: ${hex}`);
+            
+            // Decode if it's a button message
+            if (data.length >= 5 && data[0] === 0x37) {
+                const state = data[2];
+                const button = data[4];
+                
+                let msg = '';
+                let className = '';
+                
+                if (state === 0x00) {
+                    // PRESSED
+                    if (button === 0x01) {
+                        msg = '🟢 UP BUTTON PRESSED';
+                        className = 'press up';
+                    } else if (button === 0x00) {
+                        msg = '🔴 DOWN BUTTON PRESSED';
+                        className = 'press down';
+                    } else {
+                        msg = `❓ UNKNOWN BUTTON PRESSED (0x${button.toString(16)})`;
+                        className = 'press';
+                    }
+                } else if (state === 0x01) {
+                    // RELEASED
+                    if (button === 0x01) {
+                        msg = '⬜ UP button released';
+                        className = 'release up';
+                    } else if (button === 0x00) {
+                        msg = '⬜ DOWN button released';
+                        className = 'release down';
+                    } else {
+                        msg = `⬜ Unknown button released (0x${button.toString(16)})`;
+                        className = 'release';
+                    }
+                }
+                
+                if (msg) {
+                    log(msg, className);
+                    log(`  State: 0x${state.toString(16)}, Button: 0x${button.toString(16)}`);
+                }
+            } else if (data.length === 3 && data[0] === 0x19) {
+                // Keepalive - ignore
+            } else {
+                log(`  Unknown message type`);
+            }
+        }
+        
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

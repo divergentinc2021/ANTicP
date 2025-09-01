@@ -1,0 +1,129 @@
+').textContent = this.formatTime(elapsed);
+                }, 1000);
+                
+                // Start data collection
+                this.dataCollector = setInterval(() => {
+                    this.session.data.push({
+                        timestamp: Date.now(),
+                        zone: this.currentZone,
+                        ...this.metrics
+                    });
+                }, 1000);
+                
+                this.log('🚀 Training session started');
+                this.showNotification('success', 'Training started!');
+            }
+
+            pauseSession() {
+                // Toggle pause state
+                const btn = document.getElementById('pause-session');
+                if (btn.textContent.includes('Pause')) {
+                    clearInterval(this.durationTimer);
+                    clearInterval(this.dataCollector);
+                    btn.textContent = '▶️ Resume';
+                    this.log('⏸️ Session paused');
+                } else {
+                    this.durationTimer = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - this.session.startTime) / 1000);
+                        document.getElementById('duration-value').textContent = this.formatTime(elapsed);
+                    }, 1000);
+                    this.dataCollector = setInterval(() => {
+                        this.session.data.push({
+                            timestamp: Date.now(),
+                            zone: this.currentZone,
+                            ...this.metrics
+                        });
+                    }, 1000);
+                    btn.textContent = '⏸️ Pause';
+                    this.log('▶️ Session resumed');
+                }
+            }
+
+            stopSession() {
+                this.session.active = false;
+                clearInterval(this.durationTimer);
+                clearInterval(this.dataCollector);
+                clearInterval(this.intervalTimer);
+                
+                document.getElementById('start-session').disabled = false;
+                document.getElementById('pause-session').disabled = true;
+                document.getElementById('stop-session').disabled = true;
+                document.getElementById('export-session').disabled = false;
+                
+                const duration = Math.floor((Date.now() - this.session.startTime) / 1000);
+                this.log(`🏁 Session ended - Duration: ${this.formatTime(duration)}`);
+                this.showNotification('success', `Session complete! Duration: ${this.formatTime(duration)}`);
+            }
+
+            exportSession() {
+                if (this.session.data.length === 0) {
+                    this.showNotification('error', 'No data to export');
+                    return;
+                }
+                
+                const csv = this.convertToCSV(this.session.data);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `training_${new Date().toISOString()}.csv`;
+                a.click();
+                
+                this.log('📥 Session data exported');
+                this.showNotification('success', 'Data exported successfully');
+            }
+
+            convertToCSV(data) {
+                const headers = ['timestamp', 'zone', 'power', 'speed', 'cadence', 'heartRate', 'resistance'];
+                const rows = data.map(row => headers.map(h => row[h] || 0).join(','));
+                return [headers.join(','), ...rows].join('\n');
+            }
+
+            // ============================================================================
+            // UTILITIES
+            // ============================================================================
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.getElementById('activity-log');
+                if (logElement) {
+                    const entry = document.createElement('div');
+                    entry.textContent = `[${timestamp}] ${message}`;
+                    logElement.appendChild(entry);
+                    logElement.scrollTop = logElement.scrollHeight;
+                    
+                    // Keep only last 50 entries
+                    while (logElement.children.length > 50) {
+                        logElement.removeChild(logElement.firstChild);
+                    }
+                }
+                console.log(`[${timestamp}] ${message}`);
+            }
+
+            showNotification(type, message, duration = 5000) {
+                const notification = document.getElementById('app-notification');
+                if (notification) {
+                    notification.className = `notification ${type} show`;
+                    notification.textContent = message;
+                    
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                    }, duration);
+                }
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.trainerApp = new SmartTrainerPlatform();
+            console.log('🚴 Smart Trainer Platform initialized - Zwift Click Working Version');
+        });
+    </script>
+</body>
+</html>

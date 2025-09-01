@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANTicP - Integrated Cycling Training Platform</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --strava-orange: #fc5200;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 25px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.connected {
+            background: var(--success-color);
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-indicator.connecting {
+            background: var(--warning-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.error {
+            background: var(--danger-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+
+        .panel h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-icon {
+            font-size: 1.8rem;
+        }
+
+        .connection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .connection-item {
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .connection-item:hover {
+            background: rgba(0, 0, 0, 0.08);
+            border-color: var(--primary-color);
+        }
+
+        .connection-item h4 {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-item p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-strava {
+            background: var(--strava-orange);
+            color: white;
+        }
+
+        .btn-strava:hover {
+            background: #e04100;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 20px 15px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            background: rgba(0, 0, 0, 0.08);
+            transform: scale(1.05);
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .session-controls .btn {
+            flex: 1;
+        }
+
+        .gear-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .gear-value {
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .gear-label {
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .resistance-control {
+            margin: 20px 0;
+        }
+
+        .resistance-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .resistance-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            max-width: 400px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        .notification.info {
+            background: var(--info-color);
+        }
+
+        .log-panel {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        .zwift-click-controls {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .virtual-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .virtual-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .virtual-button.gear-up {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .virtual-button.gear-down {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .virtual-button:hover {
+            transform: scale(1.1);
+        }
+
+        .virtual-button:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .connection-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .status-bar {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Status -->
+        <div class="header">
+            <h1>🚴 ANTicP Training Platform</h1>
+            <p>Integrated Cycling Training with Real Device Support & Strava Sync</p>
+            
+            <div class="status-bar">
+                <div class="status-item">
+                    <div id="zwift-status" class="status-indicator"></div>
+                    <span>Zwift Click</span>
+                    <small id="zwift-status-text">Ready</small>
+                </div>
+                <div class="status-item">
+                    <div id="kickr-status" class="status-indicator"></div>
+                    <span>Kickr Trainer</span>
+                    <small id="kickr-status-text">Ready</small>
+                </div>
+                <div class="status-item">
+                    <div id="hrm-status" class="status-indicator"></div>
+                    <span>Heart Rate</span>
+                    <small id="hrm-status-text">Ready</small>
+                </div>
+                <div class="status-item">
+                    <div id="strava-status" class="status-indicator"></div>
+                    <span>Strava</span>
+                    <small id="strava-status-text">Ready</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Device Connections Panel -->
+            <div class="panel">
+                <h2>
+                    <span class="panel-icon">🔗</span>
+                    Device Connections
+                </h2>
+                
+                <div class="connection-grid">
+                    <div class="connection-item">
+                        <h4>🎮 Zwift Click</h4>
+                        <p>Physical button gear control</p>
+                    </div>
+                    <div class="connection-item">
+                        <h4>⚡ Wahoo Kickr</h4>
+                        <p>Smart trainer resistance</p>
+                    </div>
+                    <div class="connection-item">
+                        <h4>❤️ Heart Rate</h4>
+                        <p>Real-time HR monitoring</p>
+                    </div>
+                    <div class="connection-item">
+                        <h4>🔗 Strava</h4>
+                        <p>Automatic activity sync</p>
+                    </div>
+                </div>
+
+                <div class="btn-grid">
+                    <button id="connect-zwift-btn" class="btn btn-primary">
+                        🎮 Connect Zwift Click
+                    </button>
+                    <button id="connect-kickr-btn" class="btn btn-primary">
+                        ⚡ Connect Kickr
+                    </button>
+                    <button id="connect-hrm-btn" class="btn btn-primary">
+                        ❤️ Connect HRM
+                    </button>
+                    <button id="connect-strava-btn" class="btn btn-strava">
+                        🔗 Connect Strava
+                    </button>
+                </div>
+
+                <button id="connect-all-btn" class="btn btn-success" style="width: 100%; margin-top: 15px;">
+                    🚀 Connect All Devices
+                </button>
+            </div>
+
+            <!-- Live Metrics Panel -->
+            <div class="panel">
+                <h2>
+                    <span class="panel-icon">📊</span>
+                    Live Metrics
+                </h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div id="heart-rate-display" class="metric-value">0</div>
+                        <div class="metric-label">Heart Rate</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="power-display" class="metric-value">0</div>
+                        <div class="metric-label">Power</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="cadence-display" class="metric-value">0</div>
+                        <div class="metric-label">Cadence</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="speed-display" class="metric-value">0</div>
+                        <div class="metric-label">Speed</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="duration-display" class="metric-value">0:00</div>
+                        <div class="metric-label">Duration</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="distance-display" class="metric-value">0.0</div>
+                        <div class="metric-label">Distance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gear Control Panel -->
+            <div class="panel">
+                <h2>
+                    <span class="panel-icon">⚙️</span>
+                    Gear & Resistance Control
+                </h2>
+                
+                <div class="gear-display">
+                    <div id="gear-display" class="gear-value">1</div>
+                    <div class="gear-label">Current Gear</div>
+                </div>
+
+                <div class="resistance-control">
+                    <label for="kickr-resistance-slider">Resistance Control:</label>
+                    <input 
+                        type="range" 
+                        id="kickr-resistance-slider" 
+                        class="resistance-slider"
+                        min="-10" 
+                        max="10" 
+                        value="0"
+                    >
+                    <div style="text-align: center; margin-top: 10px;">
+                        <span id="resistance-display">0%</span>
+                    </div>
+                </div>
+
+                <div class="zwift-click-controls">
+                    <h4>Virtual Zwift Click Controls</h4>
+                    <p style="color: #666; margin-bottom: 15px;">Use these if Zwift Click isn't connected</p>
+                    
+                    <div class="virtual-buttons">
+                        <button id="virtual-gear-up" class="virtual-button gear-up" title="Gear Up">+</button>
+                        <button id="virtual-gear-down" class="virtual-button gear-down" title="Gear Down">-</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Control Panel -->
+            <div class="panel">
+                <h2>
+                    <span class="panel-icon">🚴</span>
+                    Training Session
+                </h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div id="energy-display" class="metric-value">0</div>
+                        <div class="metric-label">Energy (kJ)</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="avg-power-display" class="metric-value">0</div>
+                        <div class="metric-label">Avg Power</div>
+                    </div>
+                    <div class="metric-item">
+                        <div id="max-power-display" class="metric-value">0</div>
+                        <div class="metric-label">Max Power</div>
+                    </div>
+                </div>
+
+                <div class="session-controls">
+                    <button id="start-session-btn" class="btn btn-success">
+                        ▶️ Start Session
+                    </button>
+                    <button id="end-session-btn" class="btn btn-danger" disabled>
+                        ⏹️ End Session
+                    </button>
+                </div>
+
+                <button id="upload-strava-btn" class="btn btn-strava" style="width: 100%; margin-top: 15px;" disabled>
+                    📤 Upload to Strava
+                </button>
+            </div>
+        </div>
+
+        <!-- Activity Log Panel -->
+        <div class="panel full-width">
+            <h2>
+                <span class="panel-icon">📝</span>
+                Activity Log
+            </h2>
+            <div id="activity-log" class="log-panel">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span> 
+                    🚀 ANTicP Training Platform initialized
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:01]</span> 
+                    ✅ Ready for device connections
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification placeholder -->
+    <div id="app-notification" class="notification"></div>
+
+    <!-- Scripts -->
+    <script type="module">
+        // Import the integrated app
+        import { IntegratedCyclingApp } from './js/integrated-cycling-app.js';
+        import { logger } from './js/core/logger.js';
+        
+        // Enhanced logging to UI
+        const originalLogger = { ...logger };
+        const logElement = document.getElementById('activity-log');
+        
+        const addLogEntry = (level, message) => {
+            if (logElement) {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+                
+                // Keep only last 50 entries
+                while (logElement.children.length > 50) {
+                    logElement.removeChild(logElement.firstChild);
+                }
+            }
+            
+            // Call original logger
+            originalLogger[level](message);
+        };
+        
+        // Override logger methods
+        logger.info = (msg) => addLogEntry('info', `ℹ️ ${msg}`);
+        logger.error = (msg) => addLogEntry('error', `❌ ${msg}`);
+        logger.warn = (msg) => addLogEntry('warn', `⚠️ ${msg}`);
+        logger.debug = (msg) => addLogEntry('debug', `🔧 ${msg}`);
+
+        // Initialize resistance slider
+        const resistanceSlider = document.getElementById('kickr-resistance-slider');
+        const resistanceDisplay = document.getElementById('resistance-display');
+        
+        if (resistanceSlider && resistanceDisplay) {
+            resistanceSlider.addEventListener('input', (e) => {
+                resistanceDisplay.textContent = `${e.target.value}%`;
+            });
+        }
+
+        // Virtual gear controls
+        document.getElementById('virtual-gear-up')?.addEventListener('click', () => {
+            if (window.cyclingApp && window.cyclingApp.connectedDevices.has('zwift-click')) {
+                // Simulate gear up if Zwift Click is connected
+                const handler = window.cyclingApp.connectedDevices.get('zwift-click');
+                if (handler && typeof handler.handleGearUp === 'function') {
+                    handler.handleGearUp();
+                }
+            } else {
+                // Manual gear control
+                const gearDisplay = document.getElementById('gear-display');
+                let currentGear = parseInt(gearDisplay.textContent) || 1;
+                if (currentGear < 24) {
+                    currentGear++;
+                    gearDisplay.textContent = currentGear;
+                    
+                    // Calculate and apply resistance
+                    const resistance = Math.round(-10 + ((currentGear - 1) / 23) * 20);
+                    if (resistanceSlider) {
+                        resistanceSlider.value = resistance;
+                        resistanceDisplay.textContent = `${resistance}%`;
+                    }
+                    
+                    logger.info(`🎮 Virtual Gear Up: Gear ${currentGear} (${resistance}%)`);
+                }
+            }
+        });
+
+        document.getElementById('virtual-gear-down')?.addEventListener('click', () => {
+            if (window.cyclingApp && window.cyclingApp.connectedDevices.has('zwift-click')) {
+                // Simulate gear down if Zwift Click is connected
+                const handler = window.cyclingApp.connectedDevices.get('zwift-click');
+                if (handler && typeof handler.handleGearDown === 'function') {
+                    handler.handleGearDown();
+                }
+            } else {
+                // Manual gear control
+                const gearDisplay = document.getElementById('gear-display');
+                let currentGear = parseInt(gearDisplay.textContent) || 1;
+                if (currentGear > 1) {
+                    currentGear--;
+                    gearDisplay.textContent = currentGear;
+                    
+                    // Calculate and apply resistance
+                    const resistance = Math.round(-10 + ((currentGear - 1) / 23) * 20);
+                    if (resistanceSlider) {
+                        resistanceSlider.value = resistance;
+                        resistanceDisplay.textContent = `${resistance}%`;
+                    }
+                    
+                    logger.info(`🎮 Virtual Gear Down: Gear ${currentGear} (${resistance}%)`);
+                }
+            }
+        });
+
+        // Demo data simulation (if no real devices connected)
+        const simulateData = () => {
+            if (!window.cyclingApp?.currentSession) return;
+            
+            // Simulate some realistic cycling data
+            const baseHR = 140;
+            const basePower = 200;
+            const baseCadence = 85;
+            const baseSpeed = 25;
+            
+            // Add some randomness
+            const hr = baseHR + Math.random() * 20 - 10;
+            const power = basePower + Math.random() * 100 - 50;
+            const cadence = baseCadence + Math.random() * 20 - 10;
+            const speed = baseSpeed + Math.random() * 10 - 5;
+            
+            // Update displays
+            document.getElementById('heart-rate-display').textContent = `${Math.round(hr)} bpm`;
+            document.getElementById('power-display').textContent = `${Math.round(power)}W`;
+            document.getElementById('cadence-display').textContent = `${Math.round(cadence)} rpm`;
+            document.getElementById('speed-display').textContent = `${speed.toFixed(1)} km/h`;
+        };
+
+        // Start demo data when session is active
+        let demoInterval = null;
+        document.addEventListener('session-started', () => {
+            if (!demoInterval) {
+                demoInterval = setInterval(simulateData, 1000);
+                logger.info('📊 Demo data simulation started');
+            }
+        });
+
+        document.addEventListener('session-ended', () => {
+            if (demoInterval) {
+                clearInterval(demoInterval);
+                demoInterval = null;
+                logger.info('📊 Demo data simulation stopped');
+            }
+        });
+
+        logger.info('🚀 Enhanced UI initialized with virtual controls and demo data');
+    </script>
+
+    <!-- Import core modules -->
+    <script type="module" src="js/utils/event-emitter.js"></script>
+    <script type="module" src="js/core/logger.js"></script>
+    <script type="module" src="js/core/platform.js"></script>
+    <script type="module" src="js/connections/unified-connection-manager.js"></script>
+    <script type="module" src="js/enhanced-strava-integration.js"></script>
+    <script type="module" src="js/session-manager.js"></script>
+    <script type="module" src="js/integrated-cycling-app.js"></script>
+</body>
+</html>

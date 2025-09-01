@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Zwift Click Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 15px 30px; font-size: 16px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; background: #007bff; color: white; }
+        #log { background: #f8f9fa; padding: 15px; border-radius: 5px; height: 400px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; margin-top: 20px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Simple Zwift Click Test</h1>
+    <p>This is a minimal test to see if basic Bluetooth pairing works.</p>
+    
+    <button onclick="testZwiftClick()">Test Zwift Click Pairing</button>
+    <button onclick="testAnyDevice()">Test Any Bluetooth Device</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log"></div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            log.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function testZwiftClick() {
+            addLog('🔍 Testing Zwift Click pairing...');
+            
+            // Check if Bluetooth API is available
+            if (!navigator.bluetooth) {
+                addLog('❌ Bluetooth API not available. Use Chrome, Edge, or Opera browser.', 'error');
+                return;
+            }
+
+            // Check HTTPS
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                addLog('❌ HTTPS required for Bluetooth. Use https:// or localhost.', 'error');
+                return;
+            }
+
+            try {
+                addLog('📶 Requesting Zwift Click device...');
+                
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'Zwift Click' },
+                        { namePrefix: 'CLICK' },
+                        { namePrefix: 'Click' }
+                    ],
+                    optionalServices: [
+                        '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                        '0000fc82-0000-1000-8000-00805f9b34fb',
+                        0x1812, 0x180A, 0x180F
+                    ]
+                });
+
+                addLog(`✅ Found device: ${device.name || 'Unknown Device'}`, 'success');
+                
+                addLog('🔗 Connecting to device...');
+                const server = await device.gatt.connect();
+                addLog('✅ Connected successfully!', 'success');
+                
+                addLog('🔍 Discovering services...');
+                const services = await server.getPrimaryServices();
+                addLog(`✅ Found ${services.length} services`, 'success');
+                
+                services.forEach(service => {
+                    addLog(`  📋 Service: ${service.uuid}`);
+                });
+                
+                // Look for Zwift services specifically
+                const zwiftServiceUUIDs = [
+                    '00000001-19ca-4651-86e5-fa29dcdd09d1',
+                    '0000fc82-0000-1000-8000-00805f9b34fb'
+                ];
+                
+                let foundZwift = false;
+                for (const service of services) {
+                    if (zwiftServiceUUIDs.some(uuid => service.uuid.includes(uuid.replace(/[-]/g, '')))) {
+                        foundZwift = true;
+                        addLog(`✅ FOUND ZWIFT SERVICE: ${service.uuid}`, 'success');
+                        
+                        try {
+                            const characteristics = await service.getCharacteristics();
+                            addLog(`  📊 ${characteristics.length} characteristics found`);
+                            characteristics.forEach(char => {
+                                const props = [];
+                                if (char.properties.notify) props.push('notify');
+                                if (char.properties.write) props.push('write');
+                                if (char.properties.read) props.push('read');
+                                addLog(`    🔧 ${char.uuid} [${props.join(', ')}]`);
+                            });
+                        } catch (e) {
+                            addLog(`  ⚠️ Could not read characteristics: ${e.message}`, 'warning');
+                        }
+                    }
+                }
+                
+                if (!foundZwift) {
+                    addLog('⚠️ No Zwift service found - device may not be compatible', 'warning');
+                }
+                
+                device.gatt.disconnect();
+                addLog('🔌 Disconnected');
+                
+            } catch (error) {
+                if (error.name === 'NotFoundError') {
+                    addLog('⚠️ No device selected. Make sure your Zwift Click is powered on and in pairing mode.', 'warning');
+                } else {
+                    addLog(`❌ Error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testAnyDevice() {
+            addLog('🔍 Testing any Bluetooth device...');
+            
+            if (!navigator.bluetooth) {
+                addLog('❌ Bluetooth API not available', 'error');
+                return;
+            }
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: []
+                });
+
+                addLog(`✅ Found device: ${device.name || 'Unknown'} (${device.id})`, 'success');
+                
+                const server = await device.gatt.connect();
+                addLog('✅ Connected!', 'success');
+                
+                const services = await server.getPrimaryServices();
+                addLog(`✅ ${services.length} services found`, 'success');
+                
+                device.gatt.disconnect();
+                addLog('🔌 Disconnected');
+                
+            } catch (error) {
+                if (error.name === 'NotFoundError') {
+                    addLog('⚠️ No device selected', 'warning');
+                } else {
+                    addLog(`❌ Error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Initial check
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Simple Zwift Click Test loaded');
+            
+            if (!navigator.bluetooth) {
+                addLog('❌ Bluetooth API not supported in this browser', 'error');
+                addLog('💡 Use Chrome, Edge, or Opera browser', 'warning');
+            } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                addLog('❌ HTTPS required for Bluetooth', 'error');
+                addLog('💡 Use https:// or run on localhost', 'warning');
+            } else {
+                addLog('✅ Ready to test Bluetooth pairing', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

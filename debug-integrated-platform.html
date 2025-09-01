@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Integrated Platform Issues</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 ANTicP Platform Debug Tool</h1>
+    <div id="debug-output"></div>
+
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = message;
+            debugOutput.appendChild(div);
+        }
+
+        // Test 1: Check if modules exist
+        addResult('<h3>📁 Module Existence Check</h3>', 'info');
+        
+        const modulesList = [
+            'js/utils/event-emitter.js',
+            'js/core/logger.js', 
+            'js/core/platform.js',
+            'js/connections/unified-connection-manager.js',
+            'js/enhanced-strava-integration.js',
+            'js/session-manager.js',
+            'js/integrated-cycling-app.js'
+        ];
+        
+        async function testModuleImports() {
+            for (const modulePath of modulesList) {
+                try {
+                    const module = await import('./' + modulePath);
+                    addResult(`✅ <strong>${modulePath}</strong> - Loaded successfully`, 'success');
+                } catch (error) {
+                    addResult(`❌ <strong>${modulePath}</strong> - Failed to load: <pre>${error.message}</pre>`, 'error');
+                }
+            }
+            
+            // Test DOM readiness
+            addResult('<h3>🌐 DOM & Event Testing</h3>', 'info');
+            
+            const buttonTests = [
+                'connect-zwift-btn',
+                'connect-kickr-btn', 
+                'connect-hrm-btn',
+                'connect-strava-btn',
+                'connect-all-btn',
+                'start-session-btn',
+                'end-session-btn',
+                'virtual-gear-up',
+                'virtual-gear-down'
+            ];
+            
+            buttonTests.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    addResult(`✅ Button <strong>${btnId}</strong> found in DOM`, 'success');
+                    
+                    // Test click event
+                    btn.addEventListener('click', () => {
+                        addResult(`🖱️ Button <strong>${btnId}</strong> click event fired`, 'success');
+                    });
+                } else {
+                    addResult(`❌ Button <strong>${btnId}</strong> NOT found in DOM`, 'error');
+                }
+            });
+            
+            // Test Web Bluetooth availability
+            addResult('<h3>🔗 Web Bluetooth Support</h3>', 'info');
+            if (navigator.bluetooth) {
+                addResult('✅ Web Bluetooth is supported', 'success');
+                try {
+                    const availability = await navigator.bluetooth.getAvailability();
+                    addResult(`✅ Bluetooth availability: ${availability}`, 'success');
+                } catch (e) {
+                    addResult(`⚠️ Bluetooth availability check failed: ${e.message}`, 'warning');
+                }
+            } else {
+                addResult('❌ Web Bluetooth is NOT supported in this browser', 'error');
+            }
+            
+            // Test console errors
+            addResult('<h3>🐛 JavaScript Errors</h3>', 'info');
+            
+            window.addEventListener('error', (e) => {
+                addResult(`❌ JavaScript Error: <pre>${e.message}\nAt: ${e.filename}:${e.lineno}</pre>`, 'error');
+            });
+            
+            window.addEventListener('unhandledrejection', (e) => {
+                addResult(`❌ Unhandled Promise Rejection: <pre>${e.reason}</pre>`, 'error');
+            });
+            
+            addResult('✅ Error listeners attached - any JS errors will appear here', 'success');
+        }
+        
+        // Run tests
+        document.addEventListener('DOMContentLoaded', testModuleImports);
+    </script>
+    
+    <!-- Try to load a simple button test -->
+    <div style="margin: 20px 0; padding: 20px; border: 2px solid #007bff; border-radius: 10px;">
+        <h3>🧪 Quick Button Test</h3>
+        <button id="connect-zwift-btn" onclick="alert('Zwift Click button works!')">🎮 Test Zwift Button</button>
+        <button id="connect-kickr-btn" onclick="alert('Kickr button works!')">⚡ Test Kickr Button</button>
+        <button id="virtual-gear-up" onclick="alert('Gear Up works!')">+ Gear Up</button>
+        <button id="virtual-gear-down" onclick="alert('Gear Down works!')">- Gear Down</button>
+    </div>
+</body>
+</html>

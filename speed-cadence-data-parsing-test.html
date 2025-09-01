@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed & Cadence Data Parsing Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .test-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .success { background: rgba(40, 167, 69, 0.3); }
+        .error { background: rgba(220, 53, 69, 0.3); }
+        .info { background: rgba(23, 162, 184, 0.3); }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .raw-data {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Speed & Cadence Data Parsing Test</h1>
+    
+    <div class="test-panel">
+        <h2>📊 Data Parsing Test Suite</h2>
+        <button onclick="testSpeedCalculation()">🚴 Test Speed Calculation</button>
+        <button onclick="testCadenceCalculation()">⚡ Test Cadence Calculation</button>
+        <button onclick="testDataParsing()">📡 Test Data Parsing</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-panel">
+        <h2>🔍 Live Data Monitor</h2>
+        <div>Speed: <span id="live-speed">--</span> km/h</div>
+        <div>Cadence: <span id="live-cadence">--</span> RPM</div>
+        <div>Last Update: <span id="last-update">Never</span></div>
+        
+        <div class="raw-data" id="raw-data-display">Waiting for data...</div>
+    </div>
+
+    <script>
+        // Test the fixed data parsing logic
+        class DataParsingTester {
+            constructor() {
+                this.wheelCircumference = 2.096; // meters
+                this.lastRevolutionData = {
+                    wheelRevolutions: null,
+                    lastWheelEventTime: null,
+                    crankRevolutions: null,
+                    lastCrankEventTime: null
+                };
+                this.results = document.getElementById('test-results');
+            }
+
+            log(message, type = 'info') {
+                const div = document.createElement('div');
+                div.className = `test-result ${type}`;
+                div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+                this.results.appendChild(div);
+                this.results.scrollTop = this.results.scrollHeight;
+            }
+
+            // Test speed calculation with simulated data
+            testSpeedCalculation() {
+                this.log('🚴 Testing Speed Calculation...', 'info');
+                
+                // Simulate wheel revolution data
+                const testData = [
+                    { revolutions: 1000, time: 10240 }, // 10 seconds in 1024ths
+                    { revolutions: 1050, time: 15360 }  // 15 seconds in 1024ths
+                ];
+
+                for (let i = 1; i < testData.length; i++) {
+                    const current = testData[i];
+                    const previous = testData[i - 1];
+                    
+                    const revDiff = current.revolutions - previous.revolutions;
+                    const timeDiff = (current.time - previous.time) / 1024; // Convert to seconds
+                    
+                    if (timeDiff > 0 && revDiff > 0) {
+                        const distance = revDiff * this.wheelCircumference; // meters
+                        const speed = (distance / timeDiff) * 3.6; // convert m/s to km/h
+                        
+                        this.log(`✅ Speed Test ${i}: ${revDiff} revs in ${timeDiff}s = ${speed.toFixed(1)} km/h`, 'success');
+                        this.log(`   Distance: ${distance.toFixed(2)}m, Wheel circumference: ${this.wheelCircumference}m`, 'info');
+                    }
+                }
+            }
+
+            // Test cadence calculation with simulated data
+            testCadenceCalculation() {
+                this.log('⚡ Testing Cadence Calculation...', 'info');
+                
+                // Simulate crank revolution data
+                const testData = [
+                    { revolutions: 100, time: 5120 },  // 5 seconds in 1024ths
+                    { revolutions: 120, time: 10240 }  // 10 seconds in 1024ths
+                ];
+
+                for (let i = 1; i < testData.length; i++) {
+                    const current = testData[i];
+                    const previous = testData[i - 1];
+                    
+                    const revDiff = current.revolutions - previous.revolutions;
+                    const timeDiff = (current.time - previous.time) / 1024; // Convert to seconds
+                    
+                    if (timeDiff > 0 && revDiff > 0) {
+                        const cadence = Math.round((revDiff / timeDiff) * 60); // RPM
+                        
+                        this.log(`✅ Cadence Test ${i}: ${revDiff} revs in ${timeDiff}s = ${cadence} RPM`, 'success');
+                    }
+                }
+            }
+
+            // Test actual data parsing from Bluetooth format
+            testDataParsing() {
+                this.log('📡 Testing Bluetooth Data Parsing...', 'info');
+                
+                // Simulate CSC measurement data (flags + wheel revs + wheel time + crank revs + crank time)
+                const testBytes = [
+                    0x03, // Flags: wheel and crank data present
+                    0xE8, 0x03, 0x00, 0x00, // Wheel revolutions (1000) - little endian
+                    0x00, 0x28, // Wheel time (10240) - little endian  
+                    0x64, 0x00, // Crank revolutions (100) - little endian
+                    0x00, 0x14  // Crank time (5120) - little endian
+                ];
+                
+                // Create DataView to simulate Bluetooth data
+                const buffer = new ArrayBuffer(testBytes.length);
+                const view = new DataView(buffer);
+                testBytes.forEach((byte, index) => {
+                    view.setUint8(index, byte);
+                });
+                
+                this.parseCSCData(view);
+                
+                // Test with second data point
+                const testBytes2 = [
+                    0x03, // Flags: wheel and crank data present
+                    0x32, 0x04, 0x00, 0x00, // Wheel revolutions (1074) - little endian
+                    0x00, 0x3C, // Wheel time (15360) - little endian
+                    0x78, 0x00, // Crank revolutions (120) - little endian
+                    0x00, 0x28  // Crank time (10240) - little endian
+                ];
+                
+                const buffer2 = new ArrayBuffer(testBytes2.length);
+                const view2 = new DataView(buffer2);
+                testBytes2.forEach((byte, index) => {
+                    view2.setUint8(index, byte);
+                });
+                
+                this.parseCSCData(view2);
+            }
+
+            parseCSCData(dataValue) {
+                const flags = dataValue.getUint8(0);
+                let index = 1;
+                
+                const hexData = Array.from(new Uint8Array(dataValue.buffer))
+                    .map(b => b.toString(16).padStart(2, '0')).join(' ');
+                this.log(`Raw data: ${hexData}`, 'info');
+                
+                // Wheel revolution data
+                if (flags & 0x1) {
+                    const wheelRevolutions = dataValue.getUint32(index, true);
+                    const lastWheelEventTime = dataValue.getUint16(index + 4, true);
+                    index += 6;
+                    
+                    this.log(`Wheel: ${wheelRevolutions} revs, time: ${lastWheelEventTime}`, 'info');
+                    
+                    if (this.lastRevolutionData.wheelRevolutions !== null) {
+                        const revDiff = wheelRevolutions - this.lastRevolutionData.wheelRevolutions;
+                        let timeDiff = lastWheelEventTime - this.lastRevolutionData.lastWheelEventTime;
+                        
+                        if (timeDiff < 0) timeDiff += 65536; // Handle rollover
+                        timeDiff = timeDiff / 1024; // Convert to seconds
+                        
+                        if (timeDiff > 0 && revDiff > 0) {
+                            const distance = revDiff * this.wheelCircumference;
+                            const speed = (distance / timeDiff) * 3.6;
+                            
+                            this.log(`✅ Calculated Speed: ${speed.toFixed(1)} km/h`, 'success');
+                            document.getElementById('live-speed').textContent = speed.toFixed(1);
+                        }
+                    }
+                    
+                    this.lastRevolutionData.wheelRevolutions = wheelRevolutions;
+                    this.lastRevolutionData.lastWheelEventTime = lastWheelEventTime;
+                }
+                
+                // Crank revolution data
+                if (flags & 0x2) {
+                    const crankRevolutions = dataValue.getUint16(index, true);
+                    const lastCrankEventTime = dataValue.getUint16(index + 2, true);
+                    
+                    this.log(`Crank: ${crankRevolutions} revs, time: ${lastCrankEventTime}`, 'info');
+                    
+                    if (this.lastRevolutionData.crankRevolutions !== null) {
+                        const revDiff = crankRevolutions - this.lastRevolutionData.crankRevolutions;
+                        let timeDiff = lastCrankEventTime - this.lastRevolutionData.lastCrankEventTime;
+                        
+                        if (timeDiff < 0) timeDiff += 65536; // Handle rollover
+                        timeDiff = timeDiff / 1024; // Convert to seconds
+                        
+                        if (timeDiff > 0 && revDiff > 0) {
+                            const cadence = Math.round((revDiff / timeDiff) * 60);
+                            
+                            this.log(`✅ Calculated Cadence: ${cadence} RPM`, 'success');
+                            document.getElementById('live-cadence').textContent = cadence;
+                        }
+                    }
+                    
+                    this.lastRevolutionData.crankRevolutions = crankRevolutions;
+                    this.lastRevolutionData.lastCrankEventTime = lastCrankEventTime;
+                }
+                
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                document.getElementById('raw-data-display').textContent = `Flags: 0x${flags.toString(16).padStart(2, '0')}, Data: ${hexData}`;
+            }
+
+            clear() {
+                this.results.innerHTML = '';
+                this.lastRevolutionData = {
+                    wheelRevolutions: null,
+                    lastWheelEventTime: null,
+                    crankRevolutions: null,
+                    lastCrankEventTime: null
+                };
+                document.getElementById('live-speed').textContent = '--';
+                document.getElementById('live-cadence').textContent = '--';
+                document.getElementById('last-update').textContent = 'Never';
+                document.getElementById('raw-data-display').textContent = 'Waiting for data...';
+            }
+        }
+
+        // Initialize tester
+        const tester = new DataParsingTester();
+
+        // Test functions
+        function testSpeedCalculation() {
+            tester.testSpeedCalculation();
+        }
+
+        function testCadenceCalculation() {
+            tester.testCadenceCalculation();
+        }
+
+        function testDataParsing() {
+            tester.testDataParsing();
+        }
+
+        function clearResults() {
+            tester.clear();
+        }
+
+        // Initial message
+        tester.log('🚀 Data Parsing Tester initialized', 'success');
+        tester.log('Click the test buttons to verify the FIXED parsing logic', 'info');
+    </script>
+</body>
+</html>
