@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Session - Granny Gear</title>
+    
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --zwift-orange: #fc5200;
+            --zwift-blue: #0074d9;
+            
+            /* Zone colors - from index.html */
+            --zone1-color: #4CAF50;
+            --zone2-color: #8BC34A;
+            --zone3-color: #FFEB3B;
+            --zone4-color: #FFC107;
+            --zone5-color: #FF9800;
+            --zone6-color: #FF5722;
+            --zone7-color: #F44336;
+            --zone8-color: #9C27B0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .username {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--zwift-orange);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--light-color);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 20px;
+        }
+
+        .icon-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Zone Display - Same as index.html */
+        .zone-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            margin: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .zone-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .zone-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .zone-indicator[data-zone="1"] { background: var(--zone1-color); }
+        .zone-indicator[data-zone="2"] { background: var(--zone2-color); }
+        .zone-indicator[data-zone="3"] { background: var(--zone3-color); }
+        .zone-indicator[data-zone="4"] { background: var(--zone4-color); }
+        .zone-indicator[data-zone="5"] { background: var(--zone5-color); }
+        .zone-indicator[data-zone="6"] { background: var(--zone6-color); }
+        .zone-indicator[data-zone="7"] { background: var(--zone7-color); }
+        .zone-indicator[data-zone="8"] { background: var(--zone8-color); }
+
+        .zone-indicator.active {
+            opacity: 1;
+            transform: scale(1.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .zone-info {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .zone-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .zone-details {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 15px 0;
+        }
+
+        .zone-metric {
+            text-align: center;
+        }
+
+        .zone-metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--zwift-orange);
+        }
+
+        .zone-metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Timer Section */
+        .timer-section {
+            background: white;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer {
+            font-size: 48px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: var(--zwift-orange);
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--zwift-blue);
+        }
+
+        .metric-unit {
+            font-size: 14px;
+            color: #999;
+            margin-left: 5px;
+        }
+
+        /* Lap Table */
+        .lap-section {
+            background: white;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .lap-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .lap-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+
+        .lap-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .lap-table tr.current {
+            background: rgba(0, 123, 255, 0.1);
+        }
+
+        .lap-table tr.warmup {
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        /* Control Buttons */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 15px;
+        }
+
+        .control-btn {
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            color: white;
+        }
+
+        .btn-stop {
+            background: var(--danger-color);
+        }
+
+        .btn-pause {
+            background: var(--warning-color);
+        }
+
+        .btn-lap {
+            background: var(--success-color);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Graph Section */
+        .graph-section {
+            background: white;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-height: 300px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: var(--success-color); }
+        .notification.error { background: var(--danger-color); }
+        .notification.info { background: var(--info-color); }
+        .notification.warning { background: var(--warning-color); }
+    </style>
+</head>
+<body>
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <span class="username" id="usernameDisplay">Guest</span>
+            <span>Session: <span id="sessionStatus">Ready</span></span>
+        </div>
+        <div class="header-right">
+            <div class="icon-btn" onclick="toggleSettings()" title="Settings">⚙️</div>
+            <div class="icon-btn" onclick="signOut()" title="Sign Out">🚪</div>
+        </div>
+    </div>
+
+    <!-- Zone Control Panel -->
+    <div class="zone-panel">
+        <h2 style="text-align: center; margin-bottom: 20px;">🎯 Training Zones</h2>
+        
+        <div class="zone-display">
+            <div class="zone-indicator active" data-zone="1">Z1</div>
+            <div class="zone-indicator" data-zone="2">Z2</div>
+            <div class="zone-indicator" data-zone="3">Z3</div>
+            <div class="zone-indicator" data-zone="4">Z4</div>
+            <div class="zone-indicator" data-zone="5">Z5</div>
+            <div class="zone-indicator" data-zone="6">Z6</div>
+            <div class="zone-indicator" data-zone="7">Z7</div>
+            <div class="zone-indicator" data-zone="8">Z8</div>
+        </div>
+        
+        <div class="zone-info">
+            <div class="zone-name" id="zone-name">Zone 1 - Recovery</div>
+            <div class="zone-details">
+                <div class="zone-metric">
+                    <div class="zone-metric-value" id="zone-resistance">-5%</div>
+                    <div class="zone-metric-label">Resistance</div>
+                </div>
+                <div class="zone-metric">
+                    <div class="zone-metric-value" id="zone-power">50-60%</div>
+                    <div class="zone-metric-label">FTP</div>
+                </div>
+                <div class="zone-metric">
+                    <div class="zone-metric-value" id="zone-cadence">80+</div>
+                    <div class="zone-metric-label">Target Cadence</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-section">
+        <div class="timer" id="timer">00:00:00</div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-label">Power</div>
+            <div class="metric-value">
+                <span id="power">0</span>
+                <span class="metric-unit">W</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Heart Rate</div>
+            <div class="metric-value">
+                <span id="heartRate">0</span>
+                <span class="metric-unit">BPM</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Cadence</div>
+            <div class="metric-value">
+                <span id="cadence">0</span>
+                <span class="metric-unit">RPM</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Speed</div>
+            <div class="metric-value">
+                <span id="speed">0.0</span>
+                <span class="metric-unit">km/h</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lap Table -->
+    <div class="lap-section">
+        <table class="lap-table">
+            <thead>
+                <tr>
+                    <th>Lap</th>
+                    <th>Time</th>
+                    <th>Avg Power</th>
+                    <th>Avg HR</th>
+                    <th>Avg Cadence</th>
+                </tr>
+            </thead>
+            <tbody id="lapTableBody">
+                <tr class="current warmup">
+                    <td>Warmup</td>
+                    <td id="lapTime">00:00:00</td>
+                    <td id="lapPower">0</td>
+                    <td id="lapHR">0</td>
+                    <td id="lapCadence">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="controls">
+        <button class="control-btn btn-stop" id="stopBtn" onclick="stopSession()">STOP</button>
+        <button class="control-btn btn-pause" id="pauseBtn" onclick="pauseSession()">PAUSE</button>
+        <button class="control-btn btn-lap" id="lapBtn" onclick="handleLap()">COMPLETE WARMUP</button>
+    </div>
+
+    <!-- Graph -->
+    <div class="graph-section">
+        <canvas id="metricsChart"></canvas>
+    </div>
+
+    <!-- Load scripts -->
+    <script src="js/working-sensor-manager.js"></script>
+    <script src="js/workout-session-controller.js"></script>
+</body>
+</html>

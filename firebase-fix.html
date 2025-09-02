@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Firebase Permissions</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .step h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .code-block {
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Firebase Permissions</h1>
+        
+        <div id="statusDiv"></div>
+        
+        <div class="step">
+            <h2>Step 1: Check Current Status</h2>
+            <p>Let's check what's working and what's not:</p>
+            <button onclick="checkStatus()">Check Firebase Status</button>
+            <button onclick="checkAuth()">Check Authentication</button>
+            <button onclick="testAnonymous()">Test Anonymous Auth</button>
+        </div>
+        
+        <div class="step">
+            <h2>Step 2: Update Firestore Rules</h2>
+            <p>Copy these rules to your Firebase Console:</p>
+            
+            <p><strong>Option A: Development Rules (Recommended for Testing)</strong></p>
+            <div class="code-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</div>
+            
+            <p><strong>Option B: Authenticated Users Only</strong></p>
+            <div class="code-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</div>
+            
+            <p>To update the rules:</p>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com" target="_blank" class="link">Firebase Console</a></li>
+                <li>Select your project: <strong>grannygearindoortraining</strong></li>
+                <li>Go to <strong>Firestore Database</strong> → <strong>Rules</strong></li>
+                <li>Replace the existing rules with one of the options above</li>
+                <li>Click <strong>Publish</strong></li>
+            </ol>
+            
+            <button onclick="window.open('https://console.firebase.google.com/project/grannygearindoortraining/firestore/rules', '_blank')">
+                Open Firestore Rules
+            </button>
+        </div>
+        
+        <div class="step">
+            <h2>Step 3: Enable Authentication Methods</h2>
+            <p>Make sure these authentication methods are enabled:</p>
+            <ul>
+                <li>✅ Email/Password</li>
+                <li>✅ Anonymous (for testing)</li>
+            </ul>
+            
+            <button onclick="window.open('https://console.firebase.google.com/project/grannygearindoortraining/authentication/providers', '_blank')">
+                Open Auth Settings
+            </button>
+        </div>
+        
+        <div class="step">
+            <h2>Step 4: Create Test User with Auth</h2>
+            <p>This will create an authenticated test user:</p>
+            <button onclick="createAuthenticatedTestUser()">Create Authenticated Test User</button>
+            <button onclick="signInTestUser()">Sign In Test User</button>
+            <button onclick="signOutUser()">Sign Out</button>
+        </div>
+        
+        <div class="step">
+            <h2>Step 5: Test Firestore Access</h2>
+            <p>Test if we can read and write to Firestore:</p>
+            <button onclick="testFirestoreWrite()">Test Write</button>
+            <button onclick="testFirestoreRead()">Test Read</button>
+            <button onclick="testFullAccess()">Test Full Access</button>
+        </div>
+        
+        <div class="step">
+            <h2>Quick Fix Actions</h2>
+            <button onclick="quickFix()">Run Quick Fix</button>
+            <button onclick="window.location.href='login.html'">Go to Login</button>
+            <button onclick="window.location.href='firebase-test.html'">Go to Test Page</button>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfxSIng1612n0vHHwJq1_eAr8gCtyjMs4",
+            authDomain: "grannygearindoortraining.firebaseapp.com",
+            databaseURL: "https://grannygearindoortraining-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "grannygearindoortraining",
+            storageBucket: "grannygearindoortraining.firebasestorage.app",
+            messagingSenderId: "991408564365",
+            appId: "1:991408564365:web:8adc32967da8aa8d419ac4",
+            measurementId: "G-MJE6NXW1MZ"
+        };
+        
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            showStatus('✅ Firebase initialized successfully', 'success');
+        } catch (error) {
+            showStatus('❌ Firebase initialization failed: ' + error.message, 'error');
+        }
+        
+        // Monitor auth state
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                showStatus(`✅ Authenticated as: ${user.email || 'Anonymous User'}`, 'success');
+            } else {
+                showStatus('ℹ️ Not authenticated', 'info');
+            }
+        });
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusDiv');
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+            statusDiv.appendChild(status);
+            console.log(message);
+        }
+        
+        async function checkStatus() {
+            showStatus('Checking Firebase status...', 'info');
+            
+            try {
+                const app = firebase.app();
+                showStatus('✅ Firebase app is initialized', 'success');
+                showStatus(`Project ID: ${app.options.projectId}`, 'info');
+                
+                // Check Auth
+                const auth = firebase.auth();
+                showStatus('✅ Auth service available', 'success');
+                
+                // Check Firestore
+                const db = firebase.firestore();
+                showStatus('✅ Firestore service available', 'success');
+                
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkAuth() {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                showStatus(`✅ Currently authenticated as: ${user.email}`, 'success');
+                showStatus(`UID: ${user.uid}`, 'info');
+            } else {
+                showStatus('⚠️ Not authenticated', 'warning');
+            }
+        }
+        
+        async function testAnonymous() {
+            try {
+                showStatus('Signing in anonymously...', 'info');
+                const result = await firebase.auth().signInAnonymously();
+                showStatus('✅ Anonymous authentication successful', 'success');
+                showStatus(`Anonymous UID: ${result.user.uid}`, 'info');
+            } catch (error) {
+                showStatus('❌ Anonymous auth failed: ' + error.message, 'error');
+                showStatus('⚠️ Enable anonymous auth in Firebase Console', 'warning');
+            }
+        }
+        
+        async function createAuthenticatedTestUser() {
+            try {
+                showStatus('Creating test user...', 'info');
+                
+                // First try to sign in
+                try {
+                    await firebase.auth().signInWithEmailAndPassword(
+                        'testuser@grannygear.com',
+                        'GrannyGear2024!'
+                    );
+                    showStatus('✅ Test user already exists and signed in', 'success');
+                } catch (signInError) {
+                    // Create new user
+                    const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+                        'testuser@grannygear.com',
+                        'GrannyGear2024!'
+                    );
+                    showStatus('✅ Test user created successfully', 'success');
+                    showStatus(`UID: ${userCredential.user.uid}`, 'info');
+                }
+                
+                // Now create/update profile
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const db = firebase.firestore();
+                    await db.collection('users').doc(user.uid).set({
+                        email: 'testuser@grannygear.com',
+                        name: 'Test User',
+                        ftp: 230,
+                        maxHeartRate: 180,
+                        restingHeartRate: 65,
+                        height: 172,
+                        weight: 75,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        role: 'premium'
+                    }, { merge: true });
+                    
+                    showStatus('✅ User profile created in Firestore', 'success');
+                }
+                
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    showStatus('ℹ️ User already exists, trying to sign in...', 'info');
+                    signInTestUser();
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    showStatus('⚠️ Email/Password auth not enabled in Firebase Console!', 'warning');
+                }
+            }
+        }
+        
+        async function signInTestUser() {
+            try {
+                showStatus('Signing in test user...', 'info');
+                const result = await firebase.auth().signInWithEmailAndPassword(
+                    'testuser@grannygear.com',
+                    'GrannyGear2024!'
+                );
+                showStatus('✅ Signed in successfully', 'success');
+                showStatus(`Email: ${result.user.email}`, 'info');
+            } catch (error) {
+                showStatus('❌ Sign in failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function signOutUser() {
+            try {
+                await firebase.auth().signOut();
+                showStatus('✅ Signed out successfully', 'success');
+            } catch (error) {
+                showStatus('❌ Sign out failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testFirestoreWrite() {
+            try {
+                showStatus('Testing Firestore write...', 'info');
+                const db = firebase.firestore();
+                
+                // Try to write to test collection
+                await db.collection('_test').doc('test').set({
+                    message: 'Test write',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    user: firebase.auth().currentUser?.email || 'anonymous'
+                });
+                
+                showStatus('✅ Firestore write successful', 'success');
+            } catch (error) {
+                showStatus('❌ Firestore write failed: ' + error.message, 'error');
+                
+                if (error.code === 'permission-denied') {
+                    showStatus('⚠️ Update Firestore rules to allow writes', 'warning');
+                }
+            }
+        }
+        
+        async function testFirestoreRead() {
+            try {
+                showStatus('Testing Firestore read...', 'info');
+                const db = firebase.firestore();
+                
+                const doc = await db.collection('_test').doc('test').get();
+                
+                if (doc.exists) {
+                    showStatus('✅ Firestore read successful', 'success');
+                    showStatus('Data: ' + JSON.stringify(doc.data()), 'info');
+                } else {
+                    showStatus('ℹ️ Document does not exist (write a document first)', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Firestore read failed: ' + error.message, 'error');
+                
+                if (error.code === 'permission-denied') {
+                    showStatus('⚠️ Update Firestore rules to allow reads', 'warning');
+                }
+            }
+        }
+        
+        async function testFullAccess() {
+            showStatus('Running full access test...', 'info');
+            
+            // Test write
+            await testFirestoreWrite();
+            
+            // Test read
+            await testFirestoreRead();
+            
+            // Test user collection
+            try {
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const db = firebase.firestore();
+                    await db.collection('users').doc(user.uid).set({
+                        lastTest: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    showStatus('✅ User collection write successful', 'success');
+                } else {
+                    showStatus('⚠️ Sign in first to test user collection', 'warning');
+                }
+            } catch (error) {
+                showStatus('❌ User collection test failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function quickFix() {
+            showStatus('🚀 Running quick fix...', 'info');
+            
+            // Step 1: Check Firebase
+            await checkStatus();
+            
+            // Step 2: Try anonymous auth
+            await testAnonymous();
+            
+            // Step 3: Try to create/sign in test user
+            await createAuthenticatedTestUser();
+            
+            // Step 4: Test Firestore
+            await testFullAccess();
+            
+            showStatus('✅ Quick fix complete!', 'success');
+            showStatus('If you still see permission errors, update the Firestore rules in Firebase Console', 'warning');
+        }
+    </script>
+</body>
+</html>
