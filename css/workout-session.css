@@ -1,0 +1,269 @@
+/* Workout Session Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: #0f1419;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.header {
+    background: #1a1f2e;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #00bfff;
+}
+
+.username {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00bfff;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.header-controls button {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.header-controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.gear-section {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    padding: 15px;
+    text-align: center;
+}
+
+.gear-display {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#currentGear {
+    color: #00bfff;
+    font-size: 28px;
+    margin: 0 10px;
+}
+
+#currentResistance {
+    color: #ffc107;
+}
+
+.timer-section {
+    background: #00bfff;
+    padding: 20px;
+    text-align: center;
+}
+
+#timer {
+    font-size: 48px;
+    font-weight: bold;
+    color: #0f1419;
+    font-family: 'Courier New', monospace;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: #1a1f2e;
+    padding: 2px;
+}
+
+.metric {
+    background: #0f1419;
+    padding: 20px;
+    text-align: center;
+}
+
+.metric .label {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.metric .value {
+    font-size: 36px;
+    font-weight: bold;
+    color: #00bfff;
+}
+
+.metric .unit {
+    font-size: 14px;
+    color: #888;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: #1a1f2e;
+    padding: 2px;
+}
+
+.controls button {
+    padding: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+#stopBtn {
+    background: #666;
+}
+
+#pauseBtn {
+    background: #888;
+}
+
+#lapBtn {
+    background: #ffc107;
+    color: #0f1419;
+}
+
+#lapBtn.start {
+    background: #4caf50;
+    color: white;
+}
+
+.controls button:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.2);
+}
+
+canvas {
+    flex: 1;
+    background: #0f1419;
+    padding: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .metric .value {
+        font-size: 28px;
+    }
+    
+    #timer {
+        font-size: 36px;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.metric.updated {
+    animation: pulse 0.3s ease;
+}
+
+/* Gear Indicators Animation */
+.gear-section.changing {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff4444 100%);
+    transition: background 0.3s ease;
+}
+
+/* Pause State */
+body.paused .timer-section {
+    background: #ffc107;
+}
+
+body.paused #timer {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Stop Confirmation Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: #1a1f2e;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-confirm {
+    background: #f44336;
+    color: white;
+}
+
+.btn-cancel {
+    background: #666;
+    color: white;
+}
