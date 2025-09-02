@@ -16,7 +16,7 @@ class FirebaseSetup {
                 maxHeartRate: 180, // bpm
                 restingHeartRate: 65, // bpm
                 createdAt: new Date().toISOString(),
-                role: 'premium' // full access
+                role: 'admin' // admin access
             }
         };
 
