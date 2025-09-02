@@ -1,0 +1,47 @@
+// Firestore Security Rules for Development and Testing
+// Copy these rules to Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to all documents for authenticated users
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow public read/write to test collection (for connection testing)
+    match /_test/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // User profiles - users can only read/write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Workouts - users can read/write their own workouts
+    match /workouts/{workoutId} {
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || 
+         resource.data.public == true);
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+  }
+}
+
+// TEMPORARY RULES FOR TESTING (USE WITH CAUTION):
+// If you need completely open access for testing, use:
+/*
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+*/
