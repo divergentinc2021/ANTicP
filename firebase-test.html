@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Setup & Test User Creation</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .console {
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .console-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+        }
+
+        .zone-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .zone-table th {
+            background: #667eea;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .zone-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+        }
+
+        .zone-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .credentials {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .credentials h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .credential-item {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .credential-label {
+            font-weight: 600;
+            width: 100px;
+            color: #555;
+        }
+
+        .credential-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.1);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .zone-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚴 Granny Gear - Firebase Setup & Test User</h1>
+            <p class="subtitle">Configure Firebase and create a test user with calculated training zones</p>
+        </div>
+
+        <div class="grid">
+            <!-- Firebase Status -->
+            <div class="card">
+                <h2>🔥 Firebase Status</h2>
+                <div id="firebaseStatus"></div>
+                <button onclick="checkFirebase()">Check Firebase</button>
+                <button onclick="testConnection()">Test Connection</button>
+            </div>
+
+            <!-- Test User Creation -->
+            <div class="card">
+                <h2>👤 Test User</h2>
+                <div id="userStatus"></div>
+                <button onclick="createTestUser()">Create Test User</button>
+                <button onclick="signInTestUser()">Sign In Test User</button>
+                <div class="credentials" id="credentials" style="display:none;">
+                    <h3>Test User Credentials</h3>
+                    <div class="credential-item">
+                        <span class="credential-label">Email:</span>
+                        <span class="credential-value">testuser@grannygear.com</span>
+                    </div>
+                    <div class="credential-item">
+                        <span class="credential-label">Password:</span>
+                        <span class="credential-value">GrannyGear2024!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="card">
+                <h2>📊 User Profile</h2>
+                <div id="profileInfo">
+                    <div class="status info">No user loaded</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <h2>⚡ Quick Actions</h2>
+                <button onclick="runFullSetup()">Run Complete Setup</button>
+                <button onclick="clearData()">Clear All Data</button>
+                <button onclick="goToApp()">Go to App</button>
+            </div>
+        </div>
+
+        <!-- Power Zones -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>⚡ Power Zones (FTP: 230W)</h2>
+            <table class="zone-table" id="powerZonesTable">
+                <thead>
+                    <tr>
+                        <th>Zone</th>
+                        <th>Name</th>
+                        <th>Power Range</th>
+                        <th>% of FTP</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Heart Rate Zones -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>❤️ Heart Rate Zones (Max: 180, Rest: 65)</h2>
+            <table class="zone-table" id="hrZonesTable">
+                <thead>
+                    <tr>
+                        <th>Zone</th>
+                        <th>Name</th>
+                        <th>HR Range</th>
+                        <th>% HRR</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Console Output -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>📝 Console Output</h2>
+            <div class="console" id="console"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase configuration - using your existing config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfxSIng1612n0vHHwJq1_eAr8gCtyjMs4",
+            authDomain: "grannygearindoortraining.firebaseapp.com",
+            databaseURL: "https://grannygearindoortraining-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "grannygearindoortraining",
+            storageBucket: "grannygearindoortraining.firebasestorage.app",
+            messagingSenderId: "991408564365",
+            appId: "1:991408564365:web:8adc32967da8aa8d419ac4",
+            measurementId: "G-MJE6NXW1MZ"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            addConsoleLog('✅ Firebase initialized successfully', 'success');
+        } catch (error) {
+            addConsoleLog('❌ Firebase initialization failed: ' + error.message, 'error');
+        }
+    </script>
+
+    <!-- Load Firebase setup script -->
+    <script src="js/firebase-setup.js"></script>
+
+    <script>
+        // Console logging
+        function addConsoleLog(message, type = 'info') {
+            const console = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Check Firebase status
+        async function checkFirebase() {
+            const statusDiv = document.getElementById('firebaseStatus');
+            statusDiv.innerHTML = '<div class="status info">Checking Firebase...</div>';
+            
+            if (window.firebaseSetup) {
+                const isConfigured = await window.firebaseSetup.checkFirebaseConfig();
+                
+                if (isConfigured) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Firebase is properly configured</div>';
+                    addConsoleLog('Firebase configuration verified', 'success');
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ Firebase configuration issues detected</div>';
+                    addConsoleLog('Firebase configuration failed', 'error');
+                }
+            } else {
+                statusDiv.innerHTML = '<div class="status error">❌ Firebase setup script not loaded</div>';
+                addConsoleLog('Firebase setup script not found', 'error');
+            }
+        }
+
+        // Test Firebase connection
+        async function testConnection() {
+            addConsoleLog('Testing Firebase connection...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                await db.collection('_test').doc('ping').set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                addConsoleLog('✅ Firestore write successful', 'success');
+                
+                const doc = await db.collection('_test').doc('ping').get();
+                addConsoleLog('✅ Firestore read successful', 'success');
+                
+                document.getElementById('firebaseStatus').innerHTML = 
+                    '<div class="status success">✅ Firebase connection working</div>';
+            } catch (error) {
+                addConsoleLog('❌ Connection test failed: ' + error.message, 'error');
+                document.getElementById('firebaseStatus').innerHTML = 
+                    '<div class="status error">❌ Connection failed: ' + error.message + '</div>';
+            }
+        }
+
+        // Create test user
+        async function createTestUser() {
+            const statusDiv = document.getElementById('userStatus');
+            statusDiv.innerHTML = '<div class="status info">Creating test user...<span class="loading"></span></div>';
+            
+            try {
+                const user = await window.firebaseSetup.createTestUser();
+                statusDiv.innerHTML = '<div class="status success">✅ Test user created/updated successfully</div>';
+                document.getElementById('credentials').style.display = 'block';
+                
+                addConsoleLog('Test user ready: testuser@grannygear.com', 'success');
+                
+                // Display zones
+                displayZones();
+                displayProfile();
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Failed: ${error.message}</div>`;
+                addConsoleLog('User creation failed: ' + error.message, 'error');
+            }
+        }
+
+        // Sign in test user
+        async function signInTestUser() {
+            const statusDiv = document.getElementById('userStatus');
+            statusDiv.innerHTML = '<div class="status info">Signing in...<span class="loading"></span></div>';
+            
+            try {
+                const auth = firebase.auth();
+                await auth.signInWithEmailAndPassword('testuser@grannygear.com', 'GrannyGear2024!');
+                
+                statusDiv.innerHTML = '<div class="status success">✅ Signed in successfully</div>';
+                document.getElementById('credentials').style.display = 'block';
+                
+                addConsoleLog('Signed in as test user', 'success');
+                displayProfile();
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Sign in failed: ${error.message}</div>`;
+                addConsoleLog('Sign in failed: ' + error.message, 'error');
+            }
+        }
+
+        // Display zones
+        function displayZones() {
+            if (!window.firebaseSetup) return;
+            
+            const zones = window.firebaseSetup.zones;
+            
+            // Power zones
+            const powerTableBody = document.querySelector('#powerZonesTable tbody');
+            powerTableBody.innerHTML = '';
+            zones.power.forEach(zone => {
+                const row = powerTableBody.insertRow();
+                row.innerHTML = `
+                    <td><span class="zone-color" style="background:${zone.color}"></span>${zone.zone}</td>
+                    <td>${zone.name}</td>
+                    <td>${zone.min}-${zone.max === 9999 ? '∞' : zone.max}W</td>
+                    <td>${zone.percentage}</td>
+                    <td>${zone.description}</td>
+                `;
+            });
+            
+            // HR zones
+            const hrTableBody = document.querySelector('#hrZonesTable tbody');
+            hrTableBody.innerHTML = '';
+            zones.heartRate.forEach(zone => {
+                const row = hrTableBody.insertRow();
+                row.innerHTML = `
+                    <td><span class="zone-color" style="background:${zone.color}"></span>${zone.zone}</td>
+                    <td>${zone.name}</td>
+                    <td>${zone.min}-${zone.max} bpm</td>
+                    <td>${zone.percentage}</td>
+                    <td>${zone.description}</td>
+                `;
+            });
+        }
+
+        // Display profile
+        async function displayProfile() {
+            const profileDiv = document.getElementById('profileInfo');
+            
+            try {
+                const auth = firebase.auth();
+                const user = auth.currentUser;
+                
+                if (user) {
+                    const db = firebase.firestore();
+                    const doc = await db.collection('users').doc(user.uid).get();
+                    
+                    if (doc.exists) {
+                        const data = doc.data();
+                        profileDiv.innerHTML = `
+                            <div class="status success">User Profile Loaded</div>
+                            <div style="margin-top:10px;">
+                                <strong>Name:</strong> ${data.name}<br>
+                                <strong>Email:</strong> ${data.email}<br>
+                                <strong>FTP:</strong> ${data.ftp}W<br>
+                                <strong>Max HR:</strong> ${data.maxHeartRate} bpm<br>
+                                <strong>Resting HR:</strong> ${data.restingHeartRate} bpm<br>
+                                <strong>Height:</strong> ${data.height} cm<br>
+                                <strong>Weight:</strong> ${data.weight} kg<br>
+                                <strong>Role:</strong> ${data.role}
+                            </div>
+                        `;
+                    }
+                } else {
+                    profileDiv.innerHTML = '<div class="status warning">No user signed in</div>';
+                }
+            } catch (error) {
+                profileDiv.innerHTML = `<div class="status error">Error loading profile: ${error.message}</div>`;
+            }
+        }
+
+        // Run full setup
+        async function runFullSetup() {
+            addConsoleLog('Starting complete setup...', 'info');
+            
+            if (window.firebaseSetup) {
+                const success = await window.firebaseSetup.runFullSetup();
+                
+                if (success) {
+                    displayZones();
+                    displayProfile();
+                    addConsoleLog('✅ Setup complete! Test user ready.', 'success');
+                } else {
+                    addConsoleLog('❌ Setup failed. Check console for details.', 'error');
+                }
+            }
+        }
+
+        // Clear all data
+        function clearData() {
+            if (confirm('Clear all session data and sign out?')) {
+                firebase.auth().signOut();
+                sessionStorage.clear();
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // Go to app
+        function goToApp() {
+            window.location.href = 'pedal.html';
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            addConsoleLog('Page loaded, checking Firebase...', 'info');
+            setTimeout(checkFirebase, 1000);
+        });
+    </script>
+</body>
+</html>
