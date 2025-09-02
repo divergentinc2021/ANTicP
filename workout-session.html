@@ -1,0 +1,650 @@
+        <div class="gear-indicator" data-gear="6">
+            <div class="gear-number">6</div>
+            <div class="gear-label">Gear</div>
+        </div>
+        <div class="gear-indicator" data-gear="7">
+            <div class="gear-number">7</div>
+            <div class="gear-label">Gear</div>
+        </div>
+        <div class="gear-indicator" data-gear="8">
+            <div class="gear-number">8</div>
+            <div class="gear-label">Gear</div>
+        </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-section">
+        <div class="timer" id="timer">00:00:00</div>
+    </div>
+
+    <!-- Main Stats -->
+    <div class="main-stats">
+        <div class="stat-card">
+            <div class="stat-label">Power</div>
+            <div class="stat-value" id="currentPower">0</div>
+            <div class="stat-unit">W</div>
+            <div class="stat-sub">
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="avgPower">0</div>
+                    <div class="stat-sub-label">AVG</div>
+                </div>
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="maxPower">0</div>
+                    <div class="stat-sub-label">MAX</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">HR</div>
+            <div class="stat-value" id="currentHR">0</div>
+            <div class="stat-unit">bpm</div>
+            <div class="stat-sub">
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="avgHR">0</div>
+                    <div class="stat-sub-label">AVG</div>
+                </div>
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="maxHR">0</div>
+                    <div class="stat-sub-label">MAX</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Cadence</div>
+            <div class="stat-value" id="currentCadence">0</div>
+            <div class="stat-unit">rpm</div>
+            <div class="stat-sub">
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="avgCadence">0</div>
+                    <div class="stat-sub-label">AVG</div>
+                </div>
+                <div class="stat-sub-item">
+                    <div class="stat-sub-value" id="maxCadence">0</div>
+                    <div class="stat-sub-label">MAX</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lap Table -->
+    <div class="lap-section">
+        <table class="lap-table">
+            <thead>
+                <tr>
+                    <th>Lap</th>
+                    <th>Time</th>
+                    <th>Avg Power</th>
+                    <th>Avg HR</th>
+                    <th>%dif HR</th>
+                    <th>Avg CAD</th>
+                </tr>
+            </thead>
+            <tbody id="lapTableBody">
+                <tr class="current-lap warmup">
+                    <td>now</td>
+                    <td id="currentLapTime">00:00:00</td>
+                    <td id="currentLapPower">0</td>
+                    <td id="currentLapHR">0</td>
+                    <td id="currentLapHRDiff">0</td>
+                    <td id="currentLapCadence">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Power Zones -->
+    <div class="zones-section">
+        <div class="zone endurance">
+            <div class="zone-name">Endurance</div>
+            <div class="zone-range" id="enduranceRange">121 - 164</div>
+        </div>
+        <div class="zone tempo">
+            <div class="zone-name">Tempo</div>
+            <div class="zone-range" id="tempoRange">165 - 197</div>
+        </div>
+        <div class="zone threshold">
+            <div class="zone-name">Threshold</div>
+            <div class="zone-range" id="thresholdRange">198 - 230</div>
+        </div>
+        <div class="zone vo2max">
+            <div class="zone-name">VO2Max</div>
+            <div class="zone-range" id="vo2maxRange">231 - 263</div>
+        </div>
+        <div class="zone anaerobic">
+            <div class="zone-name">Anaerobic</div>
+            <div class="zone-range" id="anaerobicRange">264 - 329</div>
+        </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="controls">
+        <button class="control-btn btn-stop" id="stopBtn" onclick="stopSession()">STOP</button>
+        <button class="control-btn btn-pause" id="pauseBtn" onclick="pauseSession()">PAUSE</button>
+        <button class="control-btn btn-lap warmup" id="lapBtn" onclick="handleLapButton()">WARM UP</button>
+    </div>
+
+    <!-- Graph -->
+    <div class="graph-section">
+        <div class="graph-container">
+            <canvas id="metricsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <div class="bottom-stat">
+            <div class="bottom-stat-label">Wbal (%exp)</div>
+            <div class="bottom-stat-value" id="wbal">0</div>
+        </div>
+        <div class="bottom-stat">
+            <div class="bottom-stat-label">Distance (km)</div>
+            <div class="bottom-stat-value" id="distance">0.0</div>
+        </div>
+        <div class="bottom-stat">
+            <div class="bottom-stat-label">%HR max</div>
+            <div class="bottom-stat-value" id="hrPercent">0</div>
+        </div>
+        <div class="bottom-stat">
+            <div class="bottom-stat-label">KJ</div>
+            <div class="bottom-stat-value" id="kilojoules">0</div>
+        </div>
+    </div>
+
+    <!-- Sensor Settings Mini -->
+    <div class="sensor-settings-mini" id="sensorSettingsMini">
+        <div class="sensor-mini-header" onclick="toggleSensorDetails()">
+            <span>⚙️ Sensors</span>
+            <div class="sensor-status-mini">
+                <div class="sensor-dot" title="KICKR"></div>
+                <div class="sensor-dot" title="Zwift Click"></div>
+                <div class="sensor-dot" title="Heart Rate"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-debug.js"></script>
+    <script src="js/workout-session.js"></script>
+    <script>
+        // Get username from session
+        const currentUser = sessionStorage.getItem('currentUser');
+        if (currentUser) {
+            document.getElementById('usernameDisplay').textContent = currentUser;
+        } else {
+            window.location.href = 'pedal.html';
+        }
+
+        // Session Management
+        let sessionData = {
+            startTime: null,
+            elapsedTime: 0,
+            isPaused: false,
+            isRunning: false,
+            currentLap: 0,
+            currentGear: 1,
+            lapType: 'warmup', // warmup, workout, cooldown
+            laps: [],
+            metrics: {
+                power: [],
+                heartRate: [],
+                cadence: []
+            },
+            totals: {
+                avgPower: 0,
+                maxPower: 0,
+                avgHR: 0,
+                maxHR: 0,
+                avgCadence: 0,
+                maxCadence: 0,
+                distance: 0,
+                kilojoules: 0
+            }
+        };
+
+        // Gear resistance mapping
+        const gearResistance = {
+            1: -5,
+            2: 0,
+            3: 5,
+            4: 10,
+            5: 15,
+            6: 20,
+            7: 25,
+            8: 30
+        };
+
+        // Timer
+        let timerInterval;
+        
+        function startTimer() {
+            if (!sessionData.startTime) {
+                sessionData.startTime = Date.now();
+            }
+            
+            timerInterval = setInterval(() => {
+                if (!sessionData.isPaused) {
+                    const now = Date.now();
+                    sessionData.elapsedTime = Math.floor((now - sessionData.startTime) / 1000);
+                    updateTimerDisplay();
+                    updateCurrentLapTime();
+                    collectMetrics();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(sessionData.elapsedTime / 3600);
+            const minutes = Math.floor((sessionData.elapsedTime % 3600) / 60);
+            const seconds = sessionData.elapsedTime % 60;
+            
+            const display = 
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+            
+            document.getElementById('timer').textContent = display;
+        }
+
+        function updateCurrentLapTime() {
+            const lapStartTime = sessionData.laps.reduce((sum, lap) => sum + lap.duration, 0);
+            const lapTime = sessionData.elapsedTime - lapStartTime;
+            
+            const minutes = Math.floor(lapTime / 60);
+            const seconds = lapTime % 60;
+            
+            const display = '00:' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+            
+            document.getElementById('currentLapTime').textContent = display;
+        }
+
+        // Metrics collection
+        function collectMetrics() {
+            // Simulate data collection (replace with real sensor data)
+            const power = 150 + Math.floor(Math.random() * 50) + (sessionData.currentGear * 10);
+            const hr = 120 + Math.floor(Math.random() * 30);
+            const cadence = 75 + Math.floor(Math.random() * 15);
+            
+            // Update current values
+            document.getElementById('currentPower').textContent = power;
+            document.getElementById('currentHR').textContent = hr;
+            document.getElementById('currentCadence').textContent = cadence;
+            
+            // Store metrics
+            sessionData.metrics.power.push(power);
+            sessionData.metrics.heartRate.push(hr);
+            sessionData.metrics.cadence.push(cadence);
+            
+            // Update averages and max values
+            updateStats();
+            
+            // Update graph
+            updateChart();
+        }
+
+        function updateStats() {
+            const powerArray = sessionData.metrics.power;
+            const hrArray = sessionData.metrics.heartRate;
+            const cadenceArray = sessionData.metrics.cadence;
+            
+            if (powerArray.length > 0) {
+                const avgPower = Math.round(powerArray.reduce((a, b) => a + b, 0) / powerArray.length);
+                const maxPower = Math.max(...powerArray);
+                document.getElementById('avgPower').textContent = avgPower;
+                document.getElementById('maxPower').textContent = maxPower;
+                
+                // Update kilojoules (simplified calculation)
+                const kj = Math.round((avgPower * sessionData.elapsedTime) / 1000);
+                document.getElementById('kilojoules').textContent = kj;
+            }
+            
+            if (hrArray.length > 0) {
+                const avgHR = Math.round(hrArray.reduce((a, b) => a + b, 0) / hrArray.length);
+                const maxHR = Math.max(...hrArray);
+                document.getElementById('avgHR').textContent = avgHR;
+                document.getElementById('maxHR').textContent = maxHR;
+                
+                // Update HR percentage (assuming max HR of 190)
+                const hrPercent = Math.round((hrArray[hrArray.length - 1] / 190) * 100);
+                document.getElementById('hrPercent').textContent = hrPercent;
+            }
+            
+            if (cadenceArray.length > 0) {
+                const avgCadence = Math.round(cadenceArray.reduce((a, b) => a + b, 0) / cadenceArray.length);
+                const maxCadence = Math.max(...cadenceArray);
+                document.getElementById('avgCadence').textContent = avgCadence;
+                document.getElementById('maxCadence').textContent = maxCadence;
+            }
+            
+            // Update distance (simplified calculation)
+            const distance = (sessionData.elapsedTime * 0.008).toFixed(1);
+            document.getElementById('distance').textContent = distance;
+        }
+
+        // Chart setup
+        let metricsChart;
+        
+        function initChart() {
+            const ctx = document.getElementById('metricsChart').getContext('2d');
+            metricsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Power (W)',
+                            data: [],
+                            borderColor: '#00bfff',
+                            backgroundColor: 'rgba(0, 191, 255, 0.1)',
+                            yAxisID: 'y-power',
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Heart Rate (bpm)',
+                            data: [],
+                            borderColor: '#ff1744',
+                            backgroundColor: 'rgba(255, 23, 68, 0.1)',
+                            yAxisID: 'y-hr',
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Cadence (rpm)',
+                            data: [],
+                            borderColor: '#4caf50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            yAxisID: 'y-cadence',
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'white',
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'white',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        'y-power': {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#00bfff',
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Power (W)',
+                                color: '#00bfff'
+                            }
+                        },
+                        'y-hr': {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                color: '#ff1744',
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'HR (bpm)',
+                                color: '#ff1744'
+                            }
+                        },
+                        'y-cadence': {
+                            type: 'linear',
+                            display: false,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!metricsChart) return;
+            
+            const maxPoints = 60; // Show last 60 seconds
+            const labels = metricsChart.data.labels;
+            const powerData = metricsChart.data.datasets[0].data;
+            const hrData = metricsChart.data.datasets[1].data;
+            const cadenceData = metricsChart.data.datasets[2].data;
+            
+            // Add new data point
+            labels.push(sessionData.elapsedTime);
+            powerData.push(sessionData.metrics.power[sessionData.metrics.power.length - 1]);
+            hrData.push(sessionData.metrics.heartRate[sessionData.metrics.heartRate.length - 1]);
+            cadenceData.push(sessionData.metrics.cadence[sessionData.metrics.cadence.length - 1]);
+            
+            // Keep only last maxPoints
+            if (labels.length > maxPoints) {
+                labels.shift();
+                powerData.shift();
+                hrData.shift();
+                cadenceData.shift();
+            }
+            
+            metricsChart.update();
+        }
+
+        // Gear handling
+        function setGear(gearNumber) {
+            sessionData.currentGear = gearNumber;
+            
+            // Update UI
+            document.querySelectorAll('.gear-indicator').forEach(indicator => {
+                indicator.classList.remove('active');
+            });
+            document.querySelector(`.gear-indicator[data-gear="${gearNumber}"]`).classList.add('active');
+            
+            // Apply resistance
+            const resistance = gearResistance[gearNumber];
+            console.log(`Gear ${gearNumber}: Resistance ${resistance}%`);
+            
+            // Send resistance to KICKR (implement actual Bluetooth command)
+            if (window.kickrDevice) {
+                // sendResistanceToKickr(resistance);
+            }
+        }
+
+        // Zwift Click simulation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' && sessionData.currentGear < 8) {
+                setGear(sessionData.currentGear + 1);
+            } else if (e.key === 'ArrowDown' && sessionData.currentGear > 1) {
+                setGear(sessionData.currentGear - 1);
+            }
+        });
+
+        // Lap handling
+        function handleLapButton() {
+            const btn = document.getElementById('lapBtn');
+            
+            if (btn.textContent === 'WARM UP') {
+                // Start warmup
+                sessionData.isRunning = true;
+                sessionData.lapType = 'warmup';
+                startTimer();
+                btn.textContent = 'START';
+                btn.classList.remove('warmup');
+                btn.classList.add('start');
+                
+                // Set initial gear to 1 (resistance -5)
+                setGear(1);
+                
+            } else if (btn.textContent === 'START') {
+                // Complete warmup, start main workout
+                completeLap();
+                sessionData.lapType = 'workout';
+                btn.textContent = 'LAP';
+                btn.classList.remove('start');
+                
+                // Start automated lap progression
+                startAutomatedLaps();
+            }
+        }
+
+        function completeLap() {
+            const lapStartTime = sessionData.laps.reduce((sum, lap) => sum + lap.duration, 0);
+            const lapDuration = sessionData.elapsedTime - lapStartTime;
+            
+            // Calculate lap metrics
+            const lapPowerData = sessionData.metrics.power.slice(-lapDuration);
+            const lapHRData = sessionData.metrics.heartRate.slice(-lapDuration);
+            const lapCadenceData = sessionData.metrics.cadence.slice(-lapDuration);
+            
+            const lapData = {
+                number: sessionData.currentLap + 1,
+                type: sessionData.lapType,
+                duration: lapDuration,
+                avgPower: lapPowerData.length > 0 ? Math.round(lapPowerData.reduce((a, b) => a + b, 0) / lapPowerData.length) : 0,
+                avgHR: lapHRData.length > 0 ? Math.round(lapHRData.reduce((a, b) => a + b, 0) / lapHRData.length) : 0,
+                avgCadence: lapCadenceData.length > 0 ? Math.round(lapCadenceData.reduce((a, b) => a + b, 0) / lapCadenceData.length) : 0
+            };
+            
+            sessionData.laps.push(lapData);
+            sessionData.currentLap++;
+            
+            // Add to lap table
+            addLapToTable(lapData);
+        }
+
+        function addLapToTable(lapData) {
+            const tbody = document.getElementById('lapTableBody');
+            const newRow = tbody.insertRow(0);
+            
+            if (lapData.type === 'warmup') {
+                newRow.classList.add('warmup');
+            } else if (lapData.type === 'cooldown') {
+                newRow.classList.add('cooldown');
+            }
+            
+            const minutes = Math.floor(lapData.duration / 60);
+            const seconds = lapData.duration % 60;
+            const timeDisplay = '00:' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            
+            newRow.innerHTML = `
+                <td>${lapData.number}</td>
+                <td>${timeDisplay}</td>
+                <td>${lapData.avgPower}</td>
+                <td>${lapData.avgHR}</td>
+                <td>0</td>
+                <td>${lapData.avgCadence}</td>
+            `;
+        }
+
+        function startAutomatedLaps() {
+            // This would load workout file and start automated progression
+            console.log('Starting automated workout...');
+            // Implementation would read seconds file and progress through intervals
+        }
+
+        // Control functions
+        function pauseSession() {
+            sessionData.isPaused = !sessionData.isPaused;
+            const btn = document.getElementById('pauseBtn');
+            btn.textContent = sessionData.isPaused ? 'RESUME' : 'PAUSE';
+        }
+
+        function stopSession() {
+            if (confirm('Are you sure you want to stop and save this session?')) {
+                clearInterval(timerInterval);
+                saveSession();
+            }
+        }
+
+        function saveSession() {
+            // Prepare session data for CSV export
+            const csvData = prepareCSVData();
+            
+            // Save to localStorage
+            const sessions = JSON.parse(localStorage.getItem('workoutSessions') || '[]');
+            sessions.push({
+                user: currentUser,
+                date: new Date().toISOString(),
+                duration: sessionData.elapsedTime,
+                data: sessionData
+            });
+            localStorage.setItem('workoutSessions', JSON.stringify(sessions));
+            
+            // Convert to FIT file (would need implementation)
+            // convertToFIT(sessionData);
+            
+            alert('Session saved successfully!');
+            window.location.href = 'pedal.html';
+        }
+
+        function prepareCSVData() {
+            let csv = 'Time,Power,HeartRate,Cadence\n';
+            
+            for (let i = 0; i < sessionData.metrics.power.length; i++) {
+                csv += `${i},${sessionData.metrics.power[i]},${sessionData.metrics.heartRate[i]},${sessionData.metrics.cadence[i]}\n`;
+            }
+            
+            return csv;
+        }
+
+        // UI functions
+        function toggleSensorSettings() {
+            const mini = document.getElementById('sensorSettingsMini');
+            mini.classList.toggle('show');
+        }
+
+        function signOut() {
+            if (confirm('Are you sure you want to sign out? Unsaved data will be lost.')) {
+                sessionStorage.clear();
+                window.location.href = 'pedal.html';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            
+            // Set up gear click handlers
+            document.querySelectorAll('.gear-indicator').forEach(indicator => {
+                indicator.addEventListener('click', () => {
+                    const gear = parseInt(indicator.dataset.gear);
+                    setGear(gear);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
