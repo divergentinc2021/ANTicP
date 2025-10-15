@@ -66,9 +66,9 @@ async function handleMemberLogin(e) {
         
         // Redirect based on role
         if (userData.role === 'admin') {
-            window.location.href = 'admin.html';
+            window.location.href = 'pages/admin.html';
         } else {
-            window.location.href = 'member.html';
+            window.location.href = 'equipment-pairing.html';
         }
         
     } catch (error) {
@@ -113,7 +113,7 @@ async function handleAdminLogin(e) {
         }
         
         sessionStorage.setItem('userRole', 'admin');
-        window.location.href = 'admin.html';
+        window.location.href = 'pages/admin.html';
         
     } catch (error) {
         console.error('Admin login error:', error);
@@ -138,9 +138,9 @@ async function checkUserRoleAndRedirect(user) {
             sessionStorage.setItem('userRole', userData.role);
             
             if (userData.role === 'admin') {
-                window.location.href = 'admin.html';
+                window.location.href = 'pages/admin.html';
             } else {
-                window.location.href = 'member.html';
+                window.location.href = 'equipment-pairing.html';
             }
         }
     } catch (error) {

@@ -415,9 +415,9 @@ class WorkoutSessionController {
         a.click();
         
         this.showNotification('success', 'Workout saved!');
-        
+
         setTimeout(() => {
-            window.location.href = 'sensor-settings.html';
+            window.location.href = '../pages/member.html';
         }, 2000);
     }
     
@@ -443,7 +443,7 @@ function toggleSettings() {
 function signOut() {
     if (confirm('Sign out? Any unsaved data will be lost.')) {
         sessionStorage.clear();
-        window.location.href = 'login.html';
+        window.location.href = '../pages/login.html';
     }
 }
 

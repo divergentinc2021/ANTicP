@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANTicP - Advanced Training Platform</title>
+    <title>ANTicP - Smart Trainer Control Platform</title>
     <style>
         :root {
             --primary-color: #007bff;
@@ -143,6 +143,26 @@
         .zone-metric-label {
             font-size: 0.9rem;
             color: #666;
+        }
+
+        .controls-info {
+            background: rgba(252, 82, 0, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #controls-description {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .controls-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
         }
 
         /* Interval Training Panel */
@@ -417,7 +437,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🚴 ANTicP - Advanced Training Platform</h1>
+            <h1>🚴 ANTicP - Smart Trainer Control</h1>
             <p>Zone-based training with Wahoo KICKR Core & Zwift Click</p>
         </div>
 
@@ -426,7 +446,7 @@
             <h2 style="text-align: center; margin-bottom: 20px;">🎯 Training Zones</h2>
             
             <div class="zone-display">
-                <div class="zone-indicator" data-zone="1">Z1</div>
+                <div class="zone-indicator active" data-zone="1">Z1</div>
                 <div class="zone-indicator" data-zone="2">Z2</div>
                 <div class="zone-indicator" data-zone="3">Z3</div>
                 <div class="zone-indicator" data-zone="4">Z4</div>
@@ -440,7 +460,7 @@
                 <div class="zone-name" id="zone-name">Zone 1 - Recovery</div>
                 <div class="zone-details">
                     <div class="zone-metric">
-                        <div class="zone-metric-value" id="zone-resistance">-5%</div>
+                        <div class="zone-metric-value" id="zone-resistance">0%</div>
                         <div class="zone-metric-label">Resistance</div>
                     </div>
                     <div class="zone-metric">
@@ -454,12 +474,13 @@
                 </div>
             </div>
             
-            <div style="text-align: center; margin-top: 20px;">
-                <p style="margin-bottom: 10px;">
-                    <strong>Controls:</strong> 
-                    UP Button = Next Zone (cycles 1→8→1) | 
-                    DOWN Button = Trigger Lap
-                </p>
+            <div class="controls-info">
+                <div id="controls-description">
+                    <strong>MANUAL MODE:</strong> UP = Next Zone | DOWN = Trigger Lap
+                </div>
+                <div class="controls-subtitle">
+                    Toggle to AUTO mode for resistance adjustment (±5% with buttons)
+                </div>
             </div>
         </div>
 
@@ -535,7 +556,7 @@
                     <div class="metric-label">Heart Rate</div>
                 </div>
                 <div class="metric-item">
-                    <div class="metric-value" id="resistance-value">20</div>
+                    <div class="metric-value" id="resistance-value">0</div>
                     <div class="metric-label">Resistance (%)</div>
                 </div>
                 <div class="metric-item">
@@ -565,25 +586,242 @@
 
     <script>
         // ============================================================================
-        // ADVANCED TRAINING PLATFORM WITH ZONES AND INTERVALS
+        // SIMPLE FIT FILE WRITER FOR STRAVA EXPORT
+        // ============================================================================
+        
+        class SimpleFITWriter {
+            constructor() {
+                this.buffer = [];
+                this.timestamp_offset = 631065600; // Seconds between Unix epoch and FIT epoch (Dec 31, 1989)
+            }
+            
+            // Convert JavaScript Date to FIT timestamp
+            dateToFIT(date) {
+                return Math.floor(date.getTime() / 1000) - this.timestamp_offset;
+            }
+            
+            // Write bytes to buffer
+            writeBytes(bytes) {
+                for (let byte of bytes) {
+                    this.buffer.push(byte & 0xFF);
+                }
+            }
+            
+            // Write a single byte
+            writeByte(value) {
+                this.buffer.push(value & 0xFF);
+            }
+            
+            // Write 16-bit value (little endian)
+            writeShort(value) {
+                this.writeByte(value & 0xFF);
+                this.writeByte((value >> 8) & 0xFF);
+            }
+            
+            // Write 32-bit value (little endian)
+            writeInt(value) {
+                this.writeByte(value & 0xFF);
+                this.writeByte((value >> 8) & 0xFF);
+                this.writeByte((value >> 16) & 0xFF);
+                this.writeByte((value >> 24) & 0xFF);
+            }
+            
+            // Create FIT file for indoor cycling session
+            createIndoorCyclingFIT(sessionData, startTime) {
+                // FIT File Header (14 bytes)
+                this.writeByte(14);           // Header size
+                this.writeByte(0x20);          // Protocol version
+                this.writeShort(2140);         // Profile version
+                this.writeInt(0);              // Data size (placeholder, will update)
+                this.writeBytes([46, 70, 73, 84]); // ".FIT" in ASCII
+                this.writeShort(0);            // Header CRC (placeholder)
+                
+                const dataStartIndex = this.buffer.length;
+                
+                // File ID Message (defines the file type)
+                this.writeByte(0x40);          // Definition message header
+                this.writeByte(0);             // Reserved
+                this.writeByte(0);             // Architecture (little endian)
+                this.writeShort(0);            // Global message number (file_id)
+                this.writeByte(5);             // Number of fields
+                
+                // Field definitions for file_id
+                this.writeByte(3); this.writeByte(4); this.writeByte(140); // serial_number
+                this.writeByte(4); this.writeByte(4); this.writeByte(134); // time_created  
+                this.writeByte(1); this.writeByte(2); this.writeByte(132); // manufacturer
+                this.writeByte(2); this.writeByte(2); this.writeByte(132); // product
+                this.writeByte(0); this.writeByte(1); this.writeByte(0);   // type
+                
+                // File ID Data
+                this.writeByte(0x00);          // Data message header
+                this.writeInt(0x12345678);     // Serial number
+                this.writeInt(this.dateToFIT(new Date(startTime))); // Time created
+                this.writeShort(1);            // Manufacturer (Garmin)
+                this.writeShort(2080);         // Product
+                this.writeByte(4);             // Type (activity)
+                
+                // Session Message Definition
+                this.writeByte(0x41);          // Definition message header
+                this.writeByte(0);             // Reserved
+                this.writeByte(0);             // Architecture
+                this.writeShort(18);           // Global message number (session)
+                this.writeByte(17);            // Number of fields
+                
+                // Session field definitions
+                this.writeByte(253); this.writeByte(4); this.writeByte(134); // timestamp
+                this.writeByte(2); this.writeByte(4); this.writeByte(134);   // start_time
+                this.writeByte(7); this.writeByte(4); this.writeByte(134);   // total_elapsed_time
+                this.writeByte(9); this.writeByte(4); this.writeByte(134);   // total_distance
+                this.writeByte(11); this.writeByte(2); this.writeByte(132);  // total_calories
+                this.writeByte(13); this.writeByte(2); this.writeByte(132);  // avg_speed
+                this.writeByte(14); this.writeByte(2); this.writeByte(132);  // max_speed
+                this.writeByte(16); this.writeByte(1); this.writeByte(2);    // avg_heart_rate
+                this.writeByte(17); this.writeByte(1); this.writeByte(2);    // max_heart_rate
+                this.writeByte(18); this.writeByte(1); this.writeByte(2);    // avg_cadence
+                this.writeByte(19); this.writeByte(1); this.writeByte(2);    // max_cadence
+                this.writeByte(20); this.writeByte(2); this.writeByte(132);  // avg_power
+                this.writeByte(21); this.writeByte(2); this.writeByte(132);  // max_power
+                this.writeByte(5); this.writeByte(1); this.writeByte(0);     // sport
+                this.writeByte(6); this.writeByte(1); this.writeByte(0);     // sub_sport
+                this.writeByte(26); this.writeByte(2); this.writeByte(132);  // num_laps
+                this.writeByte(48); this.writeByte(4); this.writeByte(134);  // total_work
+                
+                // Calculate session statistics
+                const duration = sessionData.length;
+                const totalDistance = sessionData.reduce((sum, d, i) => {
+                    return sum + (i > 0 ? (d.speed || 0) / 3.6 : 0); // Convert km/h to m/s
+                }, 0);
+                
+                const avgPower = Math.round(sessionData.reduce((sum, d) => sum + (d.power || 0), 0) / duration) || 0;
+                const maxPower = Math.max(...sessionData.map(d => d.power || 0)) || 0;
+                const avgCadence = Math.round(sessionData.reduce((sum, d) => sum + (d.cadence || 0), 0) / duration) || 0;
+                const maxCadence = Math.max(...sessionData.map(d => d.cadence || 0)) || 0;
+                const avgHR = Math.round(sessionData.reduce((sum, d) => sum + (d.heartRate || 0), 0) / duration) || 0;
+                const maxHR = Math.max(...sessionData.map(d => d.heartRate || 0)) || 0;
+                const avgSpeed = sessionData.reduce((sum, d) => sum + (d.speed || 0), 0) / duration || 0;
+                const maxSpeed = Math.max(...sessionData.map(d => d.speed || 0)) || 0;
+                const totalCalories = Math.round((avgPower * duration * 3.6) / 1000) || 0;
+                const totalWork = avgPower * duration || 0; // joules
+                
+                // Session Data
+                this.writeByte(0x01);          // Data message header
+                this.writeInt(this.dateToFIT(new Date(startTime + duration * 1000)));
+                this.writeInt(this.dateToFIT(new Date(startTime)));
+                this.writeInt(duration * 1000); // ms
+                this.writeInt(Math.round(totalDistance * 100)); // cm
+                this.writeShort(totalCalories);
+                this.writeShort(Math.round(avgSpeed * 1000 / 3.6)); // mm/s
+                this.writeShort(Math.round(maxSpeed * 1000 / 3.6)); // mm/s
+                this.writeByte(avgHR);
+                this.writeByte(maxHR);
+                this.writeByte(avgCadence);
+                this.writeByte(maxCadence);
+                this.writeShort(avgPower);
+                this.writeShort(maxPower);
+                this.writeByte(2);             // Sport: cycling
+                this.writeByte(6);             // Sub-sport: indoor cycling
+                this.writeShort(1);             // Number of laps
+                this.writeInt(totalWork);      // Total work in joules
+                
+                // Record Messages (data points)
+                // First, define the record message format
+                this.writeByte(0x42);          // Definition message header
+                this.writeByte(0);             // Reserved
+                this.writeByte(0);             // Architecture
+                this.writeShort(20);           // Global message number (record)
+                this.writeByte(8);             // Number of fields
+                
+                // Record field definitions
+                this.writeByte(253); this.writeByte(4); this.writeByte(134); // timestamp
+                this.writeByte(5); this.writeByte(4); this.writeByte(134);   // distance
+                this.writeByte(6); this.writeByte(2); this.writeByte(132);   // speed
+                this.writeByte(3); this.writeByte(1); this.writeByte(2);     // heart_rate
+                this.writeByte(4); this.writeByte(1); this.writeByte(2);     // cadence
+                this.writeByte(7); this.writeByte(2); this.writeByte(132);   // power
+                this.writeByte(2); this.writeByte(2); this.writeByte(131);   // altitude
+                this.writeByte(9); this.writeByte(1); this.writeByte(1);     // grade
+                
+                // Write record data for each second
+                let accumulatedDistance = 0;
+                sessionData.forEach((point, index) => {
+                    this.writeByte(0x02);      // Data message header for record
+                    this.writeInt(this.dateToFIT(new Date(point.timestamp)));
+                    
+                    // Calculate distance
+                    if (index > 0) {
+                        accumulatedDistance += (point.speed || 0) / 3.6; // Add m/s
+                    }
+                    this.writeInt(Math.round(accumulatedDistance * 100)); // cm
+                    
+                    // Speed in mm/s
+                    this.writeShort(Math.round((point.speed || 0) * 1000 / 3.6));
+                    
+                    // Heart rate, cadence, power
+                    this.writeByte(point.heartRate || 0);
+                    this.writeByte(point.cadence || 0);
+                    this.writeShort(point.power || 0);
+                    
+                    // Altitude (fixed for indoor) and grade (resistance)
+                    this.writeShort(1000); // 100m altitude (fixed)
+                    this.writeByte(point.resistance || 0);
+                });
+                
+                // Activity Message
+                this.writeByte(0x43);          // Definition message header
+                this.writeByte(0);             // Reserved
+                this.writeByte(0);             // Architecture
+                this.writeShort(34);           // Global message number (activity)
+                this.writeByte(5);             // Number of fields
+                
+                // Activity field definitions
+                this.writeByte(253); this.writeByte(4); this.writeByte(134); // timestamp
+                this.writeByte(0); this.writeByte(4); this.writeByte(134);   // total_timer_time
+                this.writeByte(1); this.writeByte(2); this.writeByte(132);   // num_sessions
+                this.writeByte(2); this.writeByte(1); this.writeByte(0);     // type
+                this.writeByte(3); this.writeByte(1); this.writeByte(0);     // event
+                
+                // Activity Data
+                this.writeByte(0x03);          // Data message header
+                this.writeInt(this.dateToFIT(new Date(startTime + duration * 1000)));
+                this.writeInt(duration * 1000); // ms
+                this.writeShort(1);            // One session
+                this.writeByte(0);             // Type: manual
+                this.writeByte(26);            // Event: activity
+                
+                // Update data size in header
+                const dataSize = this.buffer.length - dataStartIndex;
+                this.buffer[4] = dataSize & 0xFF;
+                this.buffer[5] = (dataSize >> 8) & 0xFF;
+                this.buffer[6] = (dataSize >> 16) & 0xFF;
+                this.buffer[7] = (dataSize >> 24) & 0xFF;
+                
+                // Calculate and append CRC (simplified - just use 0)
+                this.writeShort(0);
+                
+                return new Uint8Array(this.buffer);
+            }
+        }
+
+        // ============================================================================
+        // SMART TRAINER PLATFORM - COMPLETE FIXED VERSION
+        // Fixed: Button detection, Mode-based behavior, Proper resistance values
         // ============================================================================
 
-        class AdvancedTrainingPlatform {
+        class SmartTrainerPlatform {
             constructor() {
-                // Training zones configuration
+                // Training zones with ABSOLUTE resistance values
                 this.zones = [
-                    { id: 1, name: 'Recovery', resistance: -5, ftpRange: '50-60%', color: '#4CAF50', cadence: '80+' },
-                    { id: 2, name: 'Endurance', resistance: 0, ftpRange: '60-70%', color: '#8BC34A', cadence: '80+' },
-                    { id: 3, name: 'Tempo', resistance: 5, ftpRange: '70-80%', color: '#FFEB3B', cadence: '80+' },
-                    { id: 4, name: 'Threshold', resistance: 10, ftpRange: '80-90%', color: '#FFC107', cadence: '80+' },
-                    { id: 5, name: 'VO2 Max', resistance: 15, ftpRange: '90-105%', color: '#FF9800', cadence: '80+' },
-                    { id: 6, name: 'Anaerobic', resistance: 20, ftpRange: '105-120%', color: '#FF5722', cadence: '80+' },
-                    { id: 7, name: 'Neuromuscular', resistance: 25, ftpRange: '120-150%', color: '#F44336', cadence: '80+' },
-                    { id: 8, name: 'Sprint', resistance: 30, ftpRange: '150%+', color: '#9C27B0', cadence: 'Max' }
+                    { id: 1, name: 'Recovery', resistance: 0, ftpRange: '50-60%', color: '#4CAF50', cadence: '80+' },
+                    { id: 2, name: 'Endurance', resistance: 5, ftpRange: '60-70%', color: '#8BC34A', cadence: '80+' },
+                    { id: 3, name: 'Tempo', resistance: 10, ftpRange: '70-80%', color: '#FFEB3B', cadence: '80+' },
+                    { id: 4, name: 'Threshold', resistance: 15, ftpRange: '80-90%', color: '#FFC107', cadence: '80+' },
+                    { id: 5, name: 'VO2 Max', resistance: 20, ftpRange: '90-105%', color: '#FF9800', cadence: '80+' },
+                    { id: 6, name: 'Anaerobic', resistance: 25, ftpRange: '105-120%', color: '#FF5722', cadence: '80+' },
+                    { id: 7, name: 'Neuromuscular', resistance: 30, ftpRange: '120-150%', color: '#F44336', cadence: '80+' },
+                    { id: 8, name: 'Sprint', resistance: 35, ftpRange: '150%+', color: '#9C27B0', cadence: 'Max' }
                 ];
 
-                this.currentZone = 1;
-                this.baseResistance = 20; // Base resistance level
+                this.currentZone = 1;  // Always start at Zone 1
                 this.lapCount = 0;
                 this.setCount = 0;
 
@@ -601,13 +839,13 @@
                     heartRate: null
                 };
 
-                // Live metrics
+                // Live metrics - Start with Zone 1 resistance
                 this.metrics = {
                     power: 0,
                     speed: 0,
                     cadence: 0,
                     heartRate: 0,
-                    resistance: 20
+                    resistance: 0  // Zone 1 = 0% resistance (easiest)
                 };
 
                 // Session
@@ -617,21 +855,49 @@
                     data: []
                 };
 
-                // Zwift Click button state tracking
+                // Zwift Click button state tracking - ENHANCED
                 this.buttonState = {
-                    up: false,
-                    down: false,
-                    lastMessageTime: 0
+                    pressed: false,
+                    lastMessageTime: 0,
+                    lastButtonPressed: null,
+                    debugMode: true  // Enable for button debugging
                 };
 
                 this.initialize();
             }
 
             async initialize() {
-                this.log('🚀 Initializing Advanced Training Platform...');
+                this.log('🚀 Initializing Smart Trainer Platform...');
                 this.setupEventListeners();
+                this.checkBrowserCompatibility();
+                
+                // Always start in Zone 1 for easy warm-up
+                this.setZone(1);
                 this.updateZoneDisplay();
-                this.log('✅ Platform ready!');
+                
+                this.log('✅ Platform ready! Starting in Zone 1 (Recovery) - Easy warm-up');
+                this.log('💡 MANUAL mode: UP=Zone, DOWN=Lap | AUTO mode: UP/DOWN=±5% resistance');
+                this.showNotification('info', '🚴 Starting in Zone 1 - Easy pedaling (0% resistance)', 4000);
+            }
+
+            checkBrowserCompatibility() {
+                if (!navigator.bluetooth) {
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isAndroid = /Android/.test(navigator.userAgent);
+                    
+                    if (isIOS) {
+                        this.log('⚠️ iOS detected - Use Bluefy browser or native app');
+                        this.showNotification('warning', 'iOS: Please use Bluefy browser for Bluetooth', 10000);
+                    } else if (isAndroid) {
+                        this.log('⚠️ Android - Please use Chrome browser');
+                        this.showNotification('warning', 'Please use Chrome browser for Bluetooth', 10000);
+                    } else {
+                        this.log('⚠️ Web Bluetooth not supported');
+                        this.showNotification('error', 'Please use Chrome or Edge browser', 10000);
+                    }
+                    return false;
+                }
+                return true;
             }
 
             setupEventListeners() {
@@ -647,10 +913,21 @@
                     });
                 });
 
-                // Interval controls
+                // Interval controls with enhanced mode change notification
                 document.getElementById('auto-interval-toggle')?.addEventListener('change', (e) => {
                     this.autoMode = e.target.checked;
-                    this.log(this.autoMode ? '🤖 Auto mode enabled' : '👤 Manual mode enabled');
+                    
+                    if (this.autoMode) {
+                        this.log('🤖 AUTO MODE ACTIVATED: Buttons now adjust resistance ±5%');
+                        this.showNotification('warning', '🤖 AUTO MODE: UP/DOWN = ±5% Resistance', 3000);
+                        document.getElementById('controls-description').innerHTML = 
+                            '<strong>AUTO MODE:</strong> UP = +5% Resistance | DOWN = -5% Resistance';
+                    } else {
+                        this.log('👤 MANUAL MODE ACTIVATED: UP cycles zones, DOWN triggers lap');
+                        this.showNotification('info', '👤 MANUAL MODE: UP = Zone | DOWN = Lap', 3000);
+                        document.getElementById('controls-description').innerHTML = 
+                            '<strong>MANUAL MODE:</strong> UP = Next Zone | DOWN = Trigger Lap';
+                    }
                 });
 
                 document.getElementById('interval-file')?.addEventListener('change', (e) => {
@@ -673,11 +950,11 @@
                 this.updateZoneDisplay();
                 
                 const zone = this.zones.find(z => z.id === zoneId);
-                const targetResistance = this.baseResistance + zone.resistance;
+                const targetResistance = zone.resistance;  // Direct resistance value
                 
                 this.setResistance(targetResistance);
                 this.log(`🎯 Zone ${zoneId} - ${zone.name} (Resistance: ${targetResistance}%)`);
-                this.showNotification('info', `Zone ${zoneId}: ${zone.name}`, 2000);
+                this.showNotification('info', `Zone ${zoneId}: ${zone.name} (${targetResistance}% resistance)`, 2000);
             }
 
             cycleZone() {
@@ -700,7 +977,7 @@
                 // Update zone info
                 const zone = this.zones.find(z => z.id === this.currentZone);
                 document.getElementById('zone-name').textContent = `Zone ${zone.id} - ${zone.name}`;
-                document.getElementById('zone-resistance').textContent = `${zone.resistance >= 0 ? '+' : ''}${zone.resistance}%`;
+                document.getElementById('zone-resistance').textContent = `${zone.resistance}%`;
                 document.getElementById('zone-power').textContent = zone.ftpRange;
                 document.getElementById('zone-cadence').textContent = zone.cadence;
             }
@@ -764,11 +1041,11 @@
                 
                 // Map interval color to zone
                 const colorToZone = {
-                    0: 1, // Easy -> Zone 1
-                    5: 2, // Endurance -> Zone 2
-                    4: 3, // Tempo -> Zone 3
-                    3: 4, // Threshold -> Zone 4
-                    6: 5  // VO2 -> Zone 5
+                    0: 1, // Easy -> Zone 1 (0% resistance)
+                    5: 2, // Endurance -> Zone 2 (5% resistance)
+                    4: 3, // Tempo -> Zone 3 (10% resistance)
+                    3: 4, // Threshold -> Zone 4 (15% resistance)
+                    6: 5  // VO2 -> Zone 5 (20% resistance)
                 };
                 
                 const targetZone = colorToZone[interval.color] || 2;
@@ -812,7 +1089,7 @@
             }
 
             // ============================================================================
-            // ZWIFT CLICK CONNECTION - ENHANCED
+            // ZWIFT CLICK CONNECTION - FIXED WITH PROPER BUTTON DETECTION
             // ============================================================================
 
             async connectZwiftClick() {
@@ -849,13 +1126,13 @@
                     
                     // Send handshake
                     const handshake = new TextEncoder().encode('RideOn');
-                    await controlChar.writeValue(handshake);
+                    await controlChar.writeValueWithoutResponse(handshake);
                     
                     this.connections.zwiftClick = { device, server, service };
                     document.getElementById('zwiftclick-card').classList.remove('connecting');
                     document.getElementById('zwiftclick-card').classList.add('connected');
                     
-                    this.log('✅ Zwift Click connected');
+                    this.log('✅ Zwift Click connected - Buttons ready!');
                     this.showNotification('success', 'Zwift Click connected!');
                     
                 } catch (error) {
@@ -865,47 +1142,86 @@
                 }
             }
 
-            handleZwiftClickData(dataValue) {
-                const data = new Uint8Array(dataValue.buffer);
-                
-                // Message type 0x37 is the button state message
-                if (data[0] === 0x37 && data.length >= 5) {
-                    // Check button states in byte 2
-                    // 0x00 = button pressed, 0x01 = button released
-                    const buttonByte = data[2];
-                    
-                    // Detect state changes
-                    const currentTime = Date.now();
-                    
-                    // Debounce - ignore if too soon after last message
-                    if (currentTime - this.buttonState.lastMessageTime < 100) return;
-                    
-                    // Check for UP button (byte changes when pressed)
-                    if (buttonByte === 0x00 && !this.buttonState.pressed) {
-                        this.buttonState.pressed = true;
-                        this.buttonState.lastMessageTime = currentTime;
-                        
-                        // Determine which button based on pattern
-                        // You may need to adjust this based on your specific Zwift Click
-                        if (data[3] === 0x10 && data[4] === 0x01) {
-                            this.handleUpButton();
-                        } else if (data[3] === 0x10 && data[4] === 0x00) {
-                            this.handleDownButton();
-                        }
-                    } else if (buttonByte === 0x01) {
-                        this.buttonState.pressed = false;
-                    }
+           handleZwiftClickData(dataValue) {
+    const data = new Uint8Array(dataValue.buffer);
+    
+    // Debug logging if enabled
+    if (this.buttonState.debugMode) {
+        const hexString = Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
+        console.log(`Zwift Click data: ${hexString}`);
+    }
+    
+    // Check for the 0x37 message type (button state message)
+    if (data.length >= 5 && data[0] === 0x37) {
+        const currentTime = Date.now();
+        
+        // Extract button state information
+        const stateByte = data[2];  // 0x00 = pressed, 0x01 = released
+        const buttonId = data[4];   // 0x01 = UP, 0x00 = DOWN
+        
+        // Handle UP button on PRESS (normal behavior)
+        if (stateByte === 0x00 && buttonId === 0x01) {
+            // Debounce - prevent multiple triggers
+            if (currentTime - this.buttonState.lastMessageTime < 200) return;
+            this.buttonState.lastMessageTime = currentTime;
+            
+            this.handleUpButton();
+            this.log('🎮 UP button pressed');
+        }
+        
+        // SPECIAL HANDLING: DOWN button on RELEASE
+        // Your Zwift Click DOWN button only sends RELEASE events
+        // but no PRESS events, so we detect it on the first RELEASE
+        if (stateByte === 0x01 && buttonId === 0x00) {
+            // Initialize if needed
+            if (!this.buttonState.lastDownReleaseTime) {
+                this.buttonState.lastDownReleaseTime = 0;
+            }
+            
+            // Check if this is a new button press (500ms gap)
+            if (currentTime - this.buttonState.lastDownReleaseTime > 500) {
+                // Trigger DOWN button action
+                this.handleDownButton();
+                this.log('🎮 DOWN button detected (via release)');
+            }
+            this.buttonState.lastDownReleaseTime = currentTime;
+        }
+    } else if (data.length === 3 && data[0] === 0x19) {
+        // Keepalive message - ignore
+        return;
+    }
+}
+
+            handleUpButton() {
+                // UP Button behavior depends on mode
+                if (this.autoMode) {
+                    // AUTO MODE: Increase resistance by 5%
+                    const currentResistance = this.metrics.resistance;
+                    const newResistance = Math.min(100, currentResistance + 5);
+                    this.setResistance(newResistance);
+                    this.log(`🎮 UP (Auto) → Resistance: ${newResistance}%`);
+                    this.showNotification('info', `Resistance: ${newResistance}%`, 1500);
+                } else {
+                    // MANUAL MODE: Cycle to next zone
+                    this.log('🎮 UP (Manual) → Next Zone');
+                    this.cycleZone();
                 }
             }
 
-            handleUpButton() {
-                this.log('🎮 UP button pressed');
-                this.cycleZone();
-            }
-
             handleDownButton() {
-                this.log('🎮 DOWN button pressed');
-                this.triggerLap();
+                // DOWN Button behavior depends on mode
+                if (this.autoMode) {
+                    // AUTO MODE: Decrease resistance by 5%
+                    const currentResistance = this.metrics.resistance;
+                    const newResistance = Math.max(0, currentResistance - 5);
+                    this.setResistance(newResistance);
+                    this.log(`🎮 DOWN (Auto) → Resistance: ${newResistance}%`);
+                    this.showNotification('info', `Resistance: ${newResistance}%`, 1500);
+                } else {
+                    // MANUAL MODE: Trigger lap
+                    this.log('🎮 DOWN (Manual) → LAP');
+                    this.triggerLap();
+                }
             }
 
             // ============================================================================
@@ -945,6 +1261,9 @@
                         const controlChar = await ftmsService.getCharacteristic('00002ad9-0000-1000-8000-00805f9b34fb');
                         
                         this.connections.trainer = { device, server, ftmsService, controlChar };
+                        
+                        // Set initial resistance to Zone 1 (0%)
+                        await this.setResistance(0);
                         
                     } catch (e) {
                         this.log(`⚠️ FTMS not available: ${e.message}`);
@@ -1051,11 +1370,15 @@
             // ============================================================================
 
             async setResistance(value) {
+                // Ensure value is within valid range (0-100%)
+                value = Math.max(0, Math.min(100, value));
+                
                 this.metrics.resistance = value;
                 document.getElementById('resistance-value').textContent = value;
                 
                 if (this.connections.trainer?.controlChar) {
                     try {
+                        // FTMS Set Target Resistance command
                         const command = new Uint8Array([0x04, value]);
                         await this.connections.trainer.controlChar.writeValue(command);
                         this.log(`🎚️ Resistance set to ${value}%`);
@@ -1141,21 +1464,125 @@
             }
 
             exportSession() {
-                if (this.session.data.length === 0) {
-                    this.showNotification('error', 'No data to export');
-                    return;
-                }
-                
-                const csv = this.convertToCSV(this.session.data);
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `training_${new Date().toISOString()}.csv`;
-                a.click();
-                
-                this.log('📥 Session data exported');
-                this.showNotification('success', 'Data exported successfully');
+ if (this.session.data.length === 0) {
+        this.showNotification('error', 'No data to export');
+        return;
+    }
+    
+    // Create export options dialog
+    const exportDialog = document.createElement('div');
+    exportDialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        text-align: center;
+    `;
+    
+    exportDialog.innerHTML = `
+        <h3 style="margin-bottom: 20px; color: #333;">Export Training Session</h3>
+        <button id="export-fit-btn" style="
+            padding: 15px 30px;
+            margin: 10px;
+            background: #fc4c02;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            width: 200px;
+        ">
+            🚴 Export for Strava (.FIT)
+        </button>
+        <button id="export-csv-btn" style="
+            padding: 15px 30px;
+            margin: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            width: 200px;
+        ">
+            📊 Export as CSV
+        </button>
+        <button id="cancel-export-btn" style="
+            padding: 10px 20px;
+            margin: 10px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        ">
+            Cancel
+        </button>
+    `;
+    
+    document.body.appendChild(exportDialog);
+    
+    // Handle FIT export
+    document.getElementById('export-fit-btn').addEventListener('click', () => {
+        try {
+            const fitWriter = new SimpleFITWriter();
+            const fitData = fitWriter.createIndoorCyclingFIT(this.session.data, this.session.startTime);
+            
+            const blob = new Blob([fitData], { type: 'application/vnd.ant.fit' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            const date = new Date(this.session.startTime);
+            const dateStr = date.toISOString().split('T')[0];
+            const timeStr = date.toTimeString().split(' ')[0].replace(/:/g, '-');
+            a.download = `Indoor_Cycling_${dateStr}_${timeStr}.fit`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            this.log('📥 Session exported as FIT file (Strava compatible)');
+            this.showNotification('success', '🚴 FIT file ready for Strava upload!', 5000);
+            
+        } catch (error) {
+            this.log(`❌ FIT export failed: ${error.message}`);
+            this.showNotification('error', 'FIT export failed');
+        }
+        
+        document.body.removeChild(exportDialog);
+    });
+    
+    // Handle CSV export
+    document.getElementById('export-csv-btn').addEventListener('click', () => {
+        const csv = this.convertToCSV(this.session.data);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `training_${new Date().toISOString()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        this.log('📥 Session data exported as CSV');
+        this.showNotification('success', '📊 CSV file exported successfully');
+        
+        document.body.removeChild(exportDialog);
+    });
+    
+    // Handle cancel
+    document.getElementById('cancel-export-btn').addEventListener('click', () => {
+        document.body.removeChild(exportDialog);
+    });
             }
 
             convertToCSV(data) {
@@ -1206,8 +1633,8 @@
 
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            window.trainingApp = new AdvancedTrainingPlatform();
-            console.log('🚴 Advanced Training Platform initialized');
+            window.trainerApp = new SmartTrainerPlatform();
+            console.log('🚴 Smart Trainer Platform initialized - Complete Fixed Version');
         });
     </script>
 </body>

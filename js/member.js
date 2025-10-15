@@ -211,6 +211,11 @@ window.logout = function() {
     });
 };
 
+// Start Workout - Navigate to equipment pairing page
+window.startWorkout = function() {
+    window.location.href = '../equipment-pairing.html';
+};
+
 // Close modal on escape key
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

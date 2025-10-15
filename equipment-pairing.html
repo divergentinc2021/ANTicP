@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Pairing - Gym Zones</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 24px;
+        }
+
+        .header .user-info {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .welcome-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .welcome-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .welcome-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sensor-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .sensor-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .sensor-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .sensor-status {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 15px;
+            min-height: 20px;
+        }
+
+        .sensor-status.connected {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .sensor-status.connecting {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .sensor-status.error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .btn-connect {
+            width: 100%;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-connect:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-connect:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-connect.connected {
+            background: #28a745;
+        }
+
+        .btn-connect.connected:hover {
+            background: #218838;
+        }
+
+        .action-buttons {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-skip {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-skip:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: #28a745; }
+        .notification.error { background: #dc3545; }
+        .notification.info { background: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏋️ Gym Zones - Equipment Pairing</h1>
+            <div class="user-info">
+                <strong id="username">Guest</strong>
+            </div>
+        </div>
+
+        <div class="welcome-card">
+            <h2>Connect Your Training Equipment</h2>
+            <p>Connect your sensors and equipment to start your workout. You can connect now or skip and connect later during your workout.</p>
+        </div>
+
+        <div class="sensors-grid">
+            <div class="sensor-card">
+                <div class="sensor-icon">🚴</div>
+                <div class="sensor-name">Smart Trainer</div>
+                <div class="sensor-status" id="trainer-status">Not connected</div>
+                <button class="btn-connect" id="trainer-btn" onclick="connectTrainer()">Connect KICKR</button>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-icon">🎮</div>
+                <div class="sensor-name">Zwift Click</div>
+                <div class="sensor-status" id="zwift-status">Not connected</div>
+                <button class="btn-connect" id="zwift-btn" onclick="connectZwiftClick()">Connect Controller</button>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-icon">❤️</div>
+                <div class="sensor-name">Heart Rate Monitor</div>
+                <div class="sensor-status" id="hr-status">Not connected</div>
+                <button class="btn-connect" id="hr-btn" onclick="connectHeartRate()">Connect HR Monitor</button>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-action btn-skip" onclick="skipToWorkout()">Skip for Now</button>
+            <button class="btn-action btn-start" onclick="startWorkout()">Start Workout</button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Sensor connection state
+        const sensorState = {
+            trainer: false,
+            zwiftClick: false,
+            heartRate: false
+        };
+
+        // Check if user is logged in
+        const username = sessionStorage.getItem('currentUsername') || 'Guest';
+        document.getElementById('username').textContent = username;
+
+        // If no username, redirect to login
+        if (!sessionStorage.getItem('currentUsername')) {
+            window.location.href = 'index.html';
+        }
+
+        // Connect to Smart Trainer (KICKR)
+        async function connectTrainer() {
+            const btn = document.getElementById('trainer-btn');
+            const status = document.getElementById('trainer-status');
+
+            btn.disabled = true;
+            status.textContent = 'Connecting...';
+            status.className = 'sensor-status connecting';
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'KICKR' },
+                        { namePrefix: 'WAHOO' }
+                    ],
+                    optionalServices: [
+                        '00001826-0000-1000-8000-00805f9b34fb',  // FTMS
+                        '00001818-0000-1000-8000-00805f9b34fb'   // Cycling Power
+                    ]
+                });
+
+                const server = await device.gatt.connect();
+
+                // Store connection info
+                sensorState.trainer = true;
+                sessionStorage.setItem('kickr-connected', 'true');
+                sessionStorage.setItem('kickr-id', device.id);
+                sessionStorage.setItem('kickr-name', device.name);
+
+                status.textContent = `Connected: ${device.name}`;
+                status.className = 'sensor-status connected';
+                btn.textContent = '✓ Connected';
+                btn.className = 'btn-connect connected';
+
+                showNotification('success', `✅ ${device.name} connected successfully`);
+
+            } catch (error) {
+                console.error('Trainer connection error:', error);
+                status.textContent = 'Connection failed';
+                status.className = 'sensor-status error';
+                btn.disabled = false;
+                showNotification('error', '❌ Failed to connect trainer');
+            }
+        }
+
+        // Connect to Zwift Click
+        async function connectZwiftClick() {
+            const btn = document.getElementById('zwift-btn');
+            const status = document.getElementById('zwift-status');
+
+            btn.disabled = true;
+            status.textContent = 'Connecting...';
+            status.className = 'sensor-status connecting';
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'Zwift Click' },
+                        { namePrefix: 'CLICK' }
+                    ],
+                    optionalServices: ['00000001-19ca-4651-86e5-fa29dcdd09d1']
+                });
+
+                const server = await device.gatt.connect();
+
+                // Store connection info
+                sensorState.zwiftClick = true;
+                sessionStorage.setItem('zwift-connected', 'true');
+                sessionStorage.setItem('zwift-id', device.id);
+                sessionStorage.setItem('zwift-name', device.name);
+
+                status.textContent = `Connected: ${device.name}`;
+                status.className = 'sensor-status connected';
+                btn.textContent = '✓ Connected';
+                btn.className = 'btn-connect connected';
+
+                showNotification('success', `✅ ${device.name} connected successfully`);
+
+            } catch (error) {
+                console.error('Zwift Click connection error:', error);
+                status.textContent = 'Connection failed';
+                status.className = 'sensor-status error';
+                btn.disabled = false;
+                showNotification('error', '❌ Failed to connect Zwift Click');
+            }
+        }
+
+        // Connect to Heart Rate Monitor
+        async function connectHeartRate() {
+            const btn = document.getElementById('hr-btn');
+            const status = document.getElementById('hr-status');
+
+            btn.disabled = true;
+            status.textContent = 'Connecting...';
+            status.className = 'sensor-status connecting';
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['0000180d-0000-1000-8000-00805f9b34fb'] }]
+                });
+
+                const server = await device.gatt.connect();
+
+                // Store connection info
+                sensorState.heartRate = true;
+                sessionStorage.setItem('hr-connected', 'true');
+                sessionStorage.setItem('hr-id', device.id);
+                sessionStorage.setItem('hr-name', device.name);
+
+                status.textContent = `Connected: ${device.name}`;
+                status.className = 'sensor-status connected';
+                btn.textContent = '✓ Connected';
+                btn.className = 'btn-connect connected';
+
+                showNotification('success', `✅ ${device.name} connected successfully`);
+
+            } catch (error) {
+                console.error('HR Monitor connection error:', error);
+                status.textContent = 'Connection failed';
+                status.className = 'sensor-status error';
+                btn.disabled = false;
+                showNotification('error', '❌ Failed to connect HR Monitor');
+            }
+        }
+
+        // Skip to workout without connecting sensors
+        function skipToWorkout() {
+            if (confirm('Are you sure you want to skip sensor pairing? You can connect them later during your workout.')) {
+                window.location.href = 'workout.html';
+            }
+        }
+
+        // Start workout (proceed to workout page)
+        function startWorkout() {
+            // Save sensor connection state
+            const connectedSensors = {
+                kickr: sensorState.trainer,
+                zwift: sensorState.zwiftClick,
+                heart: sensorState.heartRate
+            };
+            sessionStorage.setItem('sensorsConnected', JSON.stringify(connectedSensors));
+
+            window.location.href = 'workout.html';
+        }
+
+        // Show notification
+        function showNotification(type, message) {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type} show`;
+            notification.textContent = message;
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Load saved sensor states from previous connections
+        window.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('kickr-connected') === 'true') {
+                const status = document.getElementById('trainer-status');
+                const btn = document.getElementById('trainer-btn');
+                status.textContent = `Previously connected: ${sessionStorage.getItem('kickr-name')}`;
+                status.className = 'sensor-status';
+                btn.textContent = 'Reconnect';
+            }
+
+            if (sessionStorage.getItem('zwift-connected') === 'true') {
+                const status = document.getElementById('zwift-status');
+                const btn = document.getElementById('zwift-btn');
+                status.textContent = `Previously connected: ${sessionStorage.getItem('zwift-name')}`;
+                status.className = 'sensor-status';
+                btn.textContent = 'Reconnect';
+            }
+
+            if (sessionStorage.getItem('hr-connected') === 'true') {
+                const status = document.getElementById('hr-status');
+                const btn = document.getElementById('hr-btn');
+                status.textContent = `Previously connected: ${sessionStorage.getItem('hr-name')}`;
+                status.className = 'sensor-status';
+                btn.textContent = 'Reconnect';
+            }
+        });
+    </script>
+</body>
+</html>
